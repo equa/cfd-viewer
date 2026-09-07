@@ -92,3 +92,16 @@ def preset_items():
         {"title": label, "value": name, "gradient": css_gradient(name)}
         for name, label in PRESETS
     ]
+
+
+def rgb_table(name, n=_N_SAMPLES):
+    """The preset as *n* flat RGB bytes -- the same samples the VTK transfer
+    function and the CSS legend are built from.
+
+    Exists for clients that do their own colour mapping (the three.js spike
+    uploads this as a 1-D LUT texture). Sharing the table is what guarantees the
+    two renderers show the same colours, rather than two look-alike ramps."""
+    out = bytearray()
+    for r, g, b in _samples(name, n):
+        out += bytes((int(r * 255), int(g * 255), int(b * 255)))
+    return bytes(out)

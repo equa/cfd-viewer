@@ -27,3 +27,6 @@ data/hotRoom/processor*/
 
 # Screenshot output from tests/browser_check.py
 /shots/
+
+# Spike: browser deps are vendored by spike/fetch_vendor.sh, not committed
+spike/web/vendor/
