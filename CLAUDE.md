@@ -21,11 +21,19 @@ Built 2026-08-11 in one session. Working and verified:
 
 Not yet done — see "Backend integration" at the end of this file.
 
+**There is also an experimental React + three.js client under `spike/`** (this
+branch only): the same `case.py`/`pipeline.py` server-side, ordinary React and
+three.js in the browser instead of Trame + vtk.js. See `spike/CLAUDE.md` for the
+findings and `spike/README.md` for the measurements. It exists to answer whether
+Trame can be dropped without dropping VTK; the answer is yes, and the client
+side costs about a millisecond.
+
 ## Resuming in a new workspace
 
-The project is **not under version control** and lives at `/workspace/foamviz`.
-A `.gitignore` is already in place, so `git init && git add -A` is clean
-whenever it needs to move.
+The project lives at `/workspace/cfd-trame-vtk-viewer` and **is** under version
+control now (`origin/main` on GitHub, cloned into the `cfd-viz` image at build
+time). The note below about what needs to travel still applies to a fresh
+workspace, since the bulky parts are all gitignored.
 
 What actually needs to travel is about **1 MB**:
 
