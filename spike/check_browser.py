@@ -162,15 +162,48 @@ def main():
                   f"{tris_before:,} -> {tris_after:,}")
             shot(page, out / "04-boundary-hidden.png")
 
-            # --- server-side controls must refetch --------------------------
+            # --- dragging must not refetch; releasing must ------------------
+            # A range input fires `input` per pixel of a drag and `change` on
+            # release. 20 input events used to mean 20 extractions queued.
+            page.eval_on_selector(
+                '[data-ctl=slice-frac]',
+                """el => {
+                    for (let i = 0; i < 20; i += 1) {
+                        el.value = 0.3 + i * 0.01
+                        el.dispatchEvent(new Event('input', { bubbles: true }))
+                    }
+                }""",
+            )
+            page.wait_for_timeout(2000)
+            check("dragging the cut plane does not refetch",
+                  len(scene_requests) == n_before,
+                  f"{len(scene_requests) - n_before} request(s) for 20 drag events")
+
             page.eval_on_selector(
                 '[data-ctl=slice-frac]',
                 "el => { el.value = 0.25; el.dispatchEvent(new Event('change', {bubbles:true})) }",
             )
-            page.wait_for_timeout(4000)
-            check("moving the cut plane refetches",
+            page.wait_for_timeout(6000)
+            check("releasing the cut plane refetches once",
                   len(scene_requests) == n_before + 1, f"{len(scene_requests) - n_before} request(s)")
             shot(page, out / "05-slice-moved.png")
+
+            # --- navigation: Z-up turntable ---------------------------------
+            up = page.evaluate("window.__spikeCamera().up")
+            check("camera up is +Z", abs(up["z"] - 1) < 1e-6 and abs(up["x"]) < 1e-6,
+                  f"({up['x']:.2f}, {up['y']:.2f}, {up['z']:.2f})")
+            before = page.evaluate("window.__spikeCamera()")
+            orbit(page)
+            page.wait_for_timeout(800)
+            after = page.evaluate("window.__spikeCamera()")
+            moved = any(abs(after["position"][k] - before["position"][k]) > 1e-6 for k in "xyz")
+            check("orbiting moves the camera", moved)
+            check("orbiting keeps +Z up (no roll)",
+                  abs(after["up"]["z"] - 1) < 1e-6,
+                  f"up.z {after['up']['z']:.6f}")
+            check("orbiting keeps the target fixed",
+                  all(abs(after["target"][k] - before["target"][k]) < 1e-6 for k in "xyz"))
+            shot(page, out / "06-orbited.png")
 
             # --- interaction cost -------------------------------------------
             orbit(page)

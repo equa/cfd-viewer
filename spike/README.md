@@ -22,7 +22,7 @@ with no network.
 
 ```sh
 python spike/bench.py hotRoom s2     # server-side sizes and timings
-python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 11 checks
+python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 16 checks
 ```
 
 ## What it reuses, unchanged
@@ -56,6 +56,33 @@ Dev container, VTK 9.7, `data/` cases. Frame rates are headless Chromium on
 Per-part, s2: boundary 588 k triangles / 170 ms / 15.0 MB raw · slice 10 k /
 64 ms / 0.27 MB · isosurface 11 k / 35 ms / 0.29 MB · streamlines 43 k segments
 / **2649 ms** / 1.0 MB.
+
+## Navigation and slider behaviour
+
+**Turntable, +Z up.** `OrbitControls` *is* a turntable: it orbits the target
+while maintaining `camera.up`, so azimuth spins about world +Z and the horizon
+never rolls. Two gotchas: `camera.up` must be set **before** constructing the
+controls (the constructor bakes it into a quaternion and never re-reads it), and
+the start position must be off-axis, since sitting on the pole leaves azimuth
+undefined. Mouse buttons are remapped to VTK order (left rotate, middle pan,
+right dolly) so navigation matches FoamViz and ParaView rather than three.js
+defaults.
+
+Worth noting against the Trame path: turntable rotation is *not* available in
+trame-vtk 2.11.15 local mode (see the main CLAUDE.md), and here it is three
+lines.
+
+**Sliders commit on release.** React's `onChange` for a range input is wired to
+the native `input` event, which fires on every pixel of a drag -- so one sweep
+of the cut-plane slider queued ~20 extractions, each of them seconds long on a
+real case. The native `change` event *is* the release event for a range input,
+so the draft value drives the UI live and only `change` triggers a refetch
+(`Slider` in `web/app.js`; the listener is attached natively because React maps
+both `onChange` and `onInput` to `input` and offers no "user let go" event).
+On top of that, an in-flight request is aborted when a newer one starts, so the
+selects and number inputs cannot stack up either and the newest request always
+wins. `check_browser.py` asserts both halves: 20 drag events cause zero
+requests, the release causes exactly one.
 
 ## Findings
 

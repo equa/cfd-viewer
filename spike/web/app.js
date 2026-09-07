@@ -108,9 +108,25 @@ class Viewer {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x16181d)
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1e6)
-    this.camera.position.set(3, 3, 3)
+    // Z is up in CFD, and OrbitControls *is* a turntable: it orbits the target
+    // while maintaining `object.up`, so azimuth spins about the world Z axis and
+    // the horizon never rolls. Two things matter here. The up vector must be set
+    // BEFORE constructing the controls -- the constructor bakes it into a
+    // quaternion (`_quat`) and never re-reads it -- and the start position must
+    // be off-axis, since sitting exactly on the pole leaves azimuth undefined.
+    this.camera.up.set(0, 0, 1)
+    this.camera.position.set(3, -3, 2)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.enableDamping = true
+    this.controls.dampingFactor = 0.12
+    // three.js defaults to middle=dolly, right=pan; VTK (so ParaView, so
+    // FoamViz) is middle=pan, right=dolly. Match the app people already use --
+    // easy to flip back here if the other order is preferred.
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.PAN,
+      RIGHT: THREE.MOUSE.DOLLY,
+    }
 
     this.lut = new THREE.DataTexture(new Uint8Array(256 * 4), 256, 1, THREE.RGBAFormat)
     this.lut.minFilter = this.lut.magFilter = THREE.LinearFilter
@@ -226,8 +242,10 @@ class Viewer {
     this.controls.target.copy(centre)
     this.camera.near = diagonal / 1000
     this.camera.far = diagonal * 100
+    // Front-right and slightly above, in a Z-up world -- the standard CFD
+    // three-quarter view, and well clear of the pole.
     this.camera.position.copy(centre).add(
-      new THREE.Vector3(1, 0.75, 1).normalize().multiplyScalar(diagonal * 1.6),
+      new THREE.Vector3(1, -1, 0.6).normalize().multiplyScalar(diagonal * 1.6),
     )
     this.camera.updateProjectionMatrix()
     this.controls.update()
@@ -260,6 +278,36 @@ class Viewer {
 
 // ---------------------------------------------------------------------- app
 
+/* Sliders commit on release, not while dragging.
+ *
+ * React's onChange for a range input is wired to the native `input` event,
+ * which fires on every pixel of a drag -- so a single slider sweep queued ~20
+ * extractions, each of them seconds long on a real case. The native `change`
+ * event is the release event for a range input (mouse up, or key up when
+ * arrowing), so the draft value drives the UI live and only `change` commits.
+ *
+ * The listener is attached natively rather than through React because React
+ * maps both onChange and onInput to `input`; there is no synthetic event for
+ * "the user let go".
+ */
+function Slider({ value, onCommit, ...rest }) {
+  const ref = useRef(null)
+  const [draft, setDraft] = useState(value)
+  const commit = useRef(onCommit)
+  commit.current = onCommit
+
+  useEffect(() => { setDraft(value) }, [value])
+  useEffect(() => {
+    const el = ref.current
+    const handler = (e) => commit.current(+e.target.value)
+    el.addEventListener('change', handler)
+    return () => el.removeEventListener('change', handler)
+  }, [])
+
+  return html`<input ...${rest} ref=${ref} type="range" value=${draft}
+                     onInput=${(e) => setDraft(+e.target.value)} />`
+}
+
 const PARTS = [
   ['boundary', 'Boundary'],
   ['slice', 'Cut plane'],
@@ -286,9 +334,9 @@ function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRan
         </div>
         <div className="row">
           <span className="lbl">Time</span>
-          <input data-ctl="time" type="range" min="0" max=${Math.max(times.length - 1, 0)} step="1"
+          <${Slider} data-ctl="time" min="0" max=${Math.max(times.length - 1, 0)} step="1"
                  value=${q.time_index ?? Math.max(times.length - 1, 0)}
-                 onChange=${(e) => set({ time_index: +e.target.value })} />
+                 onCommit=${(v) => set({ time_index: v })} />
           <span>${times.length ? (times[q.time_index ?? times.length - 1] ?? 0) : 0}</span>
         </div>
       </div>
@@ -343,7 +391,7 @@ function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRan
         <div className="row">
           <span className="lbl">Bnd. opacity</span>
           <input data-ctl="opacity" type="range" min="0.05" max="1" step="0.05" value=${surface.opacity}
-                 onChange=${(e) => setSurface({ ...surface, opacity: +e.target.value })} />
+                 onInput=${(e) => setSurface({ ...surface, opacity: +e.target.value })} />
           <span>${surface.opacity.toFixed(2)}</span>
         </div>
         <div className="row">
@@ -367,8 +415,8 @@ function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRan
         </div>
         <div className="row">
           <span className="lbl">Position</span>
-          <input data-ctl="slice-frac" type="range" min="0" max="1" step="0.02" value=${q.slice_frac}
-                 onChange=${(e) => set({ slice_frac: +e.target.value })} />
+          <${Slider} data-ctl="slice-frac" min="0" max="1" step="0.02" value=${q.slice_frac}
+                 onCommit=${(v) => set({ slice_frac: v })} />
           <span>${(+q.slice_frac).toFixed(2)}</span>
         </div>
       </div>
@@ -377,8 +425,8 @@ function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRan
         <label className="head">Isosurface / streamlines <span className="tag server">server</span></label>
         <div className="row">
           <span className="lbl">Isovalue</span>
-          <input data-ctl="iso-frac" type="range" min="0.02" max="0.98" step="0.02" value=${q.iso_frac}
-                 onChange=${(e) => set({ iso_frac: +e.target.value })} />
+          <${Slider} data-ctl="iso-frac" min="0.02" max="0.98" step="0.02" value=${q.iso_frac}
+                 onCommit=${(v) => set({ iso_frac: v })} />
           <span>${(+q.iso_frac).toFixed(2)}</span>
         </div>
         <div className="row">
@@ -426,6 +474,7 @@ function App() {
   const stageRef = useRef(null)
   const viewerRef = useRef(null)
   const lutCache = useRef(new Map())
+  const inflight = useRef(null)
   const [meta, setMeta] = useState(null)
   const [q, setQ] = useState({
     case: new URLSearchParams(location.search).get('case') || '',
@@ -448,6 +497,16 @@ function App() {
     viewerRef.current = new Viewer(stageRef.current)
     viewerRef.current.setSurfaceStyle(surface)
     window.__spikeGrab = () => viewerRef.current.grab()  // see Viewer.grab
+    // Test hook: camera/target/up, so check_browser.py can assert the turntable
+    // behaviour (azimuth about +Z, no roll, target held).
+    window.__spikeCamera = () => {
+      const { camera, controls } = viewerRef.current
+      return {
+        position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+        target: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
+        up: { x: camera.up.x, y: camera.up.y, z: camera.up.z },
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -499,6 +558,13 @@ function App() {
   // The geometry request. Every dependency here is a "server" control.
   const fetchScene = useCallback(async () => {
     if (!meta || !q.field) return
+    // One extraction at a time: abandon whatever is still in flight rather than
+    // letting requests stack up behind it. Deferred sliders stop a drag from
+    // queueing 20 of these; this stops the selects and number inputs from
+    // queueing the rest, and means the newest request always wins.
+    inflight.current?.abort()
+    const controller = new AbortController()
+    inflight.current = controller
     setBusy(true)
     const params = new URLSearchParams({
       case: q.case,
@@ -513,7 +579,7 @@ function App() {
     if (q.time_index !== undefined) params.set('time_index', q.time_index)
     try {
       const t0 = performance.now()
-      const response = await fetch(`/api/scene?${params}`)
+      const response = await fetch(`/api/scene?${params}`, { signal: controller.signal })
       if (!response.ok) throw new Error(await response.text())
       const buffer = await response.arrayBuffer()
       const t1 = performance.now()
@@ -539,9 +605,13 @@ function App() {
       })
       setError(null)
     } catch (e) {
+      if (e.name === 'AbortError') return  // superseded by a newer request
       setError(String(e))
     } finally {
-      setBusy(false)
+      if (inflight.current === controller) {
+        inflight.current = null
+        setBusy(false)
+      }
     }
   }, [meta, q.case, q.field, q.component, q.slice_axis, q.slice_frac, q.iso_frac, q.seeds, q.time_index])
 
