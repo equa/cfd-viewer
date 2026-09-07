@@ -274,6 +274,51 @@ def main():
     check("t=0 is the still initial field", zero_hi < uhi,
           f"t0 max {zero_hi:.5f} vs final {uhi:.5f}")
 
+    print("\ncase release (memory handed back on a case switch)")
+    # Build the heavy representations, then release: their geometry must be gone
+    # (a hidden actor never re-executes its filter, so a case switch would
+    # otherwise carry the previous case's streamlines and isosurfaces along).
+    case.load(case.times[-1])
+    pipe.update_data()
+    # Re-derive the isovalues: the time-stepping checks above left t=0 loaded,
+    # so COLOR_ARRAY has just been re-baked from the final step.
+    clo, chi = case.internal.GetPointData().GetArray(COLOR_ARRAY).GetRange()
+    release_isovals = [clo + (chi - clo) * f for f in (0.25, 0.5, 0.75)]
+    pipe.update_contour(True, release_isovals, 1.0)
+    pipe.update_streamlines(True, 200, 1.0, 1.0, True, 1)
+    pipe.contour_normals.Update()
+    pipe.stream_tube.Update()
+    check("heavy geometry built before release",
+          pipe.contour_normals.GetOutput().GetNumberOfPoints() > 0
+          and pipe.stream_tube.GetOutput().GetNumberOfPoints() > 0)
+    pipe.release_case()
+    held = {f.GetClassName(): f.GetOutputDataObject(0).GetNumberOfElements(0)
+            for f in pipe._case_derived()}
+    check("release drops every derived dataset",
+          not any(held.values()), str({k: v for k, v in held.items() if v}))
+    check("release forgets the case", pipe.case is None and not pipe.has_geometry)
+
+    # ...and the released filters must still produce geometry when the case
+    # comes back -- an Initialize()d output that never re-executes would render
+    # as a perfectly plausible empty scene.
+    pipe.set_case(case)
+    pipe.update_data()
+    pipe.update_contour(True, release_isovals, 1.0)
+    pipe.update_streamlines(True, 200, 1.0, 1.0, True, 1)
+    pipe.contour_normals.Update()
+    pipe.stream_tube.Update()
+    check("isosurface rebuilds after release",
+          pipe.contour_normals.GetOutput().GetNumberOfPoints() > 0,
+          f"{pipe.contour_normals.GetOutput().GetNumberOfPoints()} pts")
+    check("streamlines rebuild after release",
+          pipe.stream_tube.GetOutput().GetNumberOfPoints() > 0,
+          f"{pipe.stream_tube.GetOutput().GetNumberOfPoints()} pts")
+    pipe.update_surface(True, True, 1.0, False, False, False)
+    pipe.surface_input.Update()
+    check("boundary rebuilds after release",
+          pipe.surface_input.GetOutput().GetNumberOfPoints() > 0,
+          f"{pipe.surface_input.GetOutput().GetNumberOfPoints()} pts")
+
     print(f"\n{checks - len(failures)}/{checks} checks passed")
     if failures:
         print("failed:", ", ".join(failures))

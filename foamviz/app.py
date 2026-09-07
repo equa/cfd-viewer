@@ -15,6 +15,7 @@ Because the colour scalars are baked into a real array by the pipeline (see
 """
 
 import asyncio
+import ctypes
 import json
 import logging
 import math
@@ -38,6 +39,38 @@ from .pipeline import FoamPipeline
 log = logging.getLogger("foamviz")
 
 SHOT_ROUTE = "/foamviz/screenshot.png"
+
+# glibc's malloc_trim(0), resolved once. Best-effort: musl and other libcs do
+# not have it, and a viewer that cannot trim its heap is still a working viewer.
+try:
+    _libc = ctypes.CDLL("libc.so.6")
+    _malloc_trim = _libc.malloc_trim
+    _malloc_trim.argtypes = [ctypes.c_size_t]
+    _malloc_trim.restype = ctypes.c_int
+except (OSError, AttributeError):  # pragma: no cover - non-glibc platforms
+    _malloc_trim = None
+
+
+def _trim_heap():
+    """Hand the pages freed by a case switch back to the OS.
+
+    Dropping a case does free its arrays -- plain refcounting, no cycles, and
+    ``gc.collect()`` changes nothing -- but glibc keeps the pages in its arenas,
+    so the container's RSS stays at the high-water mark of the largest case ever
+    opened. That reads as a leak and counts against a memory limit even though
+    the memory is not in use. Measured, s2 -> hotRoom: 611 -> 268 MB.
+
+    Deliberately called once per **case switch**, not per time step: inside one
+    case the arrays just freed are the same size as the ones about to be
+    allocated, so leaving them in the arena is exactly what makes stepping
+    through time cheap.
+    """
+    if _malloc_trim is None:
+        return
+    try:
+        _malloc_trim(0)
+    except OSError:  # pragma: no cover
+        log.debug("malloc_trim failed", exc_info=True)
 
 # Interactive vtk.js scene export is mothballed for now: the report uses the PNG
 # poster only, and unused <case>/report/*.vtkjs files would just accumulate. The
@@ -356,8 +389,26 @@ class FoamViz:
             return
 
         self._loading = True
-        self.case = FoamCase(path)
-        self.case.load(self.case.times[-1])
+        # Let go of the previous case BEFORE reading the new one. update_data()
+        # below rewires the filters, but only at the *end* of the load, so
+        # without this both meshes are resident for the whole read -- peak RSS
+        # is the two cases together. See FoamPipeline.release_case.
+        self.case = None
+        self.pipeline.release_case()
+        try:
+            self.case = FoamCase(path)
+            self.case.load(self.case.times[-1])
+        except Exception:
+            # The scene is already released, so a half-read case would leave the
+            # viewer showing the old case's controls over nothing -- and with
+            # _loading stuck True, every change handler guarded out (a dead UI
+            # until restart). Drop it and re-open the UI on an empty scene.
+            log.exception("load_case(%r): reading the case failed", name)
+            self.case = None
+            self.pipeline.release_case()
+            self._loading = False
+            _trim_heap()
+            return
         self.pipeline.set_case(self.case)
 
         fields = sorted(self.case.fields)
@@ -394,6 +445,7 @@ class FoamViz:
         self._loading = False
         self._rescale()
         self.update_scene(reset_camera=True)
+        _trim_heap()  # the outgoing case's pages are free; give them back
         log.info("loaded case %s: %d cells, %d step(s)%s",
                  name, self.case.n_cells(), len(self.case.times),
                  " (decomposed)" if self.case.decomposed else "")

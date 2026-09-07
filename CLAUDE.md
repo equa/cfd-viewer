@@ -405,6 +405,63 @@ The cut plane is the hub — the slice and the stream-tracer seeds derive from i
   - Covered by `browser_check.py` step **1b/1c** (drags the plane slider, asserts
     the red frame appears mid-drag and the slice moves on release).
 
+## Memory management (2026-09-07)
+
+Where the memory actually sits, and what a case switch does with it. All figures
+measured in the dev container with `data/s2` (1.1 GB on disk) and
+`data/geometric-fancoil-and-beam` (300 MB, decomposed), VTK 9.7.
+
+**One case is held at a time.** There is no case cache: `FoamViz.case` is a
+single slot and `case_paths` holds only name→path strings. Four things hold real
+memory:
+
+1. **The reader's mesh cache** — `vtkOpenFOAMReader.CacheMesh` is on by default
+   (checked: `GetCacheMesh() == 1`). This is why stepping in time is cheap: only
+   the fields are re-read, not the mesh. `FoamCase.load()` also short-circuits
+   entirely when time+patches are unchanged, so going back and forth on one case
+   costs nothing.
+2. **The snapshot** — `case.internal` + `case.boundary`, shallow copies of the
+   reader output.
+3. **The pipeline's filter outputs** — `FoamPipeline` lives for the process and
+   every filter keeps its last-executed output.
+4. **trame's serialized-array cache** — in local (vtk.js) mode every array
+   shipped to the browser is kept in `SynchronizationContext.data_array_cache`,
+   keyed by md5, holding a reference to the `vtkDataArray` itself.
+
+**A case switch does free the old case** — plain refcounting, no reference
+cycles (`gc.collect()` changes nothing). Two things used to spoil that, both
+fixed by `FoamPipeline.release_case()` called at the top of `load_case`:
+
+- The old mesh stayed wired into the cutter/contour/tracer/glyph filters until
+  `update_data()` rewired them at the **end** of the load, so the entire new
+  case was read with the old one still resident. Peak RSS on s2 → fancoil:
+  **1653 → 1521 MB**.
+- A hidden actor never re-executes its filter (`update_streamlines` /
+  `update_glyphs` return early when invisible) and `load_case` deliberately
+  starts every case with the heavy representations **off** — so case A's
+  streamlines and isosurfaces sat in the tracer/tube/contour outputs until you
+  happened to switch them on again under case B. Steady RSS after the switch:
+  **1055 → 757 MB**.
+
+**Why the container's RSS did not drop:** glibc keeps freed pages in its arenas.
+A single `malloc_trim(0)` took RSS from 611 → 268 MB after an s2 → hotRoom
+switch. `app._trim_heap()` (ctypes, best-effort — non-glibc libcs have no
+`malloc_trim`) is called once per case switch at the end of `load_case`.
+Deliberately **not** per time step: inside one case the arrays just freed are
+the same size as the ones about to be allocated, so leaving them in the arena is
+what keeps time stepping cheap.
+
+**Still open — leaving the viewer frees nothing.** It is a shared single session
+(one pipeline, one camera) with no teardown on disconnect, and trame's array
+cache is pruned *only* inside `get_view_state` (trame_vtk
+`modules/vtk/protocols/local_rendering.py`), for arrays with refcount 1 that are
+>20 s old. Close the tab and nothing prunes, so the last case's arrays stay
+cached; it self-cleans once you come back and interact. trame_server exposes no
+`on_client_exit` hook (only `on_server_exited`), so a trim-on-leave would need
+either a client-count heartbeat or the arrays to be dropped some other way.
+Sizing rule of thumb meanwhile: **the viewer's RSS settles near the largest
+single case opened, not the sum.**
+
 ## Backend integration
 
 ### Decided (2026-08-11, with Niklas)

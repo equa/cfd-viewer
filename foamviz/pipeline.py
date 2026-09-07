@@ -73,8 +73,12 @@ class FoamPipeline:
         `surface_input`, and seed the `case.internal`-fed filters with an empty
         grid so their `Update()` is a clean no-op (no "0 connections" ERR spam)
         until `update_data` wires the real case. All of this is overwritten the
-        moment a case loads."""
+        moment a case loads.
+
+        Also the *reset* path: :meth:`release_case` re-runs this to unwire a case,
+        so it must stay idempotent."""
         self.surface_mapper.SetInputConnection(self.surface_input.GetOutputPort())
+        self.surface_input.RemoveAllInputs()  # idempotent: release_case() re-runs this
         self.surface_input.AddInputData(vtk.vtkPolyData())  # append needs >=1 input
         empty = vtk.vtkUnstructuredGrid()
         self.cutter.SetInputData(empty)
@@ -373,6 +377,53 @@ class FoamPipeline:
                 transform.RotateY(-90)
 
     # -- case handling ----------------------------------------------------
+
+    def _case_derived(self):
+        """Every filter whose output is geometry derived from the loaded case.
+
+        Ordered upstream-first, and deliberately excludes the case-independent
+        sources (the arrow, the glyph plane, the triad): those hold nothing.
+        """
+        return (
+            self.surface_input, self.surface_clip,
+            self.cutter, self.crinkle, self.crinkle_surface,
+            self.contour, self.contour_normals,
+            self.stream_seeds, self.tracer, self.stream_tube,
+            self.glyph_probe, self.glyph_grid, self.glyph_seeds, self.glyph,
+            self.geometry_reader, self.geometry_edges,
+        )
+
+    def release_case(self):
+        """Let go of the current case and everything derived from it.
+
+        Called *before* the next case is read (see :meth:`FoamViz.load_case`).
+        Without it the old mesh stays wired into the cutter/contour/tracer/glyph
+        filters until ``update_data()`` rewires them at the *end* of the load, so
+        the whole new case is read with the old one still resident and peak RSS is
+        both cases at once. Measured, s2 -> geometric-fancoil-and-beam:
+        1505 -> 1322 MB peak.
+
+        Unwiring is not enough for the *derived* geometry. A filter keeps its last
+        output until it re-executes, and ``load_case`` deliberately starts every
+        case with the heavy representations off -- so case A's streamlines and
+        isosurfaces would sit in the tracer/tube/contour outputs until you
+        happened to switch them on again under case B. ``Initialize()`` drops
+        those arrays now.
+
+        The following ``Modified()`` is belt-and-braces: on VTK 9.7 the
+        ``Initialize()`` alone already invalidates the output (checked on the
+        contour and on the OBJ reader re-reading the *same* filename, the one
+        case where nothing else would dirty the filter), but that is the data
+        object's MTime doing it implicitly. Marking the filter itself keeps the
+        re-execution independent of that detail.
+        """
+        self.case = None
+        self._baked = None
+        self.has_geometry = False
+        self._bootstrap_empty()  # re-point the case-fed filters at empty datasets
+        for f in self._case_derived():
+            f.GetOutputDataObject(0).Initialize()
+            f.Modified()
 
     def set_case(self, case):
         self.case = case
