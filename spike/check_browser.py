@@ -162,6 +162,28 @@ def main():
                   f"{tris_before:,} -> {tris_after:,}")
             shot(page, out / "04-boundary-hidden.png")
 
+            # --- colour banding is a shader uniform -------------------------
+            # Isolate the slice: it is drawn unlit, so its pixel colours are the
+            # colour map itself and the band count is directly measurable.
+            page.uncheck('[data-ctl="part-iso"]')
+            page.uncheck('[data-ctl="part-streamlines"]')
+            page.wait_for_timeout(600)
+            smooth_colours = gl_colours(page)
+            page.fill('[data-ctl=bands]', "5")
+            page.wait_for_timeout(600)
+            banded_colours = gl_colours(page)
+            check("banding does not refetch", len(scene_requests) == n_before,
+                  f"{len(scene_requests) - n_before} request(s)")
+            check("banding collapses the colour count",
+                  banded_colours * 4 < smooth_colours,
+                  f"{smooth_colours} smooth -> {banded_colours} with 5 bands")
+            shot(page, out / "06-banded.png")
+            page.fill('[data-ctl=bands]', "0")
+            page.check('[data-ctl="part-iso"]')
+            page.check('[data-ctl="part-streamlines"]')
+            page.wait_for_timeout(600)
+            check("banding is reversible", gl_colours(page) > banded_colours)
+
             # --- dragging must not refetch; releasing must ------------------
             # A range input fires `input` per pixel of a drag and `change` on
             # release. 20 input events used to mean 20 extractions queued.
@@ -203,7 +225,7 @@ def main():
                   f"up.z {after['up']['z']:.6f}")
             check("orbiting keeps the target fixed",
                   all(abs(after["target"][k] - before["target"][k]) < 1e-6 for k in "xyz"))
-            shot(page, out / "06-orbited.png")
+            shot(page, out / "07-orbited.png")
 
             # --- interaction cost -------------------------------------------
             orbit(page)

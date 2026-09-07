@@ -67,16 +67,29 @@ const VERT_LINE = /* glsl */`
 
 // Two-sided key+fill with an ambient floor, so no face reads as black -- the
 // same rule FoamViz's vtkLightKit setup follows, hence abs() on the dots.
+// Discrete colour bands are a quantisation of the *lookup coordinate*, not of
+// the table: t -> the centre of its band. Sampling the smooth 256-entry LUT at
+// (i+0.5)/N returns exactly cmap((i+0.5)/N), which is the colour FoamViz bakes
+// into its transfer-function plateaus -- so both renderers band identically.
+// uBands is a uniform, so the band count is a live client-side control.
+const BAND = /* glsl */`
+  float band(float t, float n) {
+    if (n < 1.5) return t;
+    return (min(floor(t * n), n - 1.0) + 0.5) / n;
+  }`
+
 const FRAG = /* glsl */`
   uniform sampler2D uLut;
   uniform vec2 uRange;
   uniform float uOpacity;
   uniform float uAmbient;
+  uniform float uBands;
   varying float vScalar;
   varying vec3 vNormal;
+  ${BAND}
   void main() {
     float t = clamp((vScalar - uRange.x) / max(uRange.y - uRange.x, 1e-12), 0.0, 1.0);
-    vec3 base = texture2D(uLut, vec2(t, 0.5)).rgb;
+    vec3 base = texture2D(uLut, vec2(band(t, uBands), 0.5)).rgb;
     vec3 n = normalize(vNormal);
     float key = abs(dot(n, normalize(vec3(0.35, 0.65, 0.55))));
     float fill = abs(dot(n, normalize(vec3(-0.6, -0.25, 0.5)))) * 0.35;
@@ -86,10 +99,12 @@ const FRAG = /* glsl */`
 const FRAG_LINE = /* glsl */`
   uniform sampler2D uLut;
   uniform vec2 uRange;
+  uniform float uBands;
   varying float vScalar;
+  ${BAND}
   void main() {
     float t = clamp((vScalar - uRange.x) / max(uRange.y - uRange.x, 1e-12), 0.0, 1.0);
-    gl_FragColor = vec4(texture2D(uLut, vec2(t, 0.5)).rgb, 1.0);
+    gl_FragColor = vec4(texture2D(uLut, vec2(band(t, uBands), 0.5)).rgb, 1.0);
   }`
 
 // ------------------------------------------------------------------- viewer
@@ -134,7 +149,11 @@ class Viewer {
     // uLut and uRange are shared *objects*, so a colour-map or range change is
     // one assignment for the whole scene. Opacity is per material: the boundary
     // needs to fade while the slice inside it stays solid.
-    this.shared = { uLut: { value: this.lut }, uRange: { value: new THREE.Vector2(0, 1) } }
+    this.shared = {
+      uLut: { value: this.lut },
+      uRange: { value: new THREE.Vector2(0, 1) },
+      uBands: { value: 0 },
+    }
     this.meshes = new Map()
     this.frames = 0
     this.fps = 0
@@ -165,8 +184,8 @@ class Viewer {
     }
   }
 
-  material(mode) {
-    const uniforms = { ...this.shared, uOpacity: { value: 1 }, uAmbient: { value: 0.35 } }
+  material(mode, ambient = 0.35) {
+    const uniforms = { ...this.shared, uOpacity: { value: 1 }, uAmbient: { value: ambient } }
     return mode === 'lines'
       ? new THREE.ShaderMaterial({ uniforms, vertexShader: VERT_LINE, fragmentShader: FRAG_LINE })
       : new THREE.ShaderMaterial({
@@ -203,7 +222,11 @@ class Viewer {
         geometry.setAttribute(name, new THREE.BufferAttribute(attr.array, attr.components))
       }
       geometry.setIndex(new THREE.BufferAttribute(part.index, 1))
-      const material = this.material(part.mode)
+      // A cut plane is read quantitatively against the colour bar, so shading it
+      // only corrupts the reading -- ambient 1.0 is flat colour. Same reason
+      // FoamViz calls LightingOff() on its slice actor. Matters most with bands
+      // on, where a lit band is no longer one colour.
+      const material = this.material(part.mode, part.name === 'slice' ? 1.0 : 0.35)
       const mesh = part.mode === 'lines'
         ? new THREE.LineSegments(geometry, material)
         : new THREE.Mesh(geometry, material)
@@ -223,6 +246,10 @@ class Viewer {
   }
 
   setRange(lo, hi) { this.shared.uRange.value.set(lo, hi) }
+
+  /* 0 (or 1) = smooth ramp, N = N discrete bands. One uniform for the whole
+   * scene, so this is instant and needs no geometry. */
+  setBands(n) { this.shared.uBands.value = n }
 
   setLut(rgb) {
     const data = this.lut.image.data
@@ -316,7 +343,7 @@ const PARTS = [
 ]
 
 function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRange, onRescale,
-  surface, setSurface }) {
+  surface, setSurface, bands, setBands }) {
   const fields = meta ? Object.keys(meta.fields).sort() : []
   const times = meta ? meta.times : []
   return html`
@@ -374,6 +401,12 @@ function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRan
           <span className="lbl">Max</span>
           <input data-ctl="range-max" type="number" step="any" value=${range[1]}
                  onChange=${(e) => setRange([range[0], +e.target.value])} />
+        </div>
+        <div className="row">
+          <span className="lbl">Bands</span>
+          <input data-ctl="bands" type="number" min="0" max="64" step="1" value=${bands}
+                 onInput=${(e) => setBands(+e.target.value)} />
+          <span className="tag">0 = smooth</span>
         </div>
         <div className="row"><button data-ctl="rescale" onClick=${onRescale}>Rescale to data</button></div>
       </div>
@@ -488,6 +521,7 @@ function App() {
   const [preset, setPreset] = useState('coolwarm')
   const [range, setRangeState] = useState([0, 1])
   const [surface, setSurfaceState] = useState({ opacity: 1, cull: true })
+  const [bands, setBandsState] = useState(0)
   const [info, setInfo] = useState(null)
   const [stats, setStats] = useState({ fps: 0, triangles: 0, calls: 0 })
   const [busy, setBusy] = useState(true)
@@ -531,16 +565,25 @@ function App() {
     return () => { cancelled = true }
   }, [preset])
 
+  // The legend is built from the same LUT bytes the shader samples, banded the
+  // same way -- a legend that promised a smooth ramp over banded geometry would
+  // be worse than no legend.
   useEffect(() => {
     const bar = document.getElementById('legend-bar')
     const rgb = lutCache.current.get(preset)
     if (!bar || !rgb) return
+    const css = (i) => `rgb(${rgb[i * 3]},${rgb[i * 3 + 1]},${rgb[i * 3 + 2]})`
     const stops = []
-    for (let i = 0; i < 256; i += 16) {
-      stops.push(`rgb(${rgb[i * 3]},${rgb[i * 3 + 1]},${rgb[i * 3 + 2]}) ${(i / 255) * 100}%`)
+    if (bands > 1) {
+      for (let b = 0; b < bands; b += 1) {
+        const colour = css(Math.min(Math.floor(((b + 0.5) / bands) * 256), 255))
+        stops.push(`${colour} ${(b / bands) * 100}%`, `${colour} ${((b + 1) / bands) * 100}%`)
+      }
+    } else {
+      for (let i = 0; i < 256; i += 16) stops.push(`${css(i)} ${(i / 255) * 100}%`)
     }
     bar.style.background = `linear-gradient(to top, ${stops.join(',')})`
-  }, [preset, info])
+  }, [preset, info, bands])
 
   // Metadata (fields, times, bounds) -- one request per case.
   useEffect(() => {
@@ -619,6 +662,7 @@ function App() {
 
   const setRange = (r) => { setRangeState(r); viewerRef.current?.setRange(r[0], r[1]) }
   const setSurface = (v) => { setSurfaceState(v); viewerRef.current?.setSurfaceStyle(v) }
+  const setBands = (n) => { setBandsState(n); viewerRef.current?.setBands(n) }
 
   return html`
     <div className="app">
@@ -628,6 +672,7 @@ function App() {
         preset=${preset} setPreset=${setPreset}
         range=${range} setRange=${setRange}
         surface=${surface} setSurface=${setSurface}
+        bands=${bands} setBands=${setBands}
         onRescale=${() => info && setRange(info.header.range)} />
       <div className="stage" ref=${stageRef}>
         <${Hud} info=${info} stats=${stats} />

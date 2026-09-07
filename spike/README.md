@@ -22,7 +22,7 @@ with no network.
 
 ```sh
 python spike/bench.py hotRoom s2     # server-side sizes and timings
-python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 16 checks
+python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 19 checks
 ```
 
 ## What it reuses, unchanged
@@ -83,6 +83,38 @@ On top of that, an in-flight request is aborted when a newer one starts, so the
 selects and number inputs cannot stack up either and the newest request always
 wins. `check_browser.py` asserts both halves: 20 drag events cause zero
 requests, the release causes exactly one.
+
+## Colour banding
+
+Not a problem -- it is *better* here, and it is worth being precise about why.
+FoamViz has to bake bands into the transfer function's **nodes** (flat plateaus,
+one per band) because `vtkDiscretizableColorTransferFunction` does not serialise
+to vtk.js. In a shader, bands are a quantisation of the lookup coordinate:
+
+```glsl
+if (n >= 1.5) t = (min(floor(t * n), n - 1.0) + 0.5) / n;
+```
+
+Sampling the smooth 256-entry LUT at `(i+0.5)/N` returns exactly
+`cmap((i+0.5)/N)` -- the same colour FoamViz bakes into plateau *i* -- so the
+two renderers band identically rather than merely similarly. `uBands` is a
+uniform, so the band count is a live client-side control: no re-extraction, no
+LUT rebuild, no round trip. Measured on the unlit slice: 823 distinct pixel
+colours smooth, 21 with 5 bands, zero `/api/scene` requests.
+
+The slice is drawn **unlit** (ambient 1.0), the same call FoamViz makes with
+`slice_actor.LightingOff()`. That matters more with bands on: a shaded band is
+no longer one colour, which defeats the point of banding.
+
+Two related notes:
+
+- **Colour-map-weighted opacity** -- reverted in FoamViz as not feasible in
+  vtk.js local mode -- is a one-line addition in this path (sample an opacity
+  ramp at the same `t`). Not wired up, but there is no obstacle.
+- **The caveat:** banding now lives in the client, so anything rendered
+  *server-side* (a report PNG) does not know about it. The band count would have
+  to travel with the render request. In the VTK path it is in the transfer
+  function, so server renders get it for free.
 
 ## Findings
 
