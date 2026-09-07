@@ -84,6 +84,7 @@ const FRAG = /* glsl */`
   uniform float uOpacity;
   uniform float uAmbient;
   uniform float uBands;
+  uniform float uOpacityMap;
   varying float vScalar;
   varying vec3 vNormal;
   ${BAND}
@@ -93,18 +94,26 @@ const FRAG = /* glsl */`
     vec3 n = normalize(vNormal);
     float key = abs(dot(n, normalize(vec3(0.35, 0.65, 0.55))));
     float fill = abs(dot(n, normalize(vec3(-0.6, -0.25, 0.5)))) * 0.35;
-    gl_FragColor = vec4(base * (uAmbient + (1.0 - uAmbient) * (key + fill)), uOpacity);
+    // Colour-map-weighted opacity, linear: alpha follows the *unbanded* t, so
+    // the opacity ramp stays a function of the value the way ParaView's own
+    // opacity transfer function is, independent of how the colours are banded.
+    float alpha = uOpacity * mix(1.0, t, uOpacityMap);
+    if (alpha < 0.01) discard;  // fully transparent fragments must not blend or occlude
+    gl_FragColor = vec4(base * (uAmbient + (1.0 - uAmbient) * (key + fill)), alpha);
   }`
 
 const FRAG_LINE = /* glsl */`
   uniform sampler2D uLut;
   uniform vec2 uRange;
   uniform float uBands;
+  uniform float uOpacityMap;
   varying float vScalar;
   ${BAND}
   void main() {
     float t = clamp((vScalar - uRange.x) / max(uRange.y - uRange.x, 1e-12), 0.0, 1.0);
-    gl_FragColor = vec4(texture2D(uLut, vec2(band(t, uBands), 0.5)).rgb, 1.0);
+    float alpha = mix(1.0, t, uOpacityMap);
+    if (alpha < 0.01) discard;
+    gl_FragColor = vec4(texture2D(uLut, vec2(band(t, uBands), 0.5)).rgb, alpha);
   }`
 
 // ------------------------------------------------------------------- viewer
@@ -153,7 +162,9 @@ class Viewer {
       uLut: { value: this.lut },
       uRange: { value: new THREE.Vector2(0, 1) },
       uBands: { value: 0 },
+      uOpacityMap: { value: 0 },
     }
+    this.opacityMap = false
     this.meshes = new Map()
     this.frames = 0
     this.fps = 0
@@ -202,10 +213,8 @@ class Viewer {
     const mesh = this.meshes.get('boundary')
     if (!mesh) return
     mesh.material.uniforms.uOpacity.value = opacity
-    mesh.material.transparent = opacity < 0.999
-    mesh.material.depthWrite = opacity >= 0.999
     mesh.material.side = cull ? THREE.BackSide : THREE.DoubleSide
-    mesh.material.needsUpdate = true
+    this._applyBlending(mesh)
   }
 
   setScene({ header, parts }, visible) {
@@ -233,6 +242,7 @@ class Viewer {
       mesh.name = part.name
       mesh.visible = visible[part.name] !== false
       this.meshes.set(part.name, mesh)
+      this._applyBlending(mesh)
       this.scene.add(mesh)
     }
     this.setRange(header.range[0], header.range[1])
@@ -250,6 +260,29 @@ class Viewer {
   /* 0 (or 1) = smooth ramp, N = N discrete bands. One uniform for the whole
    * scene, so this is instant and needs no geometry. */
   setBands(n) { this.shared.uBands.value = n }
+
+  /* Colour-map-weighted opacity: low values fade out, high values stay solid.
+   * The uniform is one assignment, but every material's *blending* state has to
+   * follow it -- a material only respects alpha when transparent is set, and
+   * writing depth from a half-transparent fragment hides what is behind it.
+   *
+   * Blending is unsorted (no depth peeling, no OIT), so overlapping transparent
+   * surfaces can composite in the wrong order. ParaView solves that with depth
+   * peeling; here the near-zero discard in the shader removes the worst of it,
+   * because the fragments that would be most obviously wrong are the ones that
+   * vanish entirely. */
+  setOpacityMap(on) {
+    this.opacityMap = on
+    this.shared.uOpacityMap.value = on ? 1 : 0
+    for (const mesh of this.meshes.values()) this._applyBlending(mesh)
+  }
+
+  _applyBlending(mesh) {
+    const solid = mesh.material.uniforms.uOpacity.value >= 0.999 && !this.opacityMap
+    mesh.material.transparent = !solid
+    mesh.material.depthWrite = solid
+    mesh.material.needsUpdate = true
+  }
 
   setLut(rgb) {
     const data = this.lut.image.data
@@ -296,10 +329,22 @@ class Viewer {
     const pixels = new Uint8Array(w * h * 4)
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
     const seen = new Set()
+    // Reference the background by *reading a corner pixel*, not by asking the
+    // scene for its colour: Color.getHex() colour-manages its output, so it
+    // does not necessarily match the bytes in the framebuffer.
+    const clear = (pixels[0] << 16) | (pixels[1] << 8) | pixels[2]
+    let background = 0
     for (let i = 0; i < pixels.length; i += 4) {
-      seen.add((pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2])
+      const rgb = (pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2]
+      seen.add(rgb)
+      if (rgb === clear) background += 1
     }
-    return { colours: seen.size, width: w, height: h }
+    return {
+      colours: seen.size,
+      background: background / (w * h),  // how much of the view is empty
+      width: w,
+      height: h,
+    }
   }
 }
 
@@ -343,7 +388,7 @@ const PARTS = [
 ]
 
 function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRange, onRescale,
-  surface, setSurface, bands, setBands }) {
+  surface, setSurface, bands, setBands, opacityMap, setOpacityMap }) {
   const fields = meta ? Object.keys(meta.fields).sort() : []
   const times = meta ? meta.times : []
   return html`
@@ -407,6 +452,13 @@ function Panel({ meta, q, set, visible, toggle, preset, setPreset, range, setRan
           <input data-ctl="bands" type="number" min="0" max="64" step="1" value=${bands}
                  onInput=${(e) => setBands(+e.target.value)} />
           <span className="tag">0 = smooth</span>
+        </div>
+        <div className="row">
+          <label className="chk">
+            <input data-ctl="opacity-map" type="checkbox" checked=${opacityMap}
+                   onChange=${(e) => setOpacityMap(e.target.checked)} />
+            Opacity by value (linear)
+          </label>
         </div>
         <div className="row"><button data-ctl="rescale" onClick=${onRescale}>Rescale to data</button></div>
       </div>
@@ -522,6 +574,7 @@ function App() {
   const [range, setRangeState] = useState([0, 1])
   const [surface, setSurfaceState] = useState({ opacity: 1, cull: true })
   const [bands, setBandsState] = useState(0)
+  const [opacityMap, setOpacityMapState] = useState(false)
   const [info, setInfo] = useState(null)
   const [stats, setStats] = useState({ fps: 0, triangles: 0, calls: 0 })
   const [busy, setBusy] = useState(true)
@@ -663,6 +716,7 @@ function App() {
   const setRange = (r) => { setRangeState(r); viewerRef.current?.setRange(r[0], r[1]) }
   const setSurface = (v) => { setSurfaceState(v); viewerRef.current?.setSurfaceStyle(v) }
   const setBands = (n) => { setBandsState(n); viewerRef.current?.setBands(n) }
+  const setOpacityMap = (on) => { setOpacityMapState(on); viewerRef.current?.setOpacityMap(on) }
 
   return html`
     <div className="app">
@@ -673,6 +727,7 @@ function App() {
         range=${range} setRange=${setRange}
         surface=${surface} setSurface=${setSurface}
         bands=${bands} setBands=${setBands}
+        opacityMap=${opacityMap} setOpacityMap=${setOpacityMap}
         onRescale=${() => info && setRange(info.header.range)} />
       <div className="stage" ref=${stageRef}>
         <${Hud} info=${info} stats=${stats} />

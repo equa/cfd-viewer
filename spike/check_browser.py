@@ -184,6 +184,29 @@ def main():
             page.wait_for_timeout(600)
             check("banding is reversible", gl_colours(page) > banded_colours)
 
+            # --- colour-map-weighted opacity --------------------------------
+            # Boundary alone: the walls are no-slip, so |U| ~ 0 there and a
+            # linear opacity ramp should make most of them vanish. Measured as
+            # the share of the view left at the clear colour.
+            page.check('[data-ctl="part-boundary"]')
+            page.uncheck('[data-ctl="part-slice"]')
+            page.wait_for_timeout(600)
+            solid_bg = page.evaluate("window.__spikeGrab().background")
+            page.check('[data-ctl=opacity-map]')
+            page.wait_for_timeout(600)
+            faded_bg = page.evaluate("window.__spikeGrab().background")
+            check("opacity mapping does not refetch", len(scene_requests) == n_before,
+                  f"{len(scene_requests) - n_before} request(s)")
+            check("opacity mapping fades low values",
+                  faded_bg > solid_bg + 0.05,
+                  f"empty view {solid_bg * 100:.0f}% -> {faded_bg * 100:.0f}%")
+            shot(page, out / "07-opacity-mapped.png")
+            page.uncheck('[data-ctl=opacity-map]')
+            page.check('[data-ctl="part-slice"]')
+            page.wait_for_timeout(600)
+            check("opacity mapping is reversible",
+                  abs(page.evaluate("window.__spikeGrab().background") - solid_bg) < 0.02)
+
             # --- dragging must not refetch; releasing must ------------------
             # A range input fires `input` per pixel of a drag and `change` on
             # release. 20 input events used to mean 20 extractions queued.
@@ -225,7 +248,7 @@ def main():
                   f"up.z {after['up']['z']:.6f}")
             check("orbiting keeps the target fixed",
                   all(abs(after["target"][k] - before["target"][k]) < 1e-6 for k in "xyz"))
-            shot(page, out / "07-orbited.png")
+            shot(page, out / "08-orbited.png")
 
             # --- interaction cost -------------------------------------------
             orbit(page)

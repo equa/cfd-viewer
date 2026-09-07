@@ -22,7 +22,7 @@ with no network.
 
 ```sh
 python spike/bench.py hotRoom s2     # server-side sizes and timings
-python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 19 checks
+python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 22 checks
 ```
 
 ## What it reuses, unchanged
@@ -84,7 +84,7 @@ selects and number inputs cannot stack up either and the newest request always
 wins. `check_browser.py` asserts both halves: 20 drag events cause zero
 requests, the release causes exactly one.
 
-## Colour banding
+## Colour banding and opacity mapping
 
 Not a problem -- it is *better* here, and it is worth being precise about why.
 FoamViz has to bake bands into the transfer function's **nodes** (flat plateaus,
@@ -106,15 +106,46 @@ The slice is drawn **unlit** (ambient 1.0), the same call FoamViz makes with
 `slice_actor.LightingOff()`. That matters more with bands on: a shaded band is
 no longer one colour, which defeats the point of banding.
 
-Two related notes:
+### Colour-map-weighted opacity
 
-- **Colour-map-weighted opacity** -- reverted in FoamViz as not feasible in
-  vtk.js local mode -- is a one-line addition in this path (sample an opacity
-  ramp at the same `t`). Not wired up, but there is no obstacle.
-- **The caveat:** banding now lives in the client, so anything rendered
-  *server-side* (a report PNG) does not know about it. The band count would have
-  to travel with the render request. In the VTK path it is in the transfer
-  function, so server renders get it for free.
+Reverted in FoamViz as not feasible in vtk.js local mode (the discretizable CTF
+does not serialise); here it is a shader line and a checkbox, linear as
+requested:
+
+```glsl
+float alpha = uOpacity * mix(1.0, t, uOpacityMap);
+if (alpha < 0.01) discard;
+```
+
+Alpha follows the **unbanded** `t`, so the opacity ramp is a function of the
+value the way ParaView's own opacity transfer function is, independent of how
+the colours are banded. Measured on the boundary alone -- no-slip walls, so
+`|U|` is ~0 across them -- the view goes from 75% empty to 96% empty, with zero
+`/api/scene` requests. The result is the familiar ParaView look: the plume glows
+and everything slow fades out.
+
+The uniform is one assignment, but each material's *blending* state has to
+follow it (`_applyBlending`): a material only respects alpha when `transparent`
+is set, and a half-transparent fragment that writes depth hides what is behind
+it.
+
+Two honest limitations:
+
+- **Transparency is unsorted** -- no depth peeling, no OIT -- so overlapping
+  transparent surfaces can composite in the wrong order. The near-zero discard
+  removes the worst of it, because the fragments that would look most obviously
+  wrong are the ones that vanish. ParaView solves this properly with depth
+  peeling; doing the same here is real work.
+- **The legend does not show the ramp.** It bands correctly but is drawn fully
+  opaque, so it currently over-promises when opacity mapping is on.
+
+### The caveat that applies to both
+
+Banding and opacity now live in the client, so anything rendered *server-side*
+(a report PNG) does not know about them -- the band count and the opacity flag
+would have to travel with the render request. In the VTK path the transfer
+function carries them for free. This generalises: every appearance setting the
+shader owns is a setting the server no longer knows.
 
 ## Findings
 
