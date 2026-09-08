@@ -121,7 +121,7 @@ the (real) image-size win.
 | **Cut plane** | An X/Y/Z-aligned plane positioned by world coordinate — the anchor for everything below. Optionally a *crinkle* slice: the true cell layer rather than a flat cut |
 | **Boundary** | The room shell, neutral or field-coloured, with near-wall culling so you can see in, mesh edges, opacity, cut-away-at-plane, and per-patch read selection |
 | **Isosurfaces** | 1 / 3 / 5 nested isosurfaces of the coloured field |
-| **Streamlines** | RK45 integration seeded from the cut plane, as lines or tubes, coloured by the field |
+| **Streamlines** | RK45 integration seeded from the cut plane, as lines or tubes, coloured by the field. **Animate flow** sends comets along them at the local flow speed — which is also the only thing that shows a streamline's *direction* |
 | **Arrows** | Glyphs on the plane (an even grid) or on the isosurface, uniform length or scaled by magnitude |
 | **Geometry** | The building outline from `constant/triSurface/building*.obj`, as feature edges or full wireframe |
 | Bottom bar | Time-step player, six axis-aligned camera presets plus iso, time re-scan |
@@ -131,14 +131,22 @@ The cut plane deliberately drives the slice, the stream seeds *and* the arrows.
 For room airflow that matches how a result actually gets read: choose a plane,
 then ask what the air is doing on it.
 
+The streamline animation is an animated dash pattern rather than particles — no
+particle buffer, no per-frame CPU work, one uniform. It rides the transport time
+`vtkStreamTracer` already computes (`IntegrationTime`), so the comets move at
+the **local flow speed** and visibly rip through a plume while crawling in the
+corners. Try it with **Tubes** on: on 1-px lines a comet is a short bright
+segment that gets lost in a coiled tangle, on tubes it is a discrete object.
+
 ### Which controls cost a round trip
 
 The viewer labels every control `server` or `client`, because the difference is
 worth seeing while you use it:
 
 - **client** — colour map, range, bands, opacity-by-value, per-part visibility
-  and opacity, near-wall culling, shell mesh edges, camera, lighting, theme.
-  These are shader uniforms or GPU state: instant, no request.
+  and opacity, near-wall culling, shell mesh edges, the streamline animation,
+  camera, lighting, theme. These are shader uniforms or GPU state: instant, no
+  request.
 - **server** — colour *field* and component, cut-plane position, isovalues, seed
   and glyph counts, time step, patch selection, crinkle slice, tubes. These
   change what has to be extracted.

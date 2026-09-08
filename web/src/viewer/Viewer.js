@@ -75,7 +75,22 @@ export class Viewer {
       uRange: { value: new THREE.Vector2(0, 1) },
       uBands: { value: 0 },
       uOpacityMap: { value: 0 },
+      // Streamline comets. The PHASE is accumulated on the CPU rather than
+      // derived from a raw clock: `uTime * speed` would drift out of float32
+      // precision inside fract() over a long session, and changing the speed
+      // would make the pattern jump. Advancing and wrapping a phase does
+      // neither. Everything else about the animation is per-fragment.
+      uCometPhase: { value: 0 },
+      // Tuned by sweeping against the demo case (see CLAUDE.md): the head has
+      // to read as a discrete object on a clearly dimmed path, and at a wider
+      // period with a sharper tail it degenerates into sparse dots.
+      uCometPeriod: { value: 0.4 },
+      uCometTail: { value: 12 },
+      uCometDim: { value: 0.16 },
     }
+    // travel-units per second. One unit is the median streamline's whole
+    // transport time, so ~0.35 crosses a typical line in about three seconds.
+    this.comets = { on: false, speed: 0.35 }
     this.opacityMap = false
     this.lighting = { ambient: 0.35, diffuse: 0.65, lightKit: true }
     this.meshes = new Map()      // part name -> Mesh | LineSegments
@@ -115,10 +130,19 @@ export class Viewer {
 
   _tick() {
     this._raf = requestAnimationFrame(() => this._tick())
+    const now = performance.now()
+    const dt = this._lastFrame ? Math.min((now - this._lastFrame) / 1000, 0.1) : 0
+    this._lastFrame = now
+    if (this.comets.on) {
+      // Wrapped to one period so the value stays small no matter how long the
+      // tab has been open; fract() makes the wrap invisible. dt is clamped so a
+      // backgrounded tab does not teleport every comet on return.
+      const period = this.shared.uCometPeriod.value
+      this.shared.uCometPhase.value = (this.shared.uCometPhase.value + dt * this.comets.speed) % period
+    }
     this.controls.update()
     this.renderer.render(this.scene, this.camera)
     this.frames += 1
-    const now = performance.now()
     if (!this._t0) this._t0 = now
     if (now - this._t0 >= 500) {
       this.fps = Math.round((this.frames * 1000) / (now - this._t0))
@@ -140,6 +164,9 @@ export class Viewer {
       uOpacity: { value: 1 },
       uAmbient: { value: unlit ? 1 : this.lighting.ambient },
       uDiffuse: { value: unlit ? 0 : this._diffuse() },
+      // Per material, not shared: only the streamlines animate. Everything
+      // else keeps it at 0, where the shader is an exact no-op.
+      uComets: { value: 0 },
     }
     if (mode === 'lines') {
       return new THREE.ShaderMaterial({
@@ -208,6 +235,8 @@ export class Viewer {
       this.scene.add(object)
       this.setStyle(part.name, styles[part.name] || this.styles.get(part.name) || {})
     }
+    // A refetched stream part is a new material, so re-apply the animation.
+    this._applyComets()
     if (header.range) this.setRange(header.range[0], header.range[1])
     return header
   }
@@ -314,7 +343,8 @@ export class Viewer {
    * through here, or transparency silently does nothing. */
   _applyBlending(mesh) {
     const opacity = mesh.material.uniforms?.uOpacity?.value ?? mesh.material.opacity ?? 1
-    const solid = opacity >= 0.999 && !this.opacityMap
+    const animating = (mesh.material.uniforms?.uComets?.value ?? 0) > 0.5
+    const solid = opacity >= 0.999 && !this.opacityMap && !animating
     mesh.material.transparent = !solid
     mesh.material.depthWrite = solid
     mesh.material.needsUpdate = true
@@ -332,6 +362,40 @@ export class Viewer {
     this.opacityMap = !!on
     this.shared.uOpacityMap.value = on ? 1 : 0
     for (const mesh of this.meshes.values()) this._applyBlending(mesh)
+  }
+
+  /* Comets riding the streamlines: pure GPU state, no refetch.
+   *
+   * `travel` has to be present for this to mean anything -- without it three.js
+   * supplies 0 for every vertex and the whole line would pulse in unison, which
+   * looks like a bug. So the flag is gated on the attribute, and only the stream
+   * part is ever animated. */
+  setComets({ on, speed, period, tail, dim }) {
+    this.comets = {
+      on: on ?? this.comets.on,
+      speed: speed ?? this.comets.speed,
+    }
+    if (period !== undefined) this.shared.uCometPeriod.value = period
+    if (tail !== undefined) this.shared.uCometTail.value = tail
+    if (dim !== undefined) this.shared.uCometDim.value = dim
+    this._applyComets()
+  }
+
+  _applyComets() {
+    const mesh = this.meshes.get('stream')
+    if (!mesh?.material.uniforms?.uComets) return
+    const hasTravel = !!mesh.geometry.getAttribute('travel')
+    mesh.material.uniforms.uComets.value = (this.comets.on && hasTravel) ? 1 : 0
+    // Animating modulates alpha, so the material has to blend even when its
+    // opacity is 1 -- otherwise the dimming between comets does nothing.
+    this._applyBlending(mesh)
+  }
+
+  /* True when the streamlines actually carry travel time, i.e. when the
+   * animation has something real to ride. The UI disables its control
+   * otherwise rather than offering a toggle that does nothing. */
+  canAnimateStreams() {
+    return !!this.meshes.get('stream')?.geometry.getAttribute('travel')
   }
 
   setLut(rgb) {
@@ -584,6 +648,39 @@ export class Viewer {
       if (rgb === clear) background += 1
     }
     return { colours: seen.size, background: background / (w * h), width: w, height: h }
+  }
+
+  /* Test hook (tests/check_client.py): the streamline animation's actual state
+   * on the GPU. Worth exposing because the failure mode is visual and subtle --
+   * if `travel` never reaches the shader every line pulses in unison, which
+   * looks like a slightly odd animation rather than like a bug. */
+  comet_state() {
+    const mesh = this.meshes.get('stream')
+    const attr = mesh?.geometry.getAttribute('travel')
+    const u = mesh?.material.uniforms || {}
+    let lo = 0
+    let hi = 0
+    if (attr) {
+      lo = Infinity
+      hi = -Infinity
+      for (let i = 0; i < attr.count; i += 1) {
+        const v = attr.getX(i)
+        if (v < lo) lo = v
+        if (v > hi) hi = v
+      }
+    }
+    return {
+      hasStream: !!mesh,
+      hasTravel: !!attr,
+      travelMin: attr ? lo : null,
+      travelMax: attr ? hi : null,
+      uComets: u.uComets?.value ?? null,
+      phase: u.uCometPhase?.value ?? null,
+      period: u.uCometPeriod?.value ?? null,
+      tail: u.uCometTail?.value ?? null,
+      dim: u.uCometDim?.value ?? null,
+      transparent: mesh?.material.transparent ?? null,
+    }
   }
 
   camera_state() {

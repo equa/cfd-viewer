@@ -272,7 +272,7 @@ export function ContourTool({ request, setRequest, style, setStyle }) {
   )
 }
 
-export function StreamTool({ meta, request, setRequest }) {
+export function StreamTool({ meta, request, setRequest, comets, setComets, canAnimate }) {
   /*
    * Everything here is heavy: vtkStreamTracer is 2.6 s of the 3.1 s server time
    * on s2, and it costs the same in the Trame path -- it is not a cost of this
@@ -352,6 +352,57 @@ export function StreamTool({ meta, request, setRequest }) {
       >
         Apply
       </Button>
+
+      <Divider my="sm" />
+
+      {/*
+        Animation. Entirely client-side -- an animated dash pattern over the
+        per-vertex travel time the server already ships, so it is instant and
+        sits outside the Apply group above on purpose.
+
+        It is not only decoration: a static streamline is direction-ambiguous,
+        and because the comets ride real transport time rather than arc length
+        they visibly speed up where the flow does.
+      */}
+      <Switch
+        size="xs"
+        label={tagged('Animate flow', 'client')}
+        description={canAnimate
+          ? 'Comets ride the streamlines at the local flow speed'
+          : 'Needs streamlines to be drawn first'}
+        checked={comets.on}
+        disabled={!canAnimate}
+        onChange={(e) => setComets({ on: e.currentTarget.checked })}
+        data-ctl="comets"
+      />
+      {comets.on ? (
+        <div style={{ marginTop: 8 }}>
+          <LabelledSlider
+            label="Speed"
+            min={0.05}
+            max={2}
+            step={0.05}
+            precision={2}
+            live
+            value={comets.speed}
+            onChange={(v) => setComets({ speed: v })}
+            data-ctl="comet-speed"
+          />
+          {/* Spacing between comet heads, in the same normalised travel units:
+              small = a dense stream of short comets, large = a few long ones. */}
+          <LabelledSlider
+            label="Spacing"
+            min={0.1}
+            max={2}
+            step={0.05}
+            precision={2}
+            live
+            value={comets.period}
+            onChange={(v) => setComets({ period: v })}
+            data-ctl="comet-spacing"
+          />
+        </div>
+      ) : null}
     </>
   )
 }

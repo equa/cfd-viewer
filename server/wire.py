@@ -88,7 +88,25 @@ def _line_indices(polydata):
     return np.column_stack([conn[at], conn[at + 1]]).ravel().astype(np.uint32, copy=False)
 
 
-def surface_part(name, polydata, scalar_array, normals=True):
+def _extra_attrs(out, extras):
+    """Pull named 1-component point arrays out as float32 attributes.
+
+    Used for anything a part needs beyond position/normal/scalar -- currently
+    just the streamlines' ``travel`` (see TRAVEL_ARRAY in server/scene.py). They
+    go through VTK's own point data rather than being appended afterwards, which
+    is what makes them survive a filter that generates new points: the tube
+    filter interpolates them onto the tube it builds, so a tubed streamline
+    animates exactly like a line one.
+    """
+    found = {}
+    for attribute, array_name in (extras or {}).items():
+        array = out.GetPointData().GetArray(array_name)
+        if array is not None:
+            found[attribute] = _f32(vtk_to_numpy(array), 1)
+    return found
+
+
+def surface_part(name, polydata, scalar_array, normals=True, extras=None):
     """A lit, scalar-coloured triangle mesh.
 
     Triangulated here because the OpenFOAM reader emits quads and general
@@ -126,10 +144,11 @@ def surface_part(name, polydata, scalar_array, normals=True):
     scalars = out.GetPointData().GetArray(scalar_array)
     if scalars is not None:
         attrs["scalar"] = _f32(vtk_to_numpy(scalars), 1)
+    attrs.update(_extra_attrs(out, extras))
     return Part(name, "triangles", attrs, _triangle_indices(out))
 
 
-def line_part(name, polydata, scalar_array):
+def line_part(name, polydata, scalar_array, extras=None):
     """Streamlines as coloured line segments."""
     if polydata.GetNumberOfPoints() == 0:
         return None
@@ -137,6 +156,7 @@ def line_part(name, polydata, scalar_array):
     scalars = polydata.GetPointData().GetArray(scalar_array)
     if scalars is not None:
         attrs["scalar"] = _f32(vtk_to_numpy(scalars), 1)
+    attrs.update(_extra_attrs(polydata, extras))
     index = _line_indices(polydata)
     if index.size == 0:
         return None

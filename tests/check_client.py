@@ -96,6 +96,22 @@ def red_pixels(page):
     )
 
 
+def frame_difference(page, gap_ms=450):
+    """Mean absolute pixel difference between two frames `gap_ms` apart.
+
+    The only honest way to test an animation: assert the picture *changes* while
+    it is on and *holds still* while it is off. Everything else (uniform values,
+    attribute presence) can be right while nothing actually moves.
+    """
+    box = page.locator(".stage canvas").bounding_box()
+    first = Image.open(io.BytesIO(page.screenshot(clip=box))).convert("L")
+    page.wait_for_timeout(gap_ms)
+    second = Image.open(io.BytesIO(page.screenshot(clip=box))).convert("L")
+    a = first.getdata()
+    b = second.getdata()
+    return sum(abs(x - y) for x, y in zip(a, b)) / len(a)
+
+
 def wait_for_render(page, minimum=40, timeout=180):
     """Wait until the GL buffer holds more than the flat background."""
     page.wait_for_selector(".stage canvas", timeout=timeout * 1000)
@@ -366,6 +382,46 @@ def main():
             check("Apply is disabled again once clean",
                   not page.locator(ctl("apply-stream")).is_enabled())
             shot(page, out / "04-streamlines.png")
+
+            # ------------------------------------------ streamline animation
+            print("\nstreamline comets")
+            wait_idle(page, scene)
+            comet = page.evaluate("window.__viz.comets()")
+            check("streamlines carry travel time", comet["hasTravel"],
+                  f"travel {comet['travelMin']:.2f}..{comet['travelMax']:.2f}")
+            # More than one period of travel means more than one comet exists to
+            # see; a single period would animate as one lonely pulse.
+            span = comet["travelMax"] - comet["travelMin"]
+            check("travel spans several comet periods", span > comet["period"] * 3,
+                  f"{span:.2f} over a period of {comet['period']}")
+            check("animation is off by default", comet["uComets"] == 0)
+
+            # Still while off. Damping has settled by now, and nothing else in
+            # the scene moves, so this should be near-zero.
+            still = frame_difference(page)
+            n = len(scene)
+            page.click(ctl("comets"))
+            page.wait_for_timeout(700)
+            moving = frame_difference(page)
+            check("turning the animation on costs no round trip", len(scene) == n,
+                  f"{len(scene) - n} request(s)")
+            check("the animation actually moves the picture", moving > still + 0.15,
+                  f"mean frame delta {still:.3f} off -> {moving:.3f} on")
+            check("the animation is enabled on the GPU",
+                  page.evaluate("window.__viz.comets()")["uComets"] == 1)
+            shot(page, out / "04b-comets.png")
+
+            # Speed is a live client control: no fetch, and it changes the rate.
+            n = len(scene)
+            slider_drag(page, ctl("comet-speed"), fraction=0.9)()
+            page.wait_for_timeout(500)
+            check("comet speed costs no round trip", len(scene) == n,
+                  f"{len(scene) - n} request(s)")
+
+            page.click(ctl("comets"))
+            page.wait_for_timeout(700)
+            check("turning it off stops the motion", frame_difference(page) <= still + 0.15,
+                  f"mean frame delta back to {frame_difference(page):.3f}")
 
             # The plane's numeric fields are inert until their own Apply.
             page.click(ctl("tool-cutplane"))

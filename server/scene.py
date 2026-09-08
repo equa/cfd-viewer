@@ -24,6 +24,10 @@ import logging
 import time
 from pathlib import Path
 
+import numpy as np
+import vtk
+from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
+
 from foamviz import colors
 from foamviz.case import FIELD_UNITS, FoamCase, find_cases
 from foamviz.pipeline import COLOR_ARRAY, FoamPipeline
@@ -35,6 +39,10 @@ log = logging.getLogger("cfdviewer.scene")
 # The parts a scene can be made of, in draw order. Each maps to a builder method
 # ``_part_<key>`` below and to a tool in the client's side pane.
 PART_KEYS = ("boundary", "slice", "iso", "stream", "glyph", "geometry")
+
+# Per-point travel time along a streamline, normalised (see _add_travel). The
+# client animates comets along the streamlines from this, entirely in a shader.
+TRAVEL_ARRAY = "FoamVizTravel"
 
 # Which query inputs actually change each part's geometry -- the client hashes
 # these to decide whether its cached copy is still valid, so a control missing
@@ -263,6 +271,9 @@ class SceneSource:
             "planeAxis": axis,
             "planeCoord": pipe.cutter.GetCutFunction().GetOrigin()[ai],
             "contourValues": values,
+            # Seconds of flow time per unit of the streamlines' `travel`
+            # attribute, so the client's animation timescale is recoverable.
+            "travelDivisor": ctx.get("travelDivisor"),
             "requested": wanted,
             "returned": [p.name for p in parts],
             "serverMs": {**timings, "total": round((time.perf_counter() - t0) * 1000, 1)},
@@ -306,6 +317,55 @@ class SceneSource:
         self.pipeline.contour_normals.Update()
         return wire.surface_part("iso", self.pipeline.contour_normals.GetOutput(), COLOR_ARRAY)
 
+    @staticmethod
+    def _add_travel(polydata):
+        """Bake normalised travel time onto the tracer output, for the client's
+        streamline animation. Returns the divisor used, or None.
+
+        The number itself is free: ``vtkStreamTracer`` already emits
+        ``IntegrationTime``, the integrator's own time-of-flight from the seed
+        (negative upstream, since we integrate in both directions), and it is
+        monotonic along every polyline. So the animation rides the real
+        transport time rather than arc length, which is the difference between
+        depicting the flow and merely decorating it -- comets visibly rip
+        through a plume and crawl in the corners. On the demo case local speed
+        varies ~32x along the streamlines.
+
+        It is NORMALISED, by the *median* per-polyline span, for two reasons.
+        Dimensionless travel lets the client's speed and spacing defaults work
+        on any case, and the median specifically -- rather than the max or the
+        mean -- because a room's slowest recirculating streamline can span 10x
+        the typical one (30 000 s vs a 2 000 s median on hotRoom), and dividing
+        by that would leave every normal comet effectively frozen. Dividing by
+        one global figure and not per line is what keeps relative speeds
+        physical: a slow streamline still takes proportionally longer.
+        """
+        times = polydata.GetPointData().GetArray("IntegrationTime")
+        lines = polydata.GetLines()
+        if times is None or lines is None or lines.GetNumberOfCells() == 0:
+            return None
+        values = vtk_to_numpy(times)
+        offsets = vtk_to_numpy(lines.GetOffsetsArray())
+        conn = vtk_to_numpy(lines.GetConnectivityArray())
+        spans = [
+            float(seq.max() - seq.min())
+            for a, b in zip(offsets[:-1], offsets[1:])
+            if (seq := values[conn[a:b]]).size >= 2
+        ]
+        spans = [x for x in spans if x > 0]
+        if not spans:
+            return None
+        divisor = float(np.median(spans))
+        travel = numpy_to_vtk(
+            np.ascontiguousarray(values / divisor, dtype=np.float32), deep=1
+        )
+        travel.SetName(TRAVEL_ARRAY)
+        # Replace rather than add: this runs on every stream request, and the
+        # tube filter downstream must not see two generations of the array.
+        polydata.GetPointData().RemoveArray(TRAVEL_ARRAY)
+        polydata.GetPointData().AddArray(travel)
+        return divisor
+
     def _part_stream(self, ctx):
         """Streamlines, as lines or as tubes.
 
@@ -324,14 +384,21 @@ class SceneSource:
             tubes,
             1,
         )
+        pipe.tracer.Update()
+        # Bake travel time BEFORE the tube filter runs, so a tubed streamline
+        # carries it too (vtkTubeFilter interpolates point data onto the tube).
+        ctx["travelDivisor"] = self._add_travel(pipe.tracer.GetOutput())
+        extras = {"travel": TRAVEL_ARRAY}
         if tubes:
             # Tubes are real triangles, so they ship down the surface path and
             # arrive lit -- the WebGL line-width cap (1 px, which made the Trame
             # line-width slider inert) is exactly what tubes exist to escape.
+            pipe.stream_tube.Modified()
             pipe.stream_tube.Update()
-            return wire.surface_part("stream", pipe.stream_tube.GetOutput(), COLOR_ARRAY)
-        pipe.tracer.Update()
-        return wire.line_part("stream", pipe.tracer.GetOutput(), COLOR_ARRAY)
+            return wire.surface_part("stream", pipe.stream_tube.GetOutput(),
+                                     COLOR_ARRAY, extras=extras)
+        return wire.line_part("stream", pipe.tracer.GetOutput(),
+                              COLOR_ARRAY, extras=extras)
 
     def _part_glyph(self, ctx):
         """Arrows on the cut plane or on the isosurface. ``vtkGlyph3D`` emits

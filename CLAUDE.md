@@ -228,6 +228,7 @@ This split *is* the architecture, and the UI tags every control `server` or
 | per-part visibility and opacity, "colour by field" | cut-plane position/axis, isovalues, seed counts, glyph count/size |
 | near-wall culling, shell mesh edges | time step, patch selection, crinkle slice, clip-at-plane, tubes |
 | camera, view presets, F-pick, lighting, theme, legend | true cell values, robust range |
+| **streamline comets** (an animated dash pattern over a baked `travel` attribute) | — |
 
 Two things moved from the server column to the client column in the port, and
 both were wins: **bands and the opacity ramp** (a transfer function in VTK is a
@@ -355,6 +356,87 @@ is drag-only purely to match the UX that was tuned in Trame.
   mandatory before the wire. Normals are computed server-side (`SplittingOff`, so
   the point count stays 1:1 with the scalars) and skipped when the input already
   has them (the isosurface arrives via `vtkPolyDataNormals`).
+
+### Streamline comets (2026-09-09)
+
+Animated particles riding the streamlines, the way wind maps do. Asked for as
+"ricing", but it earns its place on a real gap: **a static streamline is
+direction-ambiguous.** The lines showed you the path and nothing about which way
+the air goes; motion answers that instantly, and for someone not used to reading
+flow viz it is the difference between a picture and an explanation.
+
+**It is an animated dash pattern, not particles.** No particle buffer, no
+re-seeding, no per-frame JS: one uniform. Per-vertex `travel` plus a phase gives
+a pulse that advances along every line at once, in the fragment shader
+(`COMET` in `web/src/viewer/shaders.js`).
+
+**`travel` is real transport time, and that was free.** `vtkStreamTracer`
+already emits **`IntegrationTime`** — the integrator's own time-of-flight from
+the seed, negative upstream since we integrate both directions, and verified
+monotonic along every polyline. So `_add_travel` in `server/scene.py` does no
+integration of its own; it normalises what is already there. The payoff is that
+comets move at the **local flow speed** (~32x variation along the demo case's
+streamlines), so they rip through a plume and crawl in the corners. Riding arc
+length instead would have looked similar and meant nothing.
+
+**Why normalised, and why by the median.** Dimensionless travel is what lets the
+UI's speed and spacing defaults work on any case. The divisor is the *median*
+per-polyline span, not the max or the mean, because a room's slowest
+recirculating streamline can span 10x the typical one (30 000 s against a
+2 000 s median on hotRoom) and dividing by that would leave every normal comet
+effectively frozen. Dividing by **one** global figure rather than per line is
+what keeps relative speeds physical — a slow streamline still takes
+proportionally longer. `travelDivisor` in the scene header carries the
+seconds-per-unit back, so the timescale is recoverable.
+
+**Tubes animate too, and read much better.** `travel` is added to the tracer
+output *before* the tube filter runs, so `vtkTubeFilter` interpolates it onto
+the tube it generates (checked). On 1-px lines a comet is a short bright segment
+that gets lost in a coiled streamline tangle; on tubes it is a discrete object.
+Worth suggesting tubes to anyone who tries the animation and finds it noisy —
+along with fewer seeds and a shorter max length, since 60 long recirculating
+lines are unreadable animated or not.
+
+**What it costs on the wire, measured.** `travel` is one float32 per streamline
+vertex, and it barely compresses (103.8 kB raw → 94.0 kB gzipped on hotRoom),
+because a smooth float ramp is not what gzip is good at. That is **+24% on the
+gzipped stream part** (396 → 490 kB), and it is paid whether or not the
+animation is switched on.
+
+That was a deliberate choice over the alternative, which was to make `travel`
+conditional on the animation and add it to the stream part's `PART_INPUTS`.
+Doing that would turn the toggle into a **server** control: on `s2` enabling the
+animation would mean re-running `vtkStreamTracer`, ~2.6 s, for a control that
+otherwise costs nothing. Paying a fixed 24% on a part that is opt-in already
+(streamlines start hidden) is the better trade. If it ever does matter, the lever
+is precision, not conditionality: float32 over a ±20 range is wild overkill for
+something whose only job is to look smooth, and a quantised uint16 with a
+scale/offset in the header would halve it.
+
+**Traps and tuning:**
+
+- **The phase is accumulated on the CPU**, not derived from `uTime * speed`. A
+  raw clock drifts out of float32 precision inside `fract()` over a long
+  session, and changing the speed would make the whole pattern jump. `_tick`
+  advances a phase by `dt * speed` and wraps it to one period; `dt` is clamped
+  so a backgrounded tab does not teleport every comet on return.
+- **`uComets` is per material, not shared**, and is gated on the `travel`
+  attribute actually being present. That matters: a missing attribute makes
+  three.js supply 0 for every vertex, so the whole line set would pulse *in
+  unison* — which looks like a slightly odd animation rather than like a bug.
+  `canAnimateStreams()` backs the UI's disabled state for the same reason.
+- **Animating modulates alpha, so the material must blend** even at opacity 1,
+  or the dimming between comets does nothing. `_applyBlending` accounts for it.
+- **`uComets == 0` is an exact no-op** — glow 0, dim 1. Keep it that way; it is
+  what makes the feature free when off.
+- Defaults (period 0.4, tail 12, dim 0.16) were **swept against the demo case**,
+  not guessed. Wider periods with a sharper tail degenerate into sparse dots.
+- **When measuring this, hide the slice.** A sweep that looked like "the
+  animation barely does anything" was measuring the big blue cut plane filling
+  the crop; with only the streamlines visible the lit fraction goes 14.7% → 3-9%
+  depending on settings. Also note the *bright* fraction legitimately **drops**
+  when the animation is on: only ~8% of each line is a head, and the rest is
+  dimmed, so a naive "is it brighter?" metric reads backwards.
 
 ### Concurrency
 

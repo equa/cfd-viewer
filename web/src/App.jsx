@@ -32,6 +32,11 @@ export default function App() {
   }))
   const [lut, setLut] = useState(null)
   const [stats, setStats] = useState({ fps: 0, triangles: 0, calls: 0 })
+  // Whether the streamlines on the GPU actually carry travel time. Polled with
+  // the stats rather than derived from state, because it depends on what the
+  // server returned, not on what was asked for -- an empty stream part cannot
+  // be animated however the request looked.
+  const [canAnimate, setCanAnimate] = useState(false)
 
   const setRequest = useCallback((patch) => {
     setRequestState((r) => (typeof patch === 'function' ? patch(r) : { ...r, ...patch }))
@@ -51,13 +56,20 @@ export default function App() {
       grab: () => viewer.grab(),
       camera: () => viewer.camera_state(),
       stats: () => viewer.stats(),
+      comets: () => viewer.comet_state(),
+      // Lets a test (or a tuning sweep) drive the animation's shape directly,
+      // including the two knobs the UI keeps fixed at their tuned defaults.
+      tuneComets: (o) => viewer.setComets(o),
     }
     return () => { viewer.dispose(); viewerRef.current = null }
   }, [])
 
   useEffect(() => {
     const id = setInterval(() => {
-      if (viewerRef.current) setStats(viewerRef.current.stats())
+      const viewer = viewerRef.current
+      if (!viewer) return
+      setStats(viewer.stats())
+      setCanAnimate(viewer.canAnimateStreams())
     }, 500)
     return () => clearInterval(id)
   }, [])
@@ -128,6 +140,8 @@ export default function App() {
 
   useEffect(() => { viewerRef.current?.setLighting(appearance.lighting) }, [appearance.lighting])
 
+  useEffect(() => { viewerRef.current?.setComets(appearance.comets) }, [appearance.comets])
+
   useEffect(() => {
     viewerRef.current?.setTheme(appearance.theme === 'light')
   }, [appearance.theme])
@@ -192,6 +206,10 @@ export default function App() {
     if (request?.plane_axis) viewerRef.current?.setOutlineAxis(request.plane_axis)
   }, [request?.plane_axis])
 
+  const setComets = useCallback((patch) => {
+    setAppearanceState((a) => ({ ...a, comets: { ...a.comets, ...patch } }))
+  }, [])
+
   const onView = useCallback((direction) => viewerRef.current?.setView(direction), [])
   const onReset = useCallback(() => {
     if (info) viewerRef.current?.frameAll(info.header.bounds)
@@ -250,6 +268,9 @@ export default function App() {
           setAppearance={setAppearance}
           setStyle={setStyle}
           plane={plane}
+          comets={appearance.comets}
+          setComets={setComets}
+          canAnimate={canAnimate}
         />
         <div className="stage" ref={stageRef}>
           <Hud info={info} stats={stats} />
