@@ -30,10 +30,38 @@ sites **in the same commit**. It must keep constructing and keep passing
 it rather than let it rot in place and lie about being current.
 
 **The `trame` branch** is a frozen snapshot of the Trame app as it stood at
-`4a58f11`, and it is what `cfd-backend/Containerfile` pins for the deployed
-`cfd-viz` service (`VIZ_BRANCH=trame`). So the stack still serves exactly what
-it served before this split. The Containerfile carries the three-step diff for
-flipping it to the three.js client; read it there rather than re-deriving it.
+`4a58f11`. Frozen means frozen: if the shared pipeline on `main` gains a fix
+worth having there, cherry-pick it deliberately.
+
+**The deployed `cfd-viz` service builds the three.js client** from `main`
+(switched 2026-09-08). `cfd-backend/Containerfile` gained a `viz-build` node
+stage that clones this repo once and runs the Vite build, and the runtime stage
+copies the whole tree from it — so the Python source and the built client always
+come from one commit, and the runtime image needs no git.
+`cfd-backend/Containerfile.trame` still builds the Trame app from the `trame`
+branch as a **manual** fallback (CI does not build it), to be deleted once the
+new client has run in the deployment long enough to trust.
+
+Two things about that image not to "tidy":
+
+- **`--server` must stay in its CMD.** It is not only "do not open a browser":
+  it also makes an empty `--data` root non-fatal, so the service starts on a
+  fresh or not-yet-mounted `CFD_HOME` and picks cases up as they appear. Without
+  it an empty volume kills the process and the container restart-loops — a bug
+  this stack has already had once (`6a3e688`).
+- **It installs `requirements-core.txt`, not `requirements.txt`.** The core file
+  is exactly what the three.js service needs (vtk, aiohttp, matplotlib, numpy);
+  the full file adds it plus the trame packages. `main.py` imports `foamviz.app`
+  lazily *because of this* — a top-level import would make the service refuse to
+  start over a dependency it never uses — and `--trame` without trame installed
+  fails with a message naming the fix rather than a traceback.
+
+`libosmesa6`/`libgl1` are still installed in that image even though this client
+never renders server-side (nothing in `server/` calls `Render()`). What is not
+established is whether VTK can still *construct* a `vtkRenderWindow` with no GL
+backend present at all, and both front ends share one `FoamPipeline`, which
+builds one at import. Dropping them is a real size win; verify construction
+survives first.
 
 **Renamed** from `cfd-trame-vtk-viewer` to `cfd-viewer`, since `main` is no
 longer a Trame app. References in `cfd-backend` (docs, Containerfile,

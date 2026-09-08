@@ -24,8 +24,11 @@ no round trip at all.
 **FoamViz** (`foamviz/app.py`), the original [Trame](https://kitware.github.io/trame/)
 + vtk.js app, is **resting**: kept working and kept honest about pipeline
 changes, but no longer where new UX work goes. The `trame` branch is a frozen
-snapshot of it, and is what the `cfd-viz` container in the `cfd-backend` stack
-currently builds.
+snapshot of it.
+
+The `cfd-viz` service in the `cfd-backend` stack builds the three.js client from
+`main`; that repo's `Containerfile.trame` still builds the Trame app from the
+`trame` branch as a manual fallback.
 
 Both are kept in one tree on purpose — the moment `pipeline.py` exists in two
 places it forks, and the pipeline is the asset. See `CLAUDE.md`.
@@ -33,12 +36,19 @@ places it forks, and the pipeline is the asset. See `CLAUDE.md`.
 ## Running it
 
 ```bash
+pip install -r requirements.txt        # or requirements-core.txt, without trame
+
 # the client, once
 cd web && npm install && npm run build && cd ..
 
 # the server (serves web/dist at /)
 python main.py --data ./data --port 5003
 ```
+
+`requirements-core.txt` is exactly what the three.js path needs (vtk, aiohttp,
+matplotlib, numpy); `requirements.txt` is that plus the trame packages for the
+resting front end. The container installs the core file, which is why
+`main.py` imports the Trame app lazily.
 
 Then open <http://localhost:5003/>.
 
@@ -94,10 +104,14 @@ for CPython 3.6–3.12 on Linux x86_64 and Windows — which is the usual reason
 `pip install vtk-osmesa` fails. Reach for it only where you cannot install
 `libosmesa6`.
 
-Note that the three.js client **never renders on the server**; it only extracts.
-A deployment that serves only that client needs no GL at all — no OSMesa, no
-`libgl1`, and none of the headless-GL failure class. The render window is still
-constructed today because both front ends share one `FoamPipeline`.
+Note that the three.js client **never renders on the server**; it only extracts,
+and nothing in `server/` calls `Render()`. So OSMesa is very likely unnecessary
+for a deployment serving only that client. It is *not* dropped yet, and the
+reason is worth stating: both front ends share one `FoamPipeline`, which
+**constructs** a `vtkRenderWindow` at import, and whether that construction
+survives with no GL backend present at all is untested. The `cfd-viz` image
+still installs `libosmesa6` for that reason — verify construction before taking
+the (real) image-size win.
 
 ## What it does
 

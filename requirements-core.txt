@@ -1,0 +1,51 @@
+# What the three.js scene server needs, and nothing more -- this is the file the
+# cfd-viz container image installs. `requirements.txt` pulls this in and adds the
+# trame packages for the resting front end.
+#
+#   pip install -r requirements-core.txt
+#
+# ---------------------------------------------------------------------------
+# Which VTK?
+#
+# Plain `vtk` from PyPI, 9.4 or newer. Its wheels carry both an EGL and an
+# OSMesa render window and pick one at runtime: X11 first, then EGL, then
+# OSMesa. That covers headless servers without any special build.
+#
+# The catch is that VTK *dlopens* libEGL / libOSMesa rather than bundling them,
+# so a container needs the system library present:
+#
+#   apt-get install -y libosmesa6        # Debian/Ubuntu
+#   dnf install -y mesa-libOSMesa        # Fedora/RHEL
+#
+# On a normal Linux workstation this is already installed. Verify with:
+#   python -c "import vtk; w=vtk.vtkRenderWindow(); w.SetOffScreenRendering(1); \
+#              w.Render(); print(w.GetClassName())"
+# Expect vtkOSOpenGLRenderWindow (or vtkEGLRenderWindow on a GPU box).
+#
+# Fallback -- `vtk-osmesa` statically bundles OSMesa, so it needs no system
+# library at all. Use it only where you cannot install libosmesa6, and know
+# what you are taking on: it is NOT on PyPI (needs
+# `--extra-index-url https://wheels.vtk.org`), it stopped at 9.3.1, and it
+# ships wheels only for CPython 3.6-3.12 on Linux x86_64 and Windows. Python
+# 3.13+, macOS or arm64 will simply fail to resolve.
+#
+#   pip install "vtk-osmesa" --extra-index-url https://wheels.vtk.org
+#
+# trame itself pins no VTK version; verified on 9.3.1, 9.6.2 and 9.7.
+#
+# NB the three.js client (server/ + web/) never RENDERS on the server -- it only
+# extracts, and nothing in server/ calls Render(). So OSMesa is very likely
+# unnecessary for a deployment serving only that client. NOT yet verified: both
+# front ends share one FoamPipeline, which CONSTRUCTS a vtkRenderWindow at
+# import, and whether that construction survives with no GL backend present at
+# all is untested. The cfd-viz image still installs libosmesa6 for that reason.
+# ---------------------------------------------------------------------------
+vtk>=9.4
+
+# The three.js client's scene server.
+aiohttp>=3.9
+
+# matplotlib supplies the colour map tables (it arrives as a VTK dependency
+# anyway); numpy is used for the derived scalar arrays.
+matplotlib>=3.8
+numpy>=1.26

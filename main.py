@@ -41,8 +41,10 @@ def main():
     parser.add_argument(
         "--server",
         action="store_true",
-        help="do not open a browser; just serve (Trame only -- the three.js "
-             "client never opens one)",
+        help="service mode: tolerate an empty --data root (cases are picked up "
+             "as they appear) and never open a browser. Required for the "
+             "container: without it an empty CFD_HOME is fatal and the "
+             "service restart-loops",
     )
     args = parser.parse_args()
 
@@ -77,7 +79,18 @@ def main():
                  len(cases), args.data, ", ".join(c.name for c in cases))
 
     if args.trame:
-        from foamviz.app import FoamViz
+        # Imported lazily, and that is load-bearing: trame lives only in
+        # requirements.txt, not requirements-core.txt, so the cfd-viz container
+        # image does not carry it. A top-level import would make the three.js
+        # service refuse to start over a dependency it never uses.
+        try:
+            from foamviz.app import FoamViz
+        except ImportError as exc:
+            parser.error(
+                f"--trame needs the trame packages, which are not installed ({exc}). "
+                "They are deliberately absent from requirements-core.txt (what the "
+                "container installs); use `pip install -r requirements.txt`."
+            )
 
         # Trame defaults to 8080; keep that rather than the viewer's 5003, so an
         # existing --trame invocation behaves as it always did.
