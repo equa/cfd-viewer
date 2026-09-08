@@ -31,6 +31,22 @@ SKIP_FIELDS = {"p", "alphat", "omega", "epsilon", "rho"}
 KELVIN_FIELDS = {"T"}
 CELSIUS_OFFSET = 273.15
 
+# Units for the legend title and the report caption. Lives here, next to the
+# field handling it describes, because BOTH front ends need it and a second copy
+# would drift the moment a field was added (T is °C here, not K -- see
+# KELVIN_FIELDS above, which is exactly the kind of detail a copy would miss).
+FIELD_UNITS = {
+    "T": "[°C]",
+    "U": "[m/s]",
+    "p": "[m²/s²]",
+    "p_rgh": "[m²/s²]",
+    "k": "[m²/s²]",
+    "epsilon": "[m²/s³]",
+    "nut": "[m²/s]",
+    "alphat": "[kg/m·s]",
+    "rho": "[kg/m³]",
+}
+
 
 def find_cases(root):
     """Directories under *root* that look like OpenFOAM cases.

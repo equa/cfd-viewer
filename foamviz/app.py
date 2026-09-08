@@ -33,6 +33,7 @@ from trame.widgets import vtk as vtk_widgets
 from trame.widgets import vuetify3 as v3
 
 from . import colors
+from .case import FIELD_UNITS as _FIELD_UNITS
 from .case import FoamCase, find_cases
 from .pipeline import FoamPipeline
 
@@ -1715,17 +1716,6 @@ _FIELD = dict(
     hide_details=True,
 )
 
-_FIELD_UNITS = {
-    "T": "[°C]",
-    "U": "[m/s]",
-    "p": "[m²/s²]",
-    "p_rgh": "[m²/s²]",
-    "k": "[m²/s²]",
-    "epsilon": "[m²/s³]",
-    "nut": "[m²/s]",
-    "alphat": "[kg/m·s]",
-    "rho": "[kg/m³]",
-}
 
 
 def _fmt_time(value):

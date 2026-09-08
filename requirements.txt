@@ -28,11 +28,20 @@
 #
 #   pip install "vtk-osmesa" --extra-index-url https://wheels.vtk.org
 #
-# trame itself pins no VTK version; the app is verified on both 9.3.1 and
-# 9.6.2, including vtk.js client-side rendering.
+# trame itself pins no VTK version; verified on 9.3.1, 9.6.2 and 9.7.
+#
+# NB the three.js client (server/ + web/) never RENDERS on the server -- it only
+# extracts -- so a deployment that serves only that client needs no OSMesa,
+# no libgl1 and no render window at all. Both front ends currently share one
+# FoamPipeline, which is why one is still constructed.
 # ---------------------------------------------------------------------------
 vtk>=9.4
 
+# The three.js client's scene server.
+aiohttp>=3.9
+
+# The RESTING Trame front end (main.py --trame) only. Nothing in server/ or
+# web/ imports trame; drop these if that app is ever removed.
 trame>=3.13
 trame-vtk>=2.11
 trame-vuetify>=3.2
@@ -43,5 +52,10 @@ trame-components>=2.5
 matplotlib>=3.8
 numpy>=1.26
 
-# Only needed for tests/browser_check.py
+# Only needed for the browser suites (tests/check_client.py, browser_check.py).
+# Pillow is used there to count pixels in a screenshot.
 # playwright>=1.40
+# pillow>=10.0
+
+# The browser client is built with node, not pip:
+#   cd web && npm install && npm run build

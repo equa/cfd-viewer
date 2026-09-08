@@ -25,8 +25,11 @@ data/hotRoom/*.foam
 data/hotRoom/postProcessing/
 data/hotRoom/processor*/
 
-# Screenshot output from tests/browser_check.py
+# Screenshot output from the browser suites
 /shots/
 
-# Spike: browser deps are vendored by spike/fetch_vendor.sh, not committed
-spike/web/vendor/
+# The client: both rebuild from web/package.json (npm install && npm run build).
+# dist/ is deliberately NOT committed -- the container builds it in a node stage,
+# and a stale committed bundle silently shadowing a source change is a bad day.
+web/node_modules/
+web/dist/

@@ -1,4 +1,11 @@
-# Spike: VTK on the server, three.js in the browser
+# Spike report: VTK on the server, three.js in the browser
+
+> **Historical, 2026-09-07.** This is the report that decided the front-end
+> question; it describes `spike/`, which no longer exists — that code became
+> `server/` and `web/` on `main`. The measurements and the reasoning stand and
+> are the reason to keep it. For how the shipped client is built, read
+> `CLAUDE.md` ("The three.js client"); the paths and run commands below are
+> superseded by `README.md`.
 
 The "SimScale split" — every CFD filter stays in Python/VTK, the browser gets
 plain triangles and scalars and draws them with React + three.js. Built to

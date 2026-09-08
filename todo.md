@@ -1,5 +1,12 @@
 # Pending improvements to the viz UX
 
+> **Note (2026-09-08):** development moved to the React + three.js client
+> (`server/` + `web/`); the Trame app is resting. Items below that were closed
+> against the Trame UI stay closed — the UX was ported, not rebuilt. Where a
+> control changed cost (bands and colour range are now instant; the two
+> line-width sliders were dropped as provably inert under WebGL), see
+> "What the debouncing became" in `CLAUDE.md`.
+
 Claude: You may edit this file. Short comments on progress like "done" or "refused" for example.
 
 Sometimes I (Niklas) want to extend on a topic that is marked as **done**. I will then keep

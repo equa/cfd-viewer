@@ -1,0 +1,243 @@
+/*
+ * Layout and the floating overlays. Everything that is a *control* comes from
+ * Mantine; what is here is the frame around the 3D view and the four things that
+ * sit on top of it (HUD, legend, bottom bar, busy overlay).
+ *
+ * The overlays are styled with Mantine's own CSS variables, so they follow the
+ * forced colour scheme with no per-theme rules -- the same trick the Trame app
+ * used with Vuetify's theme vars.
+ */
+
+:root {
+  --pane-width: 320px;
+  --topbar-height: 46px;
+  --stage-dark: #16181d;
+  --stage-light: #f2f3f5;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font: 13px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  overflow: hidden;          /* the stage owns the viewport; nothing scrolls it */
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.booting {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--mantine-color-dimmed);
+}
+
+/* ── top bar ─────────────────────────────────────────────── */
+
+.topbar {
+  flex: 0 0 var(--topbar-height);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  overflow: hidden;          /* a narrow window must not push the layout wider */
+}
+
+.topbar .brand { letter-spacing: .01em; white-space: nowrap; }
+.topbar .case-note { white-space: nowrap; }
+
+/* ── body: side pane + stage ─────────────────────────────── */
+
+.body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;             /* lets the stage shrink instead of overflowing */
+}
+
+.sidepane {
+  flex: 0 0 var(--pane-width);
+  width: var(--pane-width);
+  padding: 10px;
+  border-right: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  overflow-y: auto;
+}
+
+/* ── tool stack ──────────────────────────────────────────── */
+
+.toolstack { display: flex; flex-direction: column; gap: 1px; }
+
+.toolrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--mantine-radius-sm);
+  padding-right: 4px;
+}
+
+.toolrow:hover { background: var(--mantine-color-default-hover); }
+
+.toolrow.active { background: var(--mantine-primary-color-light); }
+.toolrow.active .toolbtn { color: var(--mantine-primary-color-light-color); font-weight: 600; }
+
+.toolbtn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toolicon {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+  opacity: .75;
+}
+
+.toolpanel[hidden] { display: none; }
+
+/* ── stage ───────────────────────────────────────────────── */
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--stage-dark);
+}
+
+[data-theme='light'] .stage { background: var(--stage-light); }
+
+.stage canvas { display: block; }
+
+/* ── HUD ─────────────────────────────────────────────────── */
+
+.hud {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 2;
+  padding: 7px 10px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
+  backdrop-filter: blur(4px);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--mantine-color-dimmed);
+  pointer-events: none;      /* never steal a drag meant for the camera */
+}
+
+.hud b { color: var(--mantine-color-text); font-weight: 600; }
+
+/* ── legend ──────────────────────────────────────────────── */
+
+.legend {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  font-size: 11px;
+  color: var(--mantine-color-dimmed);
+  pointer-events: none;
+}
+
+.legend-title {
+  margin-bottom: 6px;
+  text-align: right;
+  color: var(--mantine-color-text);
+  font-weight: 600;
+}
+
+.legend-body { display: flex; align-items: stretch; gap: 6px; }
+
+.legend-bar {
+  width: 14px;
+  height: 190px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 3px;
+}
+
+.legend-ticks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The in-scene triad's arrow colours are the only thing naming the axes, so the
+   key repeats them exactly (see Viewer TRIAD_COLOURS). */
+.axis-key { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; font-weight: 700; }
+.axis-key .ax-x { color: #e64d4d; }
+.axis-key .ax-y { color: #66d966; }
+.axis-key .ax-z { color: #598cf2; }
+
+/* ── bottom bar ──────────────────────────────────────────── */
+
+.bottombar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+.viewbtn {
+  min-width: 26px;
+  padding: 3px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-default);
+  color: var(--mantine-color-text);
+  font: 600 11px/1 inherit;
+  cursor: pointer;
+}
+
+.viewbtn:hover { border-color: var(--mantine-primary-color-filled); }
+
+/* ── busy overlay ────────────────────────────────────────── */
+
+/*
+ * The scrim captures clicks on purpose: a running VTK filter cannot be aborted
+ * reliably (even ParaView cannot), so this prevents piling more work on rather
+ * than trying to interrupt what is already going.
+ */
+.busy {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--mantine-color-body) 35%, transparent);
+  backdrop-filter: blur(2px);
+  color: var(--mantine-color-text);
+}
+
+.busy.error {
+  background: color-mix(in srgb, var(--mantine-color-body) 80%, transparent);
+  color: var(--mantine-color-red-4);
+  padding: 0 24px;
+}

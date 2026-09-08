@@ -63,7 +63,11 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
 
     server = subprocess.Popen(
-        [sys.executable, str(ROOT / "main.py"), "--server", "--port", str(PORT)],
+        # --trame is REQUIRED now: main.py defaults to the three.js client, and
+        # this suite drives the resting Trame app (see tests/check_client.py for
+        # the other one). Without the flag every selector here misses.
+        [sys.executable, str(ROOT / "main.py"), "--trame", "--server",
+         "--port", str(PORT)],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

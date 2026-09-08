@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Server-side numbers for the spike: what comes out, how big, how long.
+"""Server-side numbers: what comes out of each part, how big, how long.
 
-    python spike/bench.py [case ...]
+    python tests/bench.py [case ...]
 
 Checks the payload round-trips (unpack() sees the same counts pack() wrote) and
-prints the per-part extraction time and wire size -- the figures the three.js-vs-
-vtk.js decision actually turns on.
+prints the per-part extraction time and wire size. Those per-part figures are
+what justify fetching per part rather than per scene -- on a big case the
+boundary dwarfs everything else, so a control that only moves the slice must not
+drag the boundary along with it.
 """
 
 import sys
@@ -19,12 +21,12 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import wire  # noqa: E402
-from server import SceneSource  # noqa: E402
+from server import wire  # noqa: E402
+from server.scene import SceneSource  # noqa: E402
 
-PARTS = "boundary,slice,iso,streamlines"
+# Every part, so one run shows the whole cost distribution.
+PARTS = "boundary,slice,iso,stream,glyph,geometry"
 
 
 def report(source, name):
@@ -35,7 +37,7 @@ def report(source, name):
           + (" (decomposed)" if meta["decomposed"] else ""))
 
     t = time.perf_counter()
-    blob = source.scene({"parts": PARTS, "seeds": "200", "slice_frac": "0.5"})
+    blob = source.scene(dict(parts=PARTS, stream_seeds="200", glyph_count="400"))
     wall = (time.perf_counter() - t) * 1000
     header, parts = wire.unpack(blob)
 
@@ -76,7 +78,7 @@ def report(source, name):
     # this is the *floor* for a round trip -- pure extraction + packing. Moving a
     # slider re-executes the filter and costs the per-part time above on top.
     t = time.perf_counter()
-    source.scene({"parts": PARTS, "seeds": "200", "slice_frac": "0.5"})
+    source.scene(dict(parts=PARTS, stream_seeds="200", glyph_count="400"))
     print(f"  re-pack only (nothing dirtied): {(time.perf_counter() - t) * 1000:7.1f} ms"
           f"  <- floor for any round trip")
 
