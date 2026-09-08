@@ -84,7 +84,7 @@ the native `input` event, which fires on every pixel of a drag -- so one sweep
 of the cut-plane slider queued ~20 extractions, each of them seconds long on a
 real case. The native `change` event *is* the release event for a range input,
 so the draft value drives the UI live and only `change` triggers a refetch
-(`Slider` in `web/app.js`; the listener is attached natively because React maps
+(`Slider` in the spike's `web/app.js`; the listener is attached natively because React maps
 both `onChange` and `onInput` to `input` and offers no "user let go" event).
 On top of that, an in-flight request is aborted when a newer one starts, so the
 selects and number inputs cannot stack up either and the newest request always
@@ -205,7 +205,7 @@ round trip — or smuggling values through a custom accessor. Instead:
 
 The header names every buffer by byte offset, type and component count, so the
 client does one fetch, one `arrayBuffer()` and zero parsing (`decodeScene` in
-`web/app.js`, `pack`/`unpack` in `wire.py`). If glTF interop matters later, add
+the spike's `web/app.js`, `pack`/`unpack` in `wire.py`). If glTF interop matters later, add
 it as a second endpoint for export; it should not be the interactive path.
 
 ## Verdict

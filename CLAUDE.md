@@ -56,6 +56,18 @@ Two things about that image not to "tidy":
   start over a dependency it never uses — and `--trame` without trame installed
   fails with a message naming the fix rather than a traceback.
 
+**The image's build guard.** `viz-build` checks, right after the clone, that the
+branch it landed on actually has `web/package.json`, `web/package-lock.json`,
+`requirements-core.txt` and `main.py`. This exists because the stage clones
+*another* repo, so the commit it gets can simply predate the layout the
+Containerfile expects — trivially caused by forgetting to push. Without the
+guard the first symptom is six layers down, as a bare
+`pip: No such file or directory: requirements-core.txt` pointing at the pip
+command rather than at the stale clone. That happened once, on the very first CI
+run after the switch. The guard prints the offending files, the branch, and the
+cloned HEAD's subject line, which makes "your clone is one commit behind"
+immediately obvious.
+
 `libosmesa6`/`libgl1` are still installed in that image even though this client
 never renders server-side (nothing in `server/` calls `Render()`). What is not
 established is whether VTK can still *construct* a `vtkRenderWindow` with no GL
@@ -476,17 +488,44 @@ levels into one.
 **`tests/browser_check.py` must pass `--trame`.** `main.py` now defaults to the
 three.js client, so without the flag every selector in that suite misses.
 
-- `tests/test_pipeline.py` — 29 checks, no browser, ~15 s. Asserts **output
-  counts** for every filter, because an empty VTK filter raises nothing and
-  renders as a plausible blank image.
-- `tests/browser_check.py` — drives real Chromium through 9 steps, fails on any
-  console error. Runs directly under `/opt/venv` now (no `LD_LIBRARY_PATH`).
-- When checking whether the 3D view drew anything, screenshot the **page**, not
-  the canvas: a WebGL canvas without `preserveDrawingBuffer` reads back blank
-  after the frame is presented.
-- `js-*` classes in `app.py` exist purely as test hooks; Vuetify's own markup
-  has nothing stable to select on, and `get_by_label("Field")` also matches
-  "Vector field".
+Four suites, all runnable directly under `/opt/venv` (no `LD_LIBRARY_PATH`):
+
+| | what it covers | last run |
+|---|---|---|
+| `tests/test_pipeline.py` | the shared VTK pipeline, no browser, ~30 s | **63/63** |
+| `tests/check_client.py` | the three.js client in real Chromium | **64/64** |
+| `tests/browser_check.py` | the resting Trame app, 9 steps (needs `--trame`) | **PASS** |
+| `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
+
+- `test_pipeline.py` asserts **output counts** for every filter, because an
+  empty VTK filter raises nothing and renders as a perfectly plausible blank
+  image. It is also the guard that keeps the resting Trame app honest: it
+  exercises the pipeline both front ends share.
+- `check_client.py` mostly does **not** ask "did it render" — it asks **which
+  controls cause a refetch**, by counting `/api/scene` requests around each
+  interaction (zero for a colour-map switch, zero for a whole cut-plane drag,
+  exactly one for the release, zero for returning to a cached time step). That
+  boundary is the architecture and it decays silently, so those counts are the
+  most valuable assertions in the repo. It also counts red pixels to prove the
+  plane outline actually appears mid-drag.
+- **Reading rendered pixels: use the in-page hook, not a screenshot.** The HUD,
+  legend and busy overlay sit on top of the canvas, so a page screenshot of an
+  *empty* scene comes back colourful. `window.__viz.grab()` does a `readPixels`
+  and counts distinct colours in the browser (`Viewer.grab`). The older advice
+  here — "screenshot the page, not the canvas, because a WebGL canvas without
+  `preserveDrawingBuffer` reads back blank" — applied to the Trame/vtk.js view
+  and is **not** how the three.js suite works; that renderer sets
+  `preserveDrawingBuffer` (it needs it for `toDataURL` screenshots anyway).
+- Selectors: the three.js client carries `data-ctl="<name>"` on every control
+  for exactly this purpose. The Trame app uses `js-*` classes instead, because
+  Vuetify's own markup has nothing stable to select on and
+  `get_by_label("Field")` also matches "Vector field".
+- Two things that make browser tests flaky if ignored, both learned the hard
+  way and both handled by `wait_idle()` / a domain-relative epsilon in
+  `check_client.py`: the **busy overlay captures clicks by design**, so
+  clicking through it races the app rather than testing it; and
+  **OrbitControls damping is still easing** when a test reads the camera, so a
+  `1e-6` tolerance tests the easing curve, not the view.
 
 ## Demo data
 
@@ -566,17 +605,27 @@ switches **reactively**, not by rebuild:
 
 ## Architecture in one paragraph
 
-`case.py` wraps `vtkOpenFOAMReader` and hands out **snapshots** — concrete
-datasets for one instant — rather than a live pipeline connection.
-`pipeline.py` owns the renderer and every representation, and bakes the
+**Shared.** `case.py` wraps `vtkOpenFOAMReader` and hands out **snapshots** —
+concrete datasets for one instant — rather than a live pipeline connection.
+`pipeline.py` owns the filter graph and every representation, and bakes the
 selected field/component into a real scalar array (`FoamVizColor`) that
-everything colours by. `app.py` is the Trame UI: state dict, change handlers,
-one `update_scene()` that pushes all state into the pipeline and redraws.
-`colors.py` samples matplotlib colour maps once and serves both the VTK
-transfer function and the HTML legend gradient, so they cannot drift apart.
+everything colours by. `colors.py` samples matplotlib colour maps once and
+serves the VTK transfer function, the CSS legend gradient *and* the 256-entry
+RGB table the three.js shader samples, so all three cannot drift apart.
 
-**Perf invariant (2026-09-01): a toggle must leave `case.internal`'s MTime
-untouched.** `update_scene()` runs on *every* change (incl. a mere visibility/
+**The three.js front end.** `server/scene.py` drives that pipeline per **part**
+and `server/wire.py` packs the polydata as typed arrays; `web/` decodes them
+into `BufferGeometry` and owns appearance in a shader. There is no server-side
+render in this path. See "The three.js client" above.
+
+**The resting Trame front end.** `app.py` is the Trame UI: state dict, change
+handlers, one `update_scene()` that pushes all state into the pipeline and
+redraws.
+
+**Perf invariant (2026-09-01), Trame path: a toggle must leave
+`case.internal`'s MTime untouched.** (The `_baked` guard it describes lives in
+the shared `apply_color_array`, so the three.js server inherits the benefit —
+its per-part signatures are the equivalent discipline one level up.) `update_scene()` runs on *every* change (incl. a mere visibility/
 opacity toggle). If it dirties `case.internal`, its MTime bumps and every filter
 fed by it — the cutter, hence the stream **seeds**, hence the tracer + tube, plus
 isosurfaces and glyphs — re-executes *and* re-serialises to the vtk.js client
@@ -780,9 +829,12 @@ Integrating into the EQUA CFD frontend (repo `cfd-restful-backend`, the
     serialises to empty geometry cleanly (also kills the `vtkCutter` "0
     connections" ERR spam). Guarded by a `test_pipeline.py` invariant: with no
     case loaded, no actor's mapper has a `None` input algorithm.
-- **A2 pending (needs a live proxy, likely Niklas's env):** serving under the
-  `/viz/` base path behind nginx — the wslink client must open its WebSocket and
-  load assets relative to the mount.
+- **A2 DONE** — serving under the `/viz/` base path behind nginx works;
+  confirmed in Niklas's deployment (see the 502 note below for the one real
+  problem found there, which was nginx upstream re-resolution, not the base
+  path). The three.js client meets the same requirement differently and more
+  simply: `base: ''` in `web/vite.config.js` plus relative API paths, so one
+  build works at `/` and under `/viz/` with no wslink involved.
 
 **Verifying A1 without a browser:** the PNG route names its file
 `foamviz-<case_name>-t<time>.png`. So: start `main.py --server --data data`,
@@ -797,9 +849,15 @@ API on :5001) and `project_iceopenfoam` (EQUA's OpenFOAM-13 extension libs).
 1. **Which backend, exactly?** The Flask job-control API, ICEOpenFOAM, or the
    IDA ICE client itself? That decides whether FoamViz is a service the API
    proxies to, or a component the client embeds.
-2. **Process model.** A Trame server is one long-lived process holding one VTK
-   pipeline and one camera — inherently single-user. Concurrency needs the
-   trame launcher (process per session). Deciding this late is painful.
+2. **Process model — improved, still open.** One long-lived process holding one
+   VTK pipeline and one open case. In the three.js path extraction now runs in
+   a worker thread behind a lock (`server/app.py`), so a 3-second
+   `vtkStreamTracer` no longer freezes the event loop and the server keeps
+   answering while it works — and the client owns its own camera, so the
+   "one camera" half of this problem is simply gone. What remains is that two
+   users still share one open case: real concurrency needs a process per
+   session. (The Trame path additionally needs the trame launcher for that;
+   the three.js path needs no special machinery, just more processes.)
 3. **Case discovery.** `find_cases()` scans for `system/controlDict`. The
    backend addresses cases by UUID directory with a `metadata.json`
    (`CASE-ID`, `N-CELLS`, `TURB-MODEL`, `ZONE-NAMES`, `END-ITER`, `CFD-OK`…)
@@ -820,15 +878,18 @@ API on :5001) and `project_iceopenfoam` (EQUA's OpenFOAM-13 extension libs).
    in `DECOMPOSED_CASE` mode when `_is_decomposed()` finds the newest time only
    in `processor*` (mirrors backend `time_in == 'parallel'`; detected from the
    filesystem, not the API, to keep cfd-viz decoupled). It is a
-   `vtkOpenFOAMReader` subclass, so the rest is unchanged. Verified with the
-   persistent venv on a real decomposePar'd hotRoom (root time 0, processor0 at
-   1730): detection True, `vtkPOpenFOAMReader` present in the wheel, reads all
-   processor dirs serially → 32 000 global cells, all fields. Drawer caption
-   shows "· decomposed" when active.
-6. **Render mode default.** Settled enough for now: Niklas reports client-side
-   (vtk.js) rendering is "impressive already" at 12 M cells, so default to
-   `local` and treat server mode as the fallback for GPU-less clients rather
-   than the other way round.
+   `vtkOpenFOAMReader` subclass, so the rest is unchanged. Verified on a real
+   decomposePar'd hotRoom (root time 0, processor0 at 1730): detection True,
+   `vtkPOpenFOAMReader` present in the wheel, reads all processor dirs serially
+   → 32 000 global cells, all fields. Both front ends surface it: the Trame
+   drawer caption and the three.js top bar both show "· decomposed"
+   (`data/geometric-fancoil-and-beam` exercises it, 644 413 cells).
+6. **Render mode default — SETTLED, and now moot.** Niklas reported client-side
+   (vtk.js) rendering "impressive already" at 12 M cells, so the Trame app
+   defaults to `local` with server mode as the GPU-less fallback. The three.js
+   client has no such switch at all: it always renders in the browser, and the
+   server never renders. If a genuinely GPU-less client ever matters again,
+   that is a new feature there, not a toggle.
 7. **Comfort metrics.** Draught rate, PMV/PPD, operative temperature are what
    the IDA ICE side actually reports, and none are OpenFOAM fields. They would
    be derived arrays computed at load — the same mechanism as `FoamVizColor`,
@@ -861,7 +922,14 @@ Alternatives rejected during the original build: server-side throttle/debounce
 (still pays the round trip, feels laggy not stepped) and lowering default counts
 (treats the symptom).
 
-## Case-report figures — in progress (2026-08-16)
+## Case-report figures — Trame only; NOT ported (2026-08-16, still open)
+
+> **The three.js client does not have this**, deliberately — see "Not done,
+> deliberately" above. It needs a decision first: does the figure come from the
+> client canvas (matching what the user sees, bands and opacity included) or
+> from a server render (which needs every appearance setting to travel with the
+> request)? Everything below describes the working Trame implementation, which
+> is the thing to port once that is settled.
 
 Goal (with Niklas): build a scene, "Add to case report", and have it appear in
 the cfd-frontend case report — a **frozen** interactive snapshot (rotate/zoom, no
@@ -905,6 +973,13 @@ base64-embedded scenes into a downloadable `.html` (client-side assembly reuses
 React's rendering; the viewer is one small vtk.js bundle inlined once).
 
 ## To-do list
+
+> **Historical (Trame era). This list is closed.** Every item below landed in
+> the Trame app, and the resulting UX was then *ported* to the three.js client
+> rather than rebuilt — so the decisions still hold, but read
+> "What the debouncing became" above for where a control's cost changed. Kept
+> for the implementation notes underneath, which are still the reasons things
+> are shaped the way they are.
 
 Things for future consideration and work, added by Niklas. Remove items when
 implemented, and feel free to fix formatting. We will fix and remove items as we
@@ -958,8 +1033,10 @@ All of the below shipped (see "Widget re-arrangement — DONE" implementation no
 
 ## To-do — implementation notes (Claude)
 
-Grounding notes for the list above; **not yet implemented**. Code pointers are to
-the tree as it stands (line numbers drift). A suggested order is at the end.
+Grounding notes for the list above. All of it **is** implemented (in the Trame
+app, and carried over to the three.js client); the "not yet implemented" this
+line used to say has been true of nothing here since 2026-08-15. Code pointers
+are to `foamviz/app.py` (line numbers drift). A suggested order is at the end.
 
 ### Slider behaviour — do this first
 
