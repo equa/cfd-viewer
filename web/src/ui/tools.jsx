@@ -1,7 +1,9 @@
 import {
-  Button, Divider, Group, MultiSelect, NumberInput, SegmentedControl, Select, Switch, Text,
+  Button, Divider, Group, MultiSelect, SegmentedControl, Select, Switch, Text,
 } from '@mantine/core'
-import { INPUT, LabelledSlider, SELECT, Tag, useDeferred } from './controls.jsx'
+import {
+  ColourBy, INPUT, LabelledSlider, NumberField, SELECT, Tag, stepFor, useDeferred,
+} from './controls.jsx'
 
 /* A switch label carrying its cost. The mixed panels -- Boundary especially --
  * are where the client/server split is least guessable, and a tag beside the
@@ -85,17 +87,21 @@ export function CutPlaneTool({ meta, request, setRequest, style, setStyle, plane
       />
 
       <Group grow gap={6} mt={4}>
-        {['x', 'y', 'z'].map((a) => (
-          <NumberInput
-            key={a}
-            {...INPUT}
-            label={a.toUpperCase()}
-            value={point.draft[a]}
-            decimalScale={3}
-            onChange={(v) => point.set({ [a]: Number(v) })}
-            data-ctl={`plane-${a}`}
-          />
-        ))}
+        {['x', 'y', 'z'].map((a) => {
+          const [alo, ahi] = meta.axisRange[a]
+          return (
+            <NumberField
+              key={a}
+              {...INPUT}
+              label={a.toUpperCase()}
+              value={point.draft[a]}
+              step={stepFor(ahi - alo)}
+              decimalScale={3}
+              onChange={(v) => point.set({ [a]: Number(v) })}
+              data-ctl={`plane-${a}`}
+            />
+          )
+        })}
       </Group>
       <Button
         fullWidth
@@ -138,12 +144,11 @@ export function BoundaryTool({ meta, request, setRequest, style, setStyle }) {
   const patches = useDeferred({ patches: request.patches }, (draft) => setRequest(draft))
   return (
     <>
-      <Switch
-        size="xs"
-        label={tagged('Colour by field', 'client')}
-        checked={style.colored ?? false}
-        onChange={(e) => setStyle({ colored: e.currentTarget.checked })}
-        data-ctl="surface-colored"
+      <ColourBy
+        ctl="surface"
+        colored={style.colored ?? false}
+        solid={style.solid}
+        onChange={setStyle}
       />
       <Switch
         mt={6}
@@ -210,10 +215,50 @@ export function BoundaryTool({ meta, request, setRequest, style, setStyle }) {
   )
 }
 
-export function ContourTool({ request, setRequest, style, setStyle }) {
+export function ContourTool({ meta, request, setRequest, style, setStyle }) {
   const single = Number(request.contour_count) <= 1
+  const locked = !!request.contour_field
+  const fields = meta ? Object.keys(meta.fields).sort() : []
+  // Which field the surface is actually contoured from -- the thing that was
+  // previously left to guesswork.
+  const base = request.contour_field || request.field
+  // The values are in the contoured field's units, so the step has to be too.
+  const isoStep = stepFor(Number(request.contour_max) - Number(request.contour_min))
   return (
     <>
+      {/*
+        The isosurface contours the COLOUR field by default, which is usually
+        what you want and is why its values re-seed when that field changes.
+        Locking pins it to a field of its own, so recolouring then recolours the
+        surface instead of moving it -- which is how you get the classic
+        "speed isosurface, coloured by temperature" view.
+      */}
+      <Switch
+        size="xs"
+        label={tagged('Lock field', 'server')}
+        description={locked
+          ? 'Pinned — the colour field no longer moves this surface'
+          : `Following the colour field (${base})`}
+        checked={locked}
+        onChange={(e) => setRequest({
+          contour_field: e.currentTarget.checked ? request.field : '',
+        })}
+        data-ctl="contour-lock"
+      />
+      {locked ? (
+        <Select
+          {...SELECT}
+          mt={6}
+          data={fields}
+          value={request.contour_field}
+          onChange={(v) => v && setRequest({ contour_field: v })}
+          allowDeselect={false}
+          data-ctl="contour-field"
+        />
+      ) : null}
+      <Text size="xs" c="dimmed" mt={6} mb="xs" data-ctl="contour-base">
+        Contouring <b>{base}</b>; values below are in that field's units.
+      </Text>
       {/* 1 / 3 / 5 surfaces (odd, so one sits mid-range): a slider stepping by 2. */}
       <LabelledSlider
         label="Surfaces"
@@ -226,28 +271,31 @@ export function ContourTool({ request, setRequest, style, setStyle }) {
         data-ctl="contour-count"
       />
       {single ? (
-        <NumberInput
+        <NumberField
           {...INPUT}
           label="Value"
           value={request.contour_value}
+          step={isoStep}
           decimalScale={4}
           onChange={(v) => setRequest({ contour_value: Number(v) })}
           data-ctl="contour-value"
         />
       ) : (
         <Group grow gap={6}>
-          <NumberInput
+          <NumberField
             {...INPUT}
             label="Min"
             value={request.contour_min}
+            step={isoStep}
             decimalScale={4}
             onChange={(v) => setRequest({ contour_min: Number(v) })}
             data-ctl="contour-min"
           />
-          <NumberInput
+          <NumberField
             {...INPUT}
             label="Max"
             value={request.contour_max}
+            step={isoStep}
             decimalScale={4}
             onChange={(v) => setRequest({ contour_max: Number(v) })}
             data-ctl="contour-max"
@@ -255,8 +303,14 @@ export function ContourTool({ request, setRequest, style, setStyle }) {
         </Group>
       )}
       <Text size="xs" c="dimmed" mt={6} mb="xs">
-        Values seed from the colour range; several surfaces spread evenly inside it.
+        Several surfaces spread evenly inside [min, max].
       </Text>
+      <ColourBy
+        ctl="contour"
+        colored={style.colored ?? true}
+        solid={style.solid}
+        onChange={setStyle}
+      />
       {/* Nested translucent shells stack up fast, hence the 0.35 default. */}
       <LabelledSlider
         label="Opacity"
@@ -272,7 +326,9 @@ export function ContourTool({ request, setRequest, style, setStyle }) {
   )
 }
 
-export function StreamTool({ meta, request, setRequest, comets, setComets, canAnimate }) {
+export function StreamTool({
+  meta, request, setRequest, style, setStyle, comets, setComets, canAnimate,
+}) {
   /*
    * Everything here is heavy: vtkStreamTracer is 2.6 s of the 3.1 s server time
    * on s2, and it costs the same in the Trame path -- it is not a cost of this
@@ -353,6 +409,13 @@ export function StreamTool({ meta, request, setRequest, comets, setComets, canAn
         Apply
       </Button>
 
+      <ColourBy
+        ctl="stream"
+        colored={style.colored ?? true}
+        solid={style.solid}
+        onChange={setStyle}
+      />
+
       <Divider my="sm" />
 
       {/*
@@ -407,7 +470,7 @@ export function StreamTool({ meta, request, setRequest, comets, setComets, canAn
   )
 }
 
-export function GlyphTool({ meta, request, setRequest }) {
+export function GlyphTool({ meta, request, setRequest, style, setStyle }) {
   return (
     <>
       {/* Arrows always orient by a vector field (default U), independent of the
@@ -468,6 +531,12 @@ export function GlyphTool({ meta, request, setRequest }) {
         value={request.glyph_scale}
         onCommit={(v) => setRequest({ glyph_scale: v })}
         data-ctl="glyph-scale"
+      />
+      <ColourBy
+        ctl="glyph"
+        colored={style.colored ?? true}
+        solid={style.solid}
+        onChange={setStyle}
       />
     </>
   )

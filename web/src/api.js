@@ -14,6 +14,9 @@ export const api = {
   cases: () => fetch('api/cases').then(json),
   meta: (name) => fetch(`api/meta?${q({ case: name })}`).then(json),
   times: (name) => fetch(`api/times?${q({ case: name })}`).then(json),
+  // Just the data range for a field, with no extraction. What makes the robust
+  // -range toggle instant, and what the isosurface seeds its values from.
+  range: (params) => fetch(`api/range?${q(params)}`).then(json),
   lut: (name) => fetch(`api/lut?${q({ name })}`)
     .then(ok).then((r) => r.arrayBuffer()).then((b) => new Uint8Array(b)),
   sceneUrl: (params) => `api/scene?${q(params)}`,

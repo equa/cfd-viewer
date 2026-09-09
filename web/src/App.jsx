@@ -60,6 +60,7 @@ export default function App() {
       // Lets a test (or a tuning sweep) drive the animation's shape directly,
       // including the two knobs the UI keeps fixed at their tuned defaults.
       tuneComets: (o) => viewer.setComets(o),
+      partInfo: (name) => viewer.partInfo(name),
     }
     return () => { viewer.dispose(); viewerRef.current = null }
   }, [])
@@ -157,20 +158,61 @@ export default function App() {
     meta, request: request || {}, appearance, viewerRef, onHeader,
   })
 
-  // Seed the isosurface controls from the colour range the first time a case
-  // reports one -- otherwise a fresh case opens with an isovalue of 0.5 that
-  // sits nowhere near the data.
+  /* The isosurface's values, re-seeded whenever the field it contours CHANGES
+   * IDENTITY -- not when the user edits a value.
+   *
+   * This is the fix for the isosurface behaving "randomly": the values were
+   * seeded exactly once per case, so switching the colour field from U to T
+   * left the isovalue at a |U| number, i.e. nowhere near the T range, and the
+   * surface came back empty or arbitrary. It contours whatever field is
+   * selected, so its values have to follow that field's units.
+   *
+   * Deps are field IDENTITY only (case, colour field/component, the locked
+   * field), so typing a value never triggers a reseed.
+   */
+  const isoField = request?.contour_field || request?.field
+  const isoComponent = request?.contour_field ? 'magnitude' : request?.component
   useEffect(() => {
-    if (info && request && request.contour_min === 0 && request.contour_max === 1) {
-      const [lo, hi] = info.header.range
-      setRequest({
-        contour_min: round(lo),
-        contour_max: round(hi),
-        contour_value: round(lo + (hi - lo) / 2),
+    if (!request?.case || !isoField) return undefined
+    let cancelled = false
+    api.range({ case: request.case, field: isoField, component: isoComponent })
+      .then(({ range: [lo, hi] }) => {
+        if (cancelled) return
+        setRequest({
+          contour_min: round(lo),
+          contour_max: round(hi),
+          contour_value: round(lo + (hi - lo) / 2),
+        })
       })
-    }
+      .catch(() => {})
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [info?.header.case])
+  }, [request?.case, isoField, isoComponent])
+
+  /* The colour range, when only `robust` moved.
+   *
+   * `robust` changes no geometry, so it is deliberately in no part's
+   * PART_INPUTS -- which meant it moved no signature, triggered no refetch and
+   * silently did nothing. It gets the range from the cheap endpoint instead, so
+   * it stays instant rather than re-extracting every visible part to deliver
+   * two floats. (A scene fetch still reports the range in its header, which is
+   * what keeps auto-range tracking a time step; both come from the same server
+   * function, so they agree.)
+   */
+  useEffect(() => {
+    if (!request?.case || !request?.field) return undefined
+    let cancelled = false
+    api.range({
+      case: request.case,
+      field: request.field,
+      component: request.component,
+      robust: request.robust ? 1 : 0,
+    }).then(({ range }) => {
+      if (!cancelled) setAppearanceState((a) => (a.autoRange ? { ...a, range } : a))
+    }).catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.case, request?.field, request?.component, request?.robust])
 
   // -- actions ---------------------------------------------------------
 
@@ -217,9 +259,33 @@ export default function App() {
   const onPick = useCallback((x, y) => viewerRef.current?.pickCentre(x, y), [])
   useShortcuts({ onView, onReset, onPick })
 
-  const onRescale = useCallback(() => {
-    if (info) setAppearance({ range: info.header.range })
-  }, [info, setAppearance])
+  const onRescale = useCallback(async () => {
+    if (!request?.field) return
+    // Swallowed on purpose: a failed range lookup should leave the current
+    // range alone, not reject unhandled out of a click handler.
+    const answer = await api.range({
+      case: request.case,
+      field: request.field,
+      component: request.component,
+      robust: request.robust ? 1 : 0,
+    }).catch(() => null)
+    if (!answer) return
+    const { range } = answer
+    setAppearance({ range })
+    // The Trame app's _rescale also re-seeded the isosurface from the new
+    // range. Kept -- except when the isosurface is locked to a field of its
+    // own, where moving its values would defeat the point of locking.
+    if (!request.contour_field) {
+      const [lo, hi] = range
+      setRequest({
+        contour_min: round(lo),
+        contour_max: round(hi),
+        contour_value: round(lo + (hi - lo) / 2),
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.case, request?.field, request?.component, request?.robust,
+      request?.contour_field, setAppearance, setRequest])
 
   const onScreenshot = useCallback(() => {
     const data = viewerRef.current?.screenshot()

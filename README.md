@@ -120,7 +120,7 @@ the (real) image-size win.
 | **Colour** (top bar) | Any field the case contains; magnitude or X/Y/Z for vectors; nine colour maps; automatic, percentile (1–99 %) or manual range; discrete bands; opacity weighted by value |
 | **Cut plane** | An X/Y/Z-aligned plane positioned by world coordinate — the anchor for everything below. Optionally a *crinkle* slice: the true cell layer rather than a flat cut |
 | **Boundary** | The room shell, neutral or field-coloured, with near-wall culling so you can see in, mesh edges, opacity, cut-away-at-plane, and per-patch read selection |
-| **Isosurfaces** | 1 / 3 / 5 nested isosurfaces of the coloured field |
+| **Isosurfaces** | 1 / 3 / 5 nested isosurfaces of the coloured field, or **locked** to a field of their own — so you can contour speed and colour by temperature |
 | **Streamlines** | RK45 integration seeded from the cut plane, as lines or tubes, coloured by the field. **Animate flow** sends comets along them at the local flow speed — which is also the only thing that shows a streamline's *direction* |
 | **Arrows** | Glyphs on the plane (an even grid) or on the isosurface, uniform length or scaled by magnitude |
 | **Geometry** | The building outline from `constant/triSurface/building*.obj`, as feature edges or full wireframe |
@@ -143,13 +143,15 @@ segment that gets lost in a coiled tangle, on tubes it is a discrete object.
 The viewer labels every control `server` or `client`, because the difference is
 worth seeing while you use it:
 
-- **client** — colour map, range, bands, opacity-by-value, per-part visibility
-  and opacity, near-wall culling, shell mesh edges, the streamline animation,
-  camera, lighting, theme. These are shader uniforms or GPU state: instant, no
-  request.
-- **server** — colour *field* and component, cut-plane position, isovalues, seed
-  and glyph counts, time step, patch selection, crinkle slice, tubes. These
-  change what has to be extracted.
+- **client** — colour map, range, bands, opacity-by-value, per-part visibility,
+  opacity, colour-by-field and its solid-colour fallback, near-wall culling,
+  shell mesh edges, the streamline animation, camera, lighting, theme. These are
+  shader uniforms or GPU state: instant, no request.
+- **server** — colour *field* and component, cut-plane position, isovalues, the
+  isosurface's locked field, seed and glyph counts, time step, patch selection,
+  crinkle slice, tubes, true cell values. These change what has to be extracted.
+  Robust range and **Rescale** are the exception: they change no geometry, so
+  they come from a cheap `/api/range` rather than re-extracting anything.
 
 Server-side controls commit **on release**, and the heavy groups (streamline
 tuning, the plane's numeric X/Y/Z fields, patch selection) sit behind an
@@ -236,7 +238,7 @@ custom accessor. `server/wire.py` ships raw typed arrays that map 1:1 onto
 
 ```bash
 python tests/test_pipeline.py      # 63 checks, ~30 s, no browser — the shared pipeline
-python tests/check_client.py       # 64 checks — the three.js client in real Chromium
+python tests/check_client.py       # 93 checks — the three.js client in real Chromium
 python tests/browser_check.py      # the resting Trame app
 python tests/bench.py hotRoom s2   # server-side extraction sizes and timings
 ```

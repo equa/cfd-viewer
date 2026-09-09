@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Badge, Group, Slider, Text } from '@mantine/core'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Badge, ColorInput, Group, NumberInput, Slider, Switch, Text } from '@mantine/core'
 
 /*
  * The control vocabulary shared by every panel.
@@ -121,6 +121,101 @@ export function useDeferred(committed, onApply) {
     apply: () => { if (dirty) onApply(draft) },
     reset: () => setDraft(JSON.parse(fingerprint)),
   }
+}
+
+/*
+ * A number input the mouse wheel drives -- but ONLY while it has focus.
+ *
+ * Mantine does not wire the wheel up, and doing it unconditionally would be
+ * worse than not having it: these inputs live in a scrolling side pane, so a
+ * wheel gesture aimed at the pane would silently edit whichever field happened
+ * to be under the pointer. Requiring focus makes it deliberate -- click the
+ * field, then wheel -- which is how a spinner is expected to behave.
+ *
+ * `passive: false` is required: the listener has to preventDefault to stop the
+ * pane scrolling underneath, and wheel listeners default to passive, where
+ * preventDefault is ignored.
+ */
+export function NumberField({ value, onChange, step = 1, ...rest }) {
+  const ref = useRef(null)
+  const state = useRef({ value, onChange, step })
+  state.current = { value, onChange, step }
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    const onWheel = (event) => {
+      if (document.activeElement !== el) return
+      event.preventDefault()
+      const { value: current, onChange: commit, step: by } = state.current
+      const base = Number(current)
+      if (!Number.isFinite(base)) return
+      const next = base + (event.deltaY < 0 ? by : -by)
+      // Round to the step's own precision, or float noise turns 2.2 into
+      // 2.2000000000000002 in a field the user is reading.
+      const decimals = (String(by).split('.')[1] || '').length
+      commit(Number(next.toFixed(decimals)))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  return <NumberInput {...rest} ref={ref} value={value} step={step} onChange={onChange} />
+}
+
+/*
+ * "Colour by field" plus the solid colour it falls back to, as one control.
+ *
+ * Every field-coloured part wants the same pair, so it lives here rather than
+ * being repeated in five panels. Both halves are shader uniforms: instant.
+ */
+export function ColourBy({ ctl, colored, solid, onChange, defaultSolid = '#b8c0cc' }) {
+  return (
+    <>
+      <Switch
+        size="xs"
+        label={(
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Colour by field<Tag kind="client" />
+          </span>
+        )}
+        checked={colored}
+        onChange={(e) => onChange({ colored: e.currentTarget.checked })}
+        data-ctl={`${ctl}-colored`}
+      />
+      {colored ? null : (
+        <ColorInput
+          size="xs"
+          mt={6}
+          withEyeDropper={false}
+          format="hex"
+          swatches={['#b8c0cc', '#ffffff', '#8ab4f8', '#f28b82', '#81c995', '#fdd663', '#4a5058']}
+          value={solid || defaultSolid}
+          onChange={(v) => onChange({ solid: v })}
+          data-ctl={`${ctl}-solid`}
+        />
+      )}
+    </>
+  )
+}
+
+/*
+ * A "nice" step for a field spanning `span` -- about 1/100th of it, snapped to
+ * 1/2/5 x a power of ten.
+ *
+ * Needed because these inputs are now wheel-driven, and a fixed step of 1 is
+ * wrong for almost every field here: it is uselessly coarse on |U| (0..0.23)
+ * and uselessly fine on p. It also sets the spinner arrows, so it matters even
+ * without the wheel.
+ */
+export function stepFor(span, fallback = 0.1) {
+  const magnitude = Math.abs(span)
+  if (!Number.isFinite(magnitude) || magnitude <= 0) return fallback
+  const raw = magnitude / 100
+  const power = 10 ** Math.floor(Math.log10(raw))
+  const scaled = raw / power
+  const snapped = scaled >= 5 ? 5 : scaled >= 2 ? 2 : 1
+  return snapped * power
 }
 
 /* Shared sizing, so every panel's inputs line up without repeating props. */

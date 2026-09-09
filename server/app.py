@@ -81,6 +81,21 @@ def make_app(data_root):
         await open_case(request)
         return web.json_response({"times": await in_thread(source.refresh_times)})
 
+    async def field_range(request):
+        """The data range for one field/component. Cheap by design -- see
+        SceneSource.field_range for why this is not part of /api/scene."""
+        await open_case(request)
+        try:
+            values = await in_thread(
+                source.field_range,
+                request.query.get("field"),
+                request.query.get("component"),
+                request.query.get("robust") not in (None, "", "0", "false"),
+            )
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+        return web.json_response({"range": values})
+
     async def scene(request):
         await open_case(request)
         try:
@@ -125,6 +140,7 @@ def make_app(data_root):
     app.router.add_get("/api/cases", cases)
     app.router.add_get("/api/meta", meta)
     app.router.add_get("/api/times", times)
+    app.router.add_get("/api/range", field_range)
     app.router.add_get("/api/scene", scene)
     app.router.add_get("/api/lut", lut)
     if (DIST / "assets").is_dir():

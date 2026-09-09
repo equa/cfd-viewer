@@ -71,6 +71,9 @@ export function initialRequest(meta) {
     plane: { x: meta.centre[0], y: meta.centre[1], z: meta.centre[2] },
     surface_clip: false,
     slice_edges: false,
+    // '' = the isosurface follows the colour field; a name locks it to that
+    // field, so recolouring no longer moves the surface.
+    contour_field: '',
     contour_count: 1,
     contour_value: (lo + hi) / 2,
     contour_min: lo,
@@ -103,11 +106,14 @@ export function initialAppearance(theme) {
     styles: {
       // colored:false is the Trame default -- a neutral shell, culled at the
       // near walls, with the field colour carried by the slice inside it.
-      boundary: { opacity: 1, cull: true, edges: false, colored: false },
-      slice: { opacity: 1 },
-      iso: { opacity: 0.35 },
-      stream: { opacity: 1 },
-      glyph: { opacity: 1 },
+      // `colored` is per part, and the defaults are Niklas's: the shell is a
+      // neutral grey so the slice inside it reads, everything else is coloured
+      // by the field. `solid` is the colour used when colouring is off.
+      boundary: { opacity: 1, cull: true, edges: false, colored: false, solid: '#b8c0cc' },
+      slice: { opacity: 1, colored: true },
+      iso: { opacity: 0.35, colored: true, solid: '#b8c0cc' },
+      stream: { opacity: 1, colored: true, solid: '#ffffff' },
+      glyph: { opacity: 1, colored: true, solid: '#b8c0cc' },
       geometry: { opacity: 1 },
     },
     lighting: { ambient: 0.3, diffuse: 0.7, lightKit: true },

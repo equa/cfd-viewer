@@ -106,7 +106,40 @@ def _extra_attrs(out, extras):
     return found
 
 
-def surface_part(name, polydata, scalar_array, normals=True, extras=None):
+def _de_index_cells(out, attrs, index, scalar_array):
+    """Turn an indexed mesh into per-triangle vertices carrying CELL scalars.
+
+    "True cell values" means flat, un-interpolated colour per cell. A GPU can
+    only interpolate what sits on vertices, and an indexed mesh SHARES vertices
+    between neighbouring cells, so there is nowhere to put a per-cell value:
+    this is why the toggle silently did nothing for so long -- the server baked
+    the cell array and the wire only ever read point data.
+
+    The fix is to stop sharing: emit three vertices per triangle and give each
+    the triangle's own cell value. Costs 3x the vertex data, which is why it
+    happens only when the toggle is on.
+
+    (GLSL's `flat` qualifier is not a shortcut here. It takes the provoking
+    vertex's value, which on a shared-vertex mesh is an arbitrary neighbour's,
+    not the cell's.)
+    """
+    cells = out.GetCellData().GetArray(scalar_array)
+    if cells is None or index.size == 0:
+        return attrs, index
+    values = vtk_to_numpy(cells)
+    n_tris = index.size // 3
+    if values.shape[0] != n_tris:
+        return attrs, index          # not one value per triangle: leave it alone
+    expanded = {
+        key: np.ascontiguousarray(arr[index], dtype=np.float32)
+        for key, arr in attrs.items()
+    }
+    expanded["scalar"] = _f32(np.repeat(values, 3), 1)
+    return expanded, np.arange(index.size, dtype=np.uint32)
+
+
+def surface_part(name, polydata, scalar_array, normals=True, extras=None,
+                 cell_scalars=False):
     """A lit, scalar-coloured triangle mesh.
 
     Triangulated here because the OpenFOAM reader emits quads and general
@@ -145,7 +178,10 @@ def surface_part(name, polydata, scalar_array, normals=True, extras=None):
     if scalars is not None:
         attrs["scalar"] = _f32(vtk_to_numpy(scalars), 1)
     attrs.update(_extra_attrs(out, extras))
-    return Part(name, "triangles", attrs, _triangle_indices(out))
+    index = _triangle_indices(out)
+    if cell_scalars:
+        attrs, index = _de_index_cells(out, attrs, index, scalar_array)
+    return Part(name, "triangles", attrs, index)
 
 
 def line_part(name, polydata, scalar_array, extras=None):

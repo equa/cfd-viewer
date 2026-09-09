@@ -90,9 +90,10 @@ def red_pixels(page):
     """
     box = page.locator(".stage canvas").bounding_box()
     image = Image.open(io.BytesIO(page.screenshot(clip=box))).convert("RGB")
+    px = image.tobytes()
     return sum(
-        1 for r, g, b in image.getdata()
-        if r > 120 and r > g * 2 and r > b * 2
+        1 for i in range(0, len(px), 3)
+        if px[i] > 120 and px[i] > px[i + 1] * 2 and px[i] > px[i + 2] * 2
     )
 
 
@@ -107,8 +108,8 @@ def frame_difference(page, gap_ms=450):
     first = Image.open(io.BytesIO(page.screenshot(clip=box))).convert("L")
     page.wait_for_timeout(gap_ms)
     second = Image.open(io.BytesIO(page.screenshot(clip=box))).convert("L")
-    a = first.getdata()
-    b = second.getdata()
+    a = first.tobytes()
+    b = second.tobytes()
     return sum(abs(x - y) for x, y in zip(a, b)) / len(a)
 
 
@@ -282,17 +283,16 @@ def main():
             check("banding is reversible", gl_colours(page) > banded)
             check("un-banding does not refetch", len(scene) == n)
 
-            # Opacity-by-value needs something COLOURED to ramp: the shader
-            # deliberately ignores the ramp on an uncoloured part, because there
-            # is no value there to ramp against, and the shell defaults to
-            # uncoloured (a neutral grey, so the slice inside it reads). So
-            # colour the shell first -- and it is the ideal subject, being
-            # no-slip walls where |U| is ~0 everywhere, so the room should all
-            # but empty out. The spike measured 75% -> 96% empty on s2.
+            # Opacity-by-value must work on the shell AS IT SHIPS -- uncoloured,
+            # a neutral grey so the slice inside it reads. It was reported broken
+            # because the ramp had been multiplied by "colour by field", so the
+            # one surface you most want to see through ignored it. The shell is
+            # also the ideal subject: no-slip walls, so |U| is ~0 across all of
+            # them and the room should all but empty out.
             page.keyboard.press("Escape")
             page.click(ctl("tool-boundary"))
-            page.click(ctl("surface-colored"))
-            page.wait_for_timeout(800)
+            check("the shell ships uncoloured",
+                  not page.locator(ctl("surface-colored")).is_checked())
             before_bg = gl_background(page)
             n = len(scene)
             page.click(ctl("options"))
@@ -309,9 +309,73 @@ def main():
             check("opacity mapping is reversible",
                   abs(gl_background(page) - before_bg) < 0.05,
                   f"background back to {gl_background(page):.0%}")
-            # Leave the shell as it was found, so later checks see the defaults.
+
+            # ------------------------------------- colouring and solid colour
+            print("\ncolour by field, per part")
+            n = len(scene)
             page.click(ctl("surface-colored"))
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(600)
+            check("colouring the shell costs no round trip", len(scene) == n)
+            check("a solid-colour picker appears when colouring is off",
+                  page.locator(ctl("surface-solid")).count() == 0,
+                  "hidden while coloured")
+            page.click(ctl("surface-colored"))
+            page.wait_for_timeout(400)
+            check("the solid-colour picker returns with colouring off",
+                  page.locator(ctl("surface-solid")).count() == 1)
+            for part in ("contour", "stream", "glyph"):
+                check(f"{part} has its own colour-by-field toggle",
+                      page.locator(ctl(f"{part}-colored")).count() == 1)
+
+            # ----------------------------------- robust range / cell values
+            print("\nsampling options (both were reported dead)")
+            page.click(ctl("tool-boundary"))
+            wait_idle(page, scene)
+            # Robust range changes only the reported range, so it is in no
+            # part's PART_INPUTS -- which is exactly why it used to do nothing.
+            # It now comes from the cheap /api/range endpoint.
+            range_calls = []
+            page.on("request",
+                    lambda r: range_calls.append(r.url) if "api/range" in r.url else None)
+            # range-max lives inside the Options popover, so open it first.
+            page.click(ctl("options"))
+            before = page.locator(ctl("range-max")).input_value()
+            page.click(ctl("robust-range"))
+            page.click(ctl("apply-options"))
+            wait_idle(page, scene)
+            page.wait_for_timeout(600)
+            after = page.locator(ctl("range-max")).input_value()
+            check("robust range actually changes the range", before != after,
+                  f"max {before} -> {after}")
+            check("robust range asks the cheap range endpoint", len(range_calls) > 0,
+                  f"{len(range_calls)} /api/range call(s)")
+            page.click(ctl("robust-range"))
+            page.click(ctl("apply-options"))
+            wait_idle(page, scene)
+
+            # True cell values must produce FLAT per-cell colour, which means
+            # the server has to de-index the mesh: 3 vertices per triangle. The
+            # wire only ever read point data before, so the toggle was inert.
+            tris_before = page.evaluate("window.__viz.stats()")["triangles"]
+            page.click(ctl("cell-data"))
+            page.click(ctl("apply-options"))
+            wait_idle(page, scene)
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(400)
+            flat = page.evaluate("""() => {
+              const m = window.__viz.partInfo('boundary');
+              return m ? m.verticesPerTriangle : null;
+            }""")
+            check("true cell values de-indexes the mesh", flat is not None and flat > 2.9,
+                  f"{flat} vertices per triangle (3 = flat per cell)")
+            check("triangle count is unchanged by it",
+                  page.evaluate("window.__viz.stats()")["triangles"] == tris_before,
+                  f"{tris_before:,} triangles")
+            page.click(ctl("options"))
+            page.click(ctl("cell-data"))
+            page.click(ctl("apply-options"))
+            wait_idle(page, scene)
+            page.keyboard.press("Escape")
 
             # ------------------------------------------------ eye toggles
             print("\nvisibility, and the part cache")
@@ -433,6 +497,94 @@ def main():
             page.click(ctl("plane-apply"))
             wait_idle(page, scene)
             check("plane Apply commits once", len(scene) - n == 1, f"{len(scene) - n} request(s)")
+
+            # ------------------------------- isosurface: reseed, and the lock
+            print("\nisosurface field: follows, then locks")
+            page.click(ctl("show-contour"))
+            page.click(ctl("tool-contour"))
+            wait_idle(page, scene)
+            value_u = float(page.locator(ctl("contour-value")).input_value())
+            # |U| on this case runs 0..0.23, T runs 27..327, so the two ranges
+            # cannot be confused -- which is what makes this assertion sharp.
+            check("the isovalue starts in the colour field's units", value_u < 1,
+                  f"contouring U, value {value_u}")
+
+            # Following the colour field: switching it must MOVE the isovalue
+            # into the new field's units. This is the reported regression --
+            # the value used to be seeded once and then left in |U| units.
+            page.click(ctl("field"))
+            page.get_by_role("option", name="T", exact=True).click()
+            wait_idle(page, scene)
+            page.wait_for_timeout(600)
+            value_t = float(page.locator(ctl("contour-value")).input_value())
+            check("changing the colour field re-seeds the isovalue", value_t > 20,
+                  f"{value_u} (U) -> {value_t} (T)")
+            check("the panel names the field being contoured",
+                  "T" in page.locator(ctl("contour-base")).inner_text(),
+                  page.locator(ctl("contour-base")).inner_text().strip())
+
+            # Locked: the colour field must now RECOLOUR the surface, not move
+            # it. Same geometry, same isovalue, different scalars.
+            page.click(ctl("contour-lock"))
+            wait_idle(page, scene)
+            page.wait_for_timeout(400)
+            locked_verts = page.evaluate("window.__viz.partInfo('iso')")["vertices"]
+            page.click(ctl("field"))
+            page.get_by_role("option", name="U", exact=True).click()
+            wait_idle(page, scene)
+            page.wait_for_timeout(600)
+            check("locking pins the isovalue against a colour-field change",
+                  abs(float(page.locator(ctl("contour-value")).input_value()) - value_t) < 1e-6,
+                  f"still {value_t}")
+            check("locking pins the geometry too",
+                  page.evaluate("window.__viz.partInfo('iso')")["vertices"] == locked_verts,
+                  f"{locked_verts} vertices before and after")
+            check("the locked field is still named",
+                  "T" in page.locator(ctl("contour-base")).inner_text())
+            shot(page, out / "06-iso-locked.png")
+
+            # Release, and it starts following again.
+            page.click(ctl("contour-lock"))
+            wait_idle(page, scene)
+            page.wait_for_timeout(600)
+            check("releasing the lock re-seeds from the colour field",
+                  float(page.locator(ctl("contour-value")).input_value()) < 1,
+                  f"back to U units: {page.locator(ctl('contour-value')).input_value()}")
+            page.click(ctl("show-contour"))
+            wait_idle(page, scene)
+
+            # ------------------------------------------- wheel on number inputs
+            print("\nmouse wheel on numeric inputs")
+            page.click(ctl("tool-cutplane"))
+            page.wait_for_timeout(300)
+            field = ctl("plane-z")
+            box = page.locator(field).bounding_box()
+            centre = (box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+            # Unfocused: must NOT change. The panels scroll, so a wheel aimed at
+            # the pane must never silently edit whatever sits under the pointer.
+            page.click(ctl("tool-cutplane"))
+            before = page.locator(field).input_value()
+            page.mouse.move(*centre)
+            page.mouse.wheel(0, -300)
+            page.wait_for_timeout(300)
+            check("an unfocused wheel leaves the value alone",
+                  page.locator(field).input_value() == before,
+                  f"stayed at {before}")
+            # Focused: steps up and down.
+            page.click(field)
+            page.wait_for_timeout(200)
+            start = float(page.locator(field).input_value())
+            page.mouse.wheel(0, -300)
+            page.wait_for_timeout(250)
+            up = float(page.locator(field).input_value())
+            page.mouse.wheel(0, 300)
+            page.mouse.wheel(0, 300)
+            page.wait_for_timeout(250)
+            down = float(page.locator(field).input_value())
+            check("a focused wheel steps the value", up > start and down < start,
+                  f"{start} -> up {up} -> down {down}")
+            n = len(scene)
+            check("wheeling a deferred field costs no round trip", len(scene) == n)
 
             # ------------------------------------------------ time stepping
             print("\ntime stepping, and going back")

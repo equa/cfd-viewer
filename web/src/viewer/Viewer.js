@@ -158,7 +158,7 @@ export class Viewer {
 
   // -- materials --------------------------------------------------------
 
-  _material(mode, { unlit = false } = {}) {
+  _material(mode, { unlit = false, hasScalar = true } = {}) {
     const uniforms = {
       ...this.shared,
       uOpacity: { value: 1 },
@@ -168,17 +168,22 @@ export class Viewer {
       // else keeps it at 0, where the shader is an exact no-op.
       uComets: { value: 0 },
     }
+    // Colouring uniforms are shared by both flavours now: streamlines and
+    // arrows can be drawn in a solid colour just as the shell can.
+    // uHasScalar records whether the geometry actually carries scalars -- the
+    // opacity ramp is gated on it, or a scalar-less part would vanish.
+    Object.assign(uniforms, {
+      uColored: { value: 1 },
+      uFlat: { value: new THREE.Color(0.72, 0.75, 0.80) },
+      uHasScalar: { value: hasScalar ? 1 : 0 },
+    })
     if (mode === 'lines') {
       return new THREE.ShaderMaterial({
         uniforms, vertexShader: VERT_LINE, fragmentShader: FRAG_LINE,
       })
     }
     return new THREE.ShaderMaterial({
-      uniforms: {
-        ...uniforms,
-        uColored: { value: 1 },
-        uFlat: { value: new THREE.Color(0.72, 0.75, 0.80) },
-      },
+      uniforms,
       vertexShader: VERT,
       fragmentShader: FRAG,
       side: THREE.DoubleSide,
@@ -217,7 +222,10 @@ export class Viewer {
       let object
       if (part.mode === 'lines') {
         object = new THREE.LineSegments(
-          geometry, scalars ? this._material('lines') : this._neutralMaterial(),
+          geometry,
+          scalars
+            ? this._material('lines', { hasScalar: true })
+            : this._neutralMaterial(),
         )
       } else {
         // A cut plane is read quantitatively against the colour bar, so shading
@@ -226,6 +234,7 @@ export class Viewer {
         // most with bands on, where a lit band is no longer one colour.
         object = new THREE.Mesh(geometry, this._material('triangles', {
           unlit: part.name === 'slice',
+          hasScalar: scalars,
         }))
       }
       object.name = part.name
@@ -293,7 +302,7 @@ export class Viewer {
    * without making its walls transparent. */
   setStyle(name, style) {
     const merged = {
-      opacity: 1, cull: false, edges: false, colored: true,
+      opacity: 1, cull: false, edges: false, colored: true, solid: null,
       ...(this.styles.get(name) || {}), ...style,
     }
     this.styles.set(name, merged)
@@ -302,10 +311,14 @@ export class Viewer {
     const u = mesh.material.uniforms
     if (u?.uOpacity) u.uOpacity.value = merged.opacity
     else mesh.material.opacity = merged.opacity
-    // "Colour by field" off = a flat neutral shell, so the slice inside it
-    // reads. A uniform, not a material swap: the Trame app turns the mapper's
-    // ScalarVisibility off, which here would mean rebuilding the material.
+    // "Colour by field" off = a flat solid colour. A uniform, not a material
+    // swap: the Trame app turns the mapper's ScalarVisibility off, which here
+    // would mean rebuilding the material.
     if (u?.uColored) u.uColored.value = merged.colored ? 1 : 0
+    if (u?.uFlat && merged.solid) u.uFlat.value.set(merged.solid)
+    else if (!u?.uFlat && merged.solid && mesh.material.color) {
+      mesh.material.color.set(merged.solid)   // the neutral line material
+    }
     if (mesh.isMesh) mesh.material.side = merged.cull ? THREE.BackSide : THREE.DoubleSide
     this._applyBlending(mesh)
     this._applyEdges(name, merged.edges)
@@ -680,6 +693,24 @@ export class Viewer {
       tail: u.uCometTail?.value ?? null,
       dim: u.uCometDim?.value ?? null,
       transparent: mesh?.material.transparent ?? null,
+    }
+  }
+
+  /* Test hook: shape facts about one part's geometry on the GPU. Used to prove
+   * "true cell values" really de-indexes the mesh -- flat per-cell colour is
+   * only possible when no vertex is shared, i.e. 3 vertices per triangle. */
+  partInfo(name) {
+    const mesh = this.meshes.get(name)
+    if (!mesh) return null
+    const index = mesh.geometry.getIndex()
+    const verts = mesh.geometry.getAttribute('position')?.count ?? 0
+    const prims = index ? index.count / 3 : 0
+    return {
+      vertices: verts,
+      triangles: prims,
+      verticesPerTriangle: prims ? Number((verts / prims).toFixed(2)) : null,
+      colored: mesh.material.uniforms?.uColored?.value ?? null,
+      hasScalar: mesh.material.uniforms?.uHasScalar?.value ?? null,
     }
   }
 

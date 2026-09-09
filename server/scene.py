@@ -71,8 +71,10 @@ PART_INPUTS = {
     ],
     "slice": ["field", "component", "cell_data", "slice_edges",
               "plane_axis", "plane_coord"],
-    "iso": ["field", "component", "contour_count", "contour_value",
-            "contour_min", "contour_max"],
+    # `contour_field` locks the isosurface to a field of its own; empty means
+    # it follows the colour field, so `field`/`component` stay in the list.
+    "iso": ["field", "component", "contour_field", "contour_count",
+            "contour_value", "contour_min", "contour_max"],
     # The stream seeds are masked points off the cutter output, so the plane
     # always matters here -- no condition.
     "stream": ["vector_field", "stream_seeds", "stream_length", "stream_tubes",
@@ -82,7 +84,8 @@ PART_INPUTS = {
         "glyph_scale_by", "field", "component",
         {"when": {"glyph_source": "slice"}, "keys": ["plane_axis", "plane_coord"]},
         {"when": {"glyph_source": "isosurface"},
-         "keys": ["contour_count", "contour_value", "contour_min", "contour_max"]},
+         "keys": ["contour_field", "contour_count", "contour_value",
+                  "contour_min", "contour_max"]},
     ],
     # Static per case: the building OBJ never varies with time or field.
     "geometry": ["geometry_mode"],
@@ -184,6 +187,23 @@ class SceneSource:
             "partInputs": PART_INPUTS,
         }
 
+    def field_range(self, field, component, robust=False):
+        """Just the data range for one field/component, with no extraction.
+
+        `robust` changes nothing geometric -- only the reported range -- so it
+        deliberately appears in no part's PART_INPUTS. Without this endpoint it
+        therefore moved no signature and silently did nothing, which is exactly
+        how it was reported broken. Answering it here keeps it instant instead
+        of making it re-extract every visible part to deliver two floats.
+        """
+        case = self.case
+        if not field or case.fields.get(field) is None:
+            raise ValueError(f"no field {field!r} in {case.name}")
+        lo, hi = case.field_range(field, component or "magnitude", robust=robust)
+        if hi - lo < 1e-12:  # a uniform field still needs a drawable range
+            lo, hi = lo - 0.5, hi + 0.5
+        return [lo, hi]
+
     def refresh_times(self):
         """Re-scan for time steps written since the case was opened (a running
         solve keeps adding them). Returns the new list."""
@@ -236,13 +256,27 @@ class SceneSource:
         coord = _num(query, "plane_coord", centre)
         pipe.update_plane(axis, coord)
 
+        # --- the isosurface's field ---------------------------------------
+        # Empty = follow the colour field, which is the default and what the
+        # Trame app has always done. A name LOCKS the surface to that field, so
+        # changing the colour field recolours the isosurface instead of moving
+        # it. The isovalues below are then in that field's units, which is why
+        # the client seeds them from /api/range for the locked field.
+        pipe.contour_field = query.get("contour_field") or None
+        pipe.contour_component = component if not pipe.contour_field else "magnitude"
+        pipe.apply_contour_array()
+        if pipe.contour_field:
+            clo, chi = case.field_range(pipe.contour_field, pipe.contour_component)
+        else:
+            clo, chi = lo, hi
+
         # --- isovalues (also needed by the "on isosurface" glyph source, even
         # when the isosurface itself is not drawn) ------------------------
         values = _contour_values(
             _num(query, "contour_count", 1),
-            _num(query, "contour_value", (lo + hi) / 2),
-            _num(query, "contour_min", lo),
-            _num(query, "contour_max", hi),
+            _num(query, "contour_value", (clo + chi) / 2),
+            _num(query, "contour_min", clo),
+            _num(query, "contour_max", chi),
         )
         pipe.update_contour(True, values, 1.0)
 
@@ -271,6 +305,10 @@ class SceneSource:
             "planeAxis": axis,
             "planeCoord": pipe.cutter.GetCutFunction().GetOrigin()[ai],
             "contourValues": values,
+            # Which field the isosurface is actually contouring, so the UI can
+            # name it rather than leave the user guessing.
+            "contourField": pipe.contour_field or field,
+            "contourLocked": bool(pipe.contour_field),
             # Seconds of flow time per unit of the streamlines' `travel`
             # attribute, so the client's animation timescale is recoverable.
             "travelDivisor": ctx.get("travelDivisor"),
@@ -296,7 +334,8 @@ class SceneSource:
         clip = _flag(ctx["query"], "surface_clip")
         source = pipe.surface_clip if clip else pipe.surface_input
         source.Update()
-        return wire.surface_part("boundary", source.GetOutput(), COLOR_ARRAY)
+        return wire.surface_part("boundary", source.GetOutput(), COLOR_ARRAY,
+                                 cell_scalars=_flag(ctx["query"], "cell_data"))
 
     def _part_slice(self, ctx):
         """The cut plane. With the mesh on it becomes a *crinkle* slice -- the
@@ -309,7 +348,8 @@ class SceneSource:
         else:
             pipe.cutter.Update()
             poly = pipe.cutter.GetOutput()
-        return wire.surface_part("slice", poly, COLOR_ARRAY)
+        return wire.surface_part("slice", poly, COLOR_ARRAY,
+                                 cell_scalars=_flag(ctx["query"], "cell_data"))
 
     def _part_iso(self, ctx):
         # Isovalues were set in scene(); contour_normals gives us normals for

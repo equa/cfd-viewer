@@ -1,11 +1,11 @@
 import {
-  ActionIcon, Button, Divider, Group, NumberInput, Popover, Select, Switch, Text, Tooltip,
+  ActionIcon, Button, Divider, Group, Popover, Select, Switch, Text, Tooltip,
 } from '@mantine/core'
 import {
   IconAdjustments, IconArrowsHorizontal, IconCamera,
 } from '@tabler/icons-react'
 import { COMPONENTS } from '../scene/state.js'
-import { Head, SELECT, Tag, useDeferred } from './controls.jsx'
+import { Head, NumberField, SELECT, Tag, stepFor, useDeferred } from './controls.jsx'
 
 /*
  * The top bar: global colour settings, because they affect every part.
@@ -39,6 +39,10 @@ export function TopBar({
 }) {
   const fields = meta ? Object.keys(meta.fields).sort() : []
   const componentEnabled = !!meta && meta.fields[request.field] === 3
+
+  // The range inputs are wheel-driven, so their step has to come from the range
+  // itself: 1 is uselessly coarse on |U| (0..0.23) and far too fine on p.
+  const rangeStep = stepFor(appearance.range[1] - appearance.range[0])
 
   // Only the two genuinely server-side colour options are deferred now.
   const options = useDeferred(
@@ -118,7 +122,7 @@ export function TopBar({
           {/* Instant: uniforms. No Apply, no round trip -- this is the half of
               the old Options popover that stopped needing one. */}
           <Head kind="client">Colour mapping</Head>
-          <NumberInput
+          <NumberField
             size="xs"
             label="Bands"
             description="0 = smooth"
@@ -130,20 +134,22 @@ export function TopBar({
             data-ctl="bands"
           />
           <Group grow gap="xs" mt="xs">
-            <NumberInput
+            <NumberField
               size="xs"
               label="Min"
               value={appearance.range[0]}
+              step={rangeStep}
               decimalScale={4}
               onChange={(v) => setAppearance({
                 range: [Number(v), appearance.range[1]], autoRange: false,
               })}
               data-ctl="range-min"
             />
-            <NumberInput
+            <NumberField
               size="xs"
               label="Max"
               value={appearance.range[1]}
+              step={rangeStep}
               decimalScale={4}
               onChange={(v) => setAppearance({
                 range: [appearance.range[0], Number(v)], autoRange: false,

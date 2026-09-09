@@ -79,6 +79,28 @@ survives first.
 longer a Trame app. References in `cfd-backend` (docs, Containerfile,
 `frontend/vite.config.js`) were updated with it.
 
+## Working agreements (Niklas, merged from todo.md 2026-09-09)
+
+Standing instructions for how to work in this repo, not one-off requests.
+
+- **Ask before big changes.** "I might be asking for silly things." A request
+  that turns out to need a new dependency, a new rendering path or a schema
+  change is a conversation, not a fait accompli.
+- **Reuse and generalise before adding.** Search for an existing function or
+  class first — writing a new one is always easier than finding the old one, and
+  that is exactly the temptation to resist. Prefer generalising what is there,
+  **as long as the argument list does not grow much**.
+- **Prefer a class to a long argument list**, and to threading arguments through
+  several call layers.
+- **Prefer local (three.js) rendering to a server call** wherever a goal can be
+  reached that way without complicating the code "too much" — ask when the
+  trade-off is unclear. This is the same instinct the client/server table
+  encodes; when in doubt, the client column is the better place to land.
+- **Be careful with API changes to the shared pipeline.** `foamviz/case.py`,
+  `pipeline.py` and `colors.py` serve **both** front ends. Additive, optional
+  parameters; never change a signature the Trame app calls without updating its
+  call sites in the same commit. `tests/test_pipeline.py` is the guard.
+
 ## Resuming in a new workspace
 
 The project lives at `/workspace/cfd-viewer` and is under version control
@@ -227,7 +249,8 @@ This split *is* the architecture, and the UI tags every control `server` or
 | colour map, colour range, bands, opacity-by-value | colour **field** and component (scalars are baked per vertex) |
 | per-part visibility and opacity, "colour by field" | cut-plane position/axis, isovalues, seed counts, glyph count/size |
 | near-wall culling, shell mesh edges | time step, patch selection, crinkle slice, clip-at-plane, tubes |
-| camera, view presets, F-pick, lighting, theme, legend | true cell values, robust range |
+| camera, view presets, F-pick, lighting, theme, legend | true cell values, the isosurface's locked field |
+| per-part solid colour, colour-by-field | *robust range and Rescale: a cheap `/api/range`, no extraction* |
 | **streamline comets** (an animated dash pattern over a baked `travel` attribute) | — |
 
 Two things moved from the server column to the client column in the port, and
@@ -438,6 +461,94 @@ scale/offset in the header would halve it.
   when the animation is on: only ~8% of each line is a head, and the rest is
   dimmed, so a naive "is it brighter?" metric reads backwards.
 
+### Four regressions, and what they teach (2026-09-09)
+
+Niklas reported four broken controls. They are worth keeping together because
+three of them share a shape: **a control that changes no part signature does
+nothing at all, silently.** That is the failure mode this architecture invites,
+and there is no error to notice.
+
+**Opacity by value did nothing on the shell.** The ramp was written as
+`uOpacityMap * uColored`, and the shell ships *uncoloured* (a neutral grey so
+the slice inside it reads), so the one surface you most want to see through
+ignored the ramp. My error in the port: I coupled two independent questions.
+"Fade out the low values" is meaningful on a flat grey surface too. It is now
+gated on `uHasScalar`, which is the *real* precondition — a part with no scalar
+attribute reads `vScalar == 0`, hence `t == 0`, hence `alpha == 0`, and would
+vanish entirely the moment the ramp came on. Note the browser check had been
+*written around* the bug (it coloured the shell first); it now uses the shell as
+it ships. A test that documents a bug as intended behaviour is worse than no
+test.
+
+**Robust range did nothing at all.** It changes only the reported range, no
+geometry, so it is correctly in no part's `PART_INPUTS` — and therefore moved no
+cache signature, triggered no refetch, and never delivered its new range. The
+fix is a cheap **`GET /api/range`** endpoint rather than adding `robust` to every
+part's inputs: two floats should not cost a re-extraction of every visible part.
+`Rescale` now goes through it too, so it re-reads the data and honours robust
+instead of reusing the last scene header.
+
+**True cell values could never have worked.** The pipeline baked the cell array
+and `server/wire.py` only ever read `GetPointData()`. Worth understanding *why*
+it needs more than a plumbing fix: flat per-cell colour is **impossible on an
+indexed mesh**, because neighbouring cells share vertices and there is nowhere
+to put a per-cell value. So `_de_index_cells` emits three vertices per triangle,
+each carrying its own cell value — 3x the vertex data, which is why it happens
+only when the toggle is on. (GLSL's `flat` qualifier is not a shortcut: it takes
+the *provoking vertex's* value, which on a shared-vertex mesh is an arbitrary
+neighbour's, not the cell's.) Scoped to the shell and the slice, as in the Trame
+app; the derived filters read point data by construction.
+
+**The isosurface behaved "randomly" across a field change.** Its values were
+seeded exactly once per case, guarded on `contour_min === 0 && contour_max === 1`.
+Switch the colour field from U to T and the isovalue stayed at a `|U|` number,
+nowhere near the T range, so the surface came back empty or arbitrary. They now
+re-seed whenever the contoured field changes **identity** — deps are field
+identity only, so typing a value never triggers a reseed.
+
+**The lesson to keep:** when adding a server-side control, ask *which part's
+signature does this move?* If the answer is "none", it will do nothing, and you
+will not find out from an error. Either add it to `PART_INPUTS`, or give it a
+cheap endpoint of its own — and prefer the endpoint when the control does not
+actually change geometry.
+
+### Numeric inputs: wheel-driven, with data-derived steps
+
+`NumberField` (`web/src/ui/controls.jsx`) is the number input every panel uses.
+Two decisions in it are deliberate:
+
+- **The wheel only acts while the field has focus.** Doing it unconditionally
+  would be worse than not having it: the panels scroll, so a wheel gesture aimed
+  at the pane would silently edit whichever field sat under the pointer. Click,
+  then wheel. `passive: false` on the listener is required — it has to
+  `preventDefault` to stop the pane scrolling underneath, and wheel listeners
+  default to passive, where `preventDefault` is ignored.
+- **Steps come from the data range**, via `stepFor(span)` (~1/100th of the span,
+  snapped to 1/2/5 x a power of ten). A fixed step of 1 is wrong for nearly
+  every field here: uselessly coarse on `|U|` (0..0.23 → 0.002), far too coarse
+  for a plane position that needs sub-metre precision (0..10 → 0.1), and far too
+  fine on `p` (0..1e5 → 1000). This governs the spinner arrows as well, so it
+  matters even for anyone who never touches the wheel.
+
+### Locking the isosurface's field
+
+`pipeline.contour_field` (None = follow the colour field) plus a separate baked
+`CONTOUR_ARRAY`, so an isosurface of one field can be **coloured by another** —
+contour speed, colour by temperature. That is what "lock" has to mean, and it is
+also the useful case: an isosurface coloured by its *own* field is a single flat
+colour, verified (a T isosurface ships scalars 176.9..176.9).
+
+Kept additive for the resting Trame app's sake: `apply_contour_array()` is a new
+method, `update_contour()` is untouched, and with `contour_field` unset the
+filter contours `COLOR_ARRAY` exactly as before. It carries its own
+`_baked_contour` signature guard for the same reason `apply_color_array` does —
+baking dirties `case.internal`, whose MTime bump re-executes every filter fed by
+it (see the perf invariant). `update_data()` and `release_case()` clear it.
+
+Verified: colour=T locked to U gives the *same* geometry as colour=U unlocked
+(217 verts, isovalue 0.1153) with T-valued scalars. `Rescale` re-seeds the
+isovalues when following and deliberately leaves them alone when locked.
+
 ### Concurrency
 
 Extraction runs in a worker thread (`asyncio.to_thread`) behind a single lock
@@ -575,7 +686,7 @@ Four suites, all runnable directly under `/opt/venv` (no `LD_LIBRARY_PATH`):
 | | what it covers | last run |
 |---|---|---|
 | `tests/test_pipeline.py` | the shared VTK pipeline, no browser, ~30 s | **63/63** |
-| `tests/check_client.py` | the three.js client in real Chromium | **64/64** |
+| `tests/check_client.py` | the three.js client in real Chromium | **93/93** |
 | `tests/browser_check.py` | the resting Trame app, 9 steps (needs `--trame`) | **PASS** |
 | `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
 

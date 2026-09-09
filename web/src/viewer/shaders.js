@@ -103,6 +103,10 @@ export const FRAG = /* glsl */`
   // off, where the shell is a neutral grey so the slice inside it reads).
   uniform float uColored;
   uniform vec3 uFlat;
+  // 1 only when the geometry really carries a scalar attribute. Without this
+  // guard a scalar-less part would read vScalar == 0 and vanish under the
+  // opacity ramp.
+  uniform float uHasScalar;
   varying float vScalar;
   varying vec3 vNormal;
   ${BAND}
@@ -117,7 +121,7 @@ export const FRAG = /* glsl */`
     // Colour-map-weighted opacity, linear: alpha follows the *unbanded* t, so
     // the ramp stays a function of the value the way ParaView's own opacity
     // transfer function is, independent of how the colours are banded.
-    float alpha = uOpacity * mix(1.0, t, uOpacityMap * uColored);
+    float alpha = uOpacity * mix(1.0, t, uOpacityMap * uHasScalar);
     float glow = cometGlow();
     alpha *= mix(cometDim(), 1.0, glow);
     if (alpha < 0.01) discard;  // transparent fragments must not blend or occlude
@@ -130,15 +134,18 @@ export const FRAG_LINE = /* glsl */`
   uniform float uOpacity;
   uniform float uBands;
   uniform float uOpacityMap;
+  uniform float uColored;
+  uniform vec3 uFlat;
+  uniform float uHasScalar;
   varying float vScalar;
   ${BAND}
   ${COMET}
   void main() {
     float t = clamp((vScalar - uRange.x) / max(uRange.y - uRange.x, 1e-12), 0.0, 1.0);
-    float alpha = uOpacity * mix(1.0, t, uOpacityMap);
+    float alpha = uOpacity * mix(1.0, t, uOpacityMap * uHasScalar);
     float glow = cometGlow();
     alpha *= mix(cometDim(), 1.0, glow);
     if (alpha < 0.01) discard;
-    vec3 base = texture2D(uLut, vec2(band(t, uBands), 0.5)).rgb;
+    vec3 base = mix(uFlat, texture2D(uLut, vec2(band(t, uBands), 0.5)).rgb, uColored);
     gl_FragColor = vec4(cometTint(base, glow), alpha);
   }`

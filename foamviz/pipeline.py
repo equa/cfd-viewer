@@ -25,6 +25,11 @@ from . import colors
 from .case import derive_scalars
 
 COLOR_ARRAY = "FoamVizColor"
+# The array the isosurface contours, when it has been LOCKED to a field other
+# than the colour field. Kept separate from COLOR_ARRAY so an isosurface of one
+# field can be coloured by another -- contour T, colour by speed -- which is
+# both a standard view and what "lock the iso field" has to mean.
+CONTOUR_ARRAY = "FoamVizContour"
 
 AXES = ["x", "y", "z"]
 _AXIS_NORMAL = {"x": (1, 0, 0), "y": (0, 1, 0), "z": (0, 0, 1)}
@@ -37,6 +42,12 @@ class FoamPipeline:
         self.case = None
         self.color_field = None
         self.color_component = "magnitude"
+        # None = the isosurface follows the colour field (the long-standing
+        # behaviour). Set it to a field name to LOCK the isosurface to that
+        # field, so changing the colour field no longer moves the surface.
+        self.contour_field = None
+        self.contour_component = "magnitude"
+        self._baked_contour = None
         self.vector_field = None
         self.color_range = (0.0, 1.0)
         self.preset = "coolwarm"
@@ -419,6 +430,7 @@ class FoamPipeline:
         """
         self.case = None
         self._baked = None
+        self._baked_contour = None
         self.has_geometry = False
         self._bootstrap_empty()  # re-point the case-fed filters at empty datasets
         for f in self._case_derived():
@@ -468,6 +480,7 @@ class FoamPipeline:
 
         # Fresh datasets: force a re-bake even if field/component are unchanged.
         self._baked = None
+        self._baked_contour = None
         self.apply_color_array()
 
         if case.vector_field_available(self.vector_field):
@@ -508,6 +521,45 @@ class FoamPipeline:
             if self.use_cell_data:
                 self._bake_color(dataset.GetCellData())
         self._baked = signature
+
+    def apply_contour_array(self):
+        """Bake :data:`CONTOUR_ARRAY` and point the contour filter at it.
+
+        Only does anything when the isosurface is locked to a field other than
+        the colour field; otherwise it contours COLOR_ARRAY as it always has, so
+        the default behaviour and the Trame app are untouched.
+
+        Guarded by its own signature for the same reason as
+        :meth:`apply_color_array`: baking dirties ``case.internal``, whose MTime
+        bump re-executes every filter fed by it (see the perf invariant in
+        CLAUDE.md). The iso field changes rarely, so this is nearly always a
+        no-op.
+        """
+        if self.case is None:
+            return
+        locked = self.contour_field and self.contour_field != self.color_field
+        target = CONTOUR_ARRAY if locked else COLOR_ARRAY
+        signature = (self.contour_field, self.contour_component) if locked else None
+        if signature != self._baked_contour:
+            if locked:
+                for dataset in self.case.datasets():
+                    attr = dataset.GetPointData()
+                    source = attr.GetArray(self.contour_field)
+                    if source is None:
+                        continue
+                    scalars = derive_scalars(
+                        vtk_to_numpy(source), self.contour_component
+                    )
+                    baked = numpy_to_vtk(
+                        np.ascontiguousarray(scalars, dtype=np.float64), deep=1
+                    )
+                    baked.SetName(CONTOUR_ARRAY)
+                    attr.RemoveArray(CONTOUR_ARRAY)
+                    attr.AddArray(baked)
+            self._baked_contour = signature
+        self.contour.SetInputArrayToProcess(
+            0, 0, 0, vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS, target
+        )
 
     def _bake_color(self, attr):
         """Bake ``COLOR_ARRAY`` into one attribute set (point or cell data)."""
