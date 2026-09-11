@@ -69,6 +69,7 @@ export default function App() {
       // including the two knobs the UI keeps fixed at their tuned defaults.
       tuneComets: (o) => viewer.setComets(o),
       partInfo: (name) => viewer.partInfo(name),
+      streamSpans: () => viewer.streamSpans(),
     }
     return () => { viewer.dispose(); viewerRef.current = null }
   }, [])

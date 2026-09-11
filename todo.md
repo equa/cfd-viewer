@@ -133,6 +133,17 @@ vanish). Covered by a check that uses the shell as it ships.
     do get a live thickness control for streamlines after all, just via tubes
     rather than `Line2`.
   - Comets survive: `travel` is replicated around each ring.
+  - **Bug you spotted, fixed (2026-09-11):** a few tubes were closed by straight
+    runs out to the cut-plane edge. Cause was the wire format, not the tube
+    maths: it shipped only each polyline's *start* and the client inferred the
+    length from the next start, which assumes the polylines tile the point array.
+    They do not — `vtkStreamTracer` leaves orphan points between them (26 of
+    18 219 here, after 6 of 94 lines), seeds it abandoned without integrating,
+    and they sit on the cut plane because the seeds are masked points off the
+    cutter. So the tube ran straight through them. Now the wire carries explicit
+    `(start, count)` pairs, verified to match VTK exactly. Lines mode was never
+    affected. A geometric check now guards it: the tube's longest step must
+    equal the lines' longest step (measured identical to 17 significant digits).
   - Only Seeds and Max length still sit behind Apply, because only they re-run
     the tracer. `pipeline.stream_tube` stays for the Trame app, which still
     tubes server-side — the shared pipeline API was not touched.

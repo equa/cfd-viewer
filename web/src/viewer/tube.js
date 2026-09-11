@@ -41,15 +41,30 @@ function seedNormal(tx, ty, tz, out) {
   } else { out[0] = -ty; out[1] = tx; out[2] = 0 }
 }
 
+/*
+ * `ranges` is flat (start, count) pairs, one per polyline -- NOT a list of
+ * starts to diff. The polylines do not tile the point array: vtkStreamTracer
+ * leaves orphan points between them (seeds it abandoned without integrating,
+ * which sit on the cut plane because the seeds are masked points off the
+ * cutter). Inferring each length from the next start swallowed those orphans
+ * into the preceding line, and the tube drew straight through them -- out to a
+ * stray point on the plane and back. Explicit counts, always.
+ */
 export function buildTubeGeometry({
-  positions, offsets, attributes = {}, sides = 8,
+  positions, ranges, attributes = {}, sides = 8,
 }) {
-  const lineCount = Math.max(offsets.length - 1, 0)
+  const pointCount = positions.length / 3
+  const lineCount = Math.max(Math.floor(ranges.length / 2), 0)
+  const valid = []
   let pointTotal = 0
   let segmentTotal = 0
   for (let l = 0; l < lineCount; l += 1) {
-    const n = offsets[l + 1] - offsets[l]
-    if (n < 2) continue
+    const start = ranges[l * 2]
+    const n = ranges[l * 2 + 1]
+    // Defensive: a malformed range must skip its line, never read past the end
+    // of the buffer and draw garbage.
+    if (n < 2 || start + n > pointCount) continue
+    valid.push(start, n)
     pointTotal += n
     segmentTotal += n - 1
   }
@@ -75,14 +90,15 @@ export function buildTubeGeometry({
 
   const T = new Float32Array(3)
   const N = new Float32Array(3)
+  const ringLayout = []
   let v = 0
   let w = 0
 
-  for (let l = 0; l < lineCount; l += 1) {
-    const start = offsets[l]
-    const n = offsets[l + 1] - start
-    if (n < 2) continue
+  for (let l = 0; l < valid.length; l += 2) {
+    const start = valid[l]
+    const n = valid[l + 1]
     const ringBase = v / sides
+    ringLayout.push(ringBase, n)
 
     for (let i = 0; i < n; i += 1) {
       const p = (start + i) * 3
@@ -153,6 +169,10 @@ export function buildTubeGeometry({
     normal: radial,
     index,
     attributes: extras,
-    counts: { vertices: v, triangles: w / 3, polylines: lineCount },
+    // Where each polyline's rings live, so a caller can walk the tube per line
+    // without re-deriving the layout. Used by the diagnostics that guard
+    // against spurious connections between lines.
+    rings: Uint32Array.from(ringLayout),
+    counts: { vertices: v, triangles: w / 3, polylines: valid.length / 2 },
   }
 }

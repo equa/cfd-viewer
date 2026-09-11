@@ -276,14 +276,14 @@ export class Viewer {
    * they do on the lines. */
   _addStreamTube(part, visible = {}, styles = {}) {
     const positions = part.attributes.position?.array
-    const offsets = part.offsets
-    if (!positions || !offsets || offsets.length < 2) return false
+    const ranges = part.ranges
+    if (!positions || !ranges || ranges.length < 2) return false
     const carried = {}
     for (const [name, attr] of Object.entries(part.attributes)) {
       if (name !== 'position') carried[name] = attr.array
     }
     const built = buildTubeGeometry({
-      positions, offsets, attributes: carried, sides: this.tubes.sides,
+      positions, ranges, attributes: carried, sides: this.tubes.sides,
     })
     if (!built) return false
 
@@ -300,6 +300,7 @@ export class Viewer {
     geometry.computeBoundingSphere()
     if (geometry.boundingSphere) geometry.boundingSphere.radius += this.tubes.radius
 
+    this._tubeRings = built.rings
     const mesh = new THREE.Mesh(geometry, this._material('triangles', {
       hasScalar: 'scalar' in built.attributes,
     }))
@@ -811,6 +812,53 @@ export class Viewer {
         ? Number((verts / prims).toFixed(2)) : null,
       colored: mesh.material.uniforms?.uColored?.value ?? null,
       hasScalar: mesh.material.uniforms?.uHasScalar?.value ?? null,
+    }
+  }
+
+  /* Test hook: the longest step along a streamline, in the lines and in the
+   * tube built from them.
+   *
+   * This is the guard against SPURIOUS CONNECTIONS, which counts alone cannot
+   * catch. A tube that wrongly bridges two polylines -- as it did while the
+   * wire shipped only polyline starts and the client inferred the lengths --
+   * draws a straight run from the end of one line to a stray point, which shows
+   * up here and nowhere else. The two maxima should agree: the tube is the same
+   * centreline, so its longest step is the lines' longest step. */
+  streamSpans() {
+    const lines = this._streamLines
+    if (!lines) return null
+    const lp = lines.attributes.position?.array
+    const idx = lines.index
+    let lineMax = 0
+    for (let i = 0; i < idx.length; i += 2) {
+      const a = idx[i] * 3
+      const b = idx[i + 1] * 3
+      const d = Math.hypot(lp[b] - lp[a], lp[b + 1] - lp[a + 1], lp[b + 2] - lp[a + 2])
+      if (d > lineMax) lineMax = d
+    }
+    let tubeMax = 0
+    const mesh = this.meshes.get('stream')
+    const rings = this._tubeRings
+    if (mesh?.isMesh && rings) {
+      const tp = mesh.geometry.getAttribute('position').array
+      const sides = this.tubes.sides
+      for (let r = 0; r < rings.length; r += 2) {
+        const base = rings[r]
+        const count = rings[r + 1]
+        for (let i = 0; i < count - 1; i += 1) {
+          const a = (base + i) * sides * 3
+          const b = (base + i + 1) * sides * 3
+          const d = Math.hypot(tp[b] - tp[a], tp[b + 1] - tp[a + 1], tp[b + 2] - tp[a + 2])
+          if (d > tubeMax) tubeMax = d
+        }
+      }
+    }
+    const [x0, x1, y0, y1, z0, z1] = this.bounds || [0, 1, 0, 1, 0, 1]
+    return {
+      lineMax,
+      tubeMax,
+      domain: Math.hypot(x1 - x0, y1 - y0, z1 - z0) || 1,
+      polylines: rings ? rings.length / 2 : 0,
     }
   }
 

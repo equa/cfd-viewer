@@ -33,18 +33,19 @@ ALIGN = 4  # keep every buffer 4-byte aligned so typed-array views are valid
 class Part:
     """One drawable: vertices, an index buffer, and the scalars to colour by."""
 
-    def __init__(self, name, mode, attributes, index, offsets=None):
+    def __init__(self, name, mode, attributes, index, ranges=None):
         self.name = name
         self.mode = mode  # "triangles" | "lines"
         self.attributes = attributes  # name -> (N, C) float32 array
         self.index = index  # flat uint32 array
-        # Where each polyline starts and ends, for LINES parts. Per-polyline
-        # rather than per-vertex, so it gets its own slot instead of riding in
-        # `attributes`. It is what lets the client walk a streamline in order --
-        # and therefore build tubes itself, instead of the server shipping tube
-        # geometry that is ~9x the wire (measured on s2: 10.3 MB against
-        # 1.13 MB gzipped). Costs 0.7 kB against 214 kB of positions.
-        self.offsets = offsets
+        # Flat (start, count) pairs, one per polyline, for LINES parts.
+        # Per-polyline rather than per-vertex, so it gets its own slot instead
+        # of riding in `attributes`. It is what lets the client walk a
+        # streamline in order -- and therefore build tubes itself, instead of
+        # the server shipping tube geometry that is ~9x the wire (measured on
+        # s2: 10.3 MB against 1.13 MB gzipped). Costs ~1.5 kB against 214 kB of
+        # positions.
+        self.ranges = ranges
 
     @property
     def n_vertices(self):
@@ -76,13 +77,24 @@ def _triangle_indices(polydata):
     return conn.astype(np.uint32, copy=False)
 
 
-def _line_offsets(polydata):
-    """Start/end of each polyline, as offsets into the POINT array.
+def _line_ranges(polydata):
+    """Each polyline as an explicit ``(start, count)`` pair into the POINT array.
 
-    Only meaningful because the tracer's connectivity is sequential within each
-    polyline (verified): point `offsets[k] + i` is the i-th point of line k. If
-    a future filter ever breaks that, this has to become a real remap -- so it
-    is asserted rather than assumed.
+    Explicit COUNTS, not just starts, and that distinction is the whole point.
+    An earlier version shipped only the starts and let the client infer each
+    length from the next start -- which silently assumes the polylines tile the
+    point array with no gaps. They do not: ``vtkStreamTracer`` leaves orphan
+    points behind (26 of 18 219 on the demo case, after 6 of 94 polylines),
+    seeds it abandoned without integrating. Inferring the length then swallowed
+    those orphans into the previous line, and the tube drew straight through
+    them -- out to a stray point and back. They sit on the cut plane because the
+    seeds are masked points off the cutter, which is exactly where the artefact
+    appeared.
+
+    Still relies on connectivity being sequential WITHIN a polyline, so point
+    ``start + i`` is its i-th point. That is checked here rather than assumed;
+    if a filter ever breaks it, no ranges are shipped and the client falls back
+    to drawing lines.
     """
     lines = polydata.GetLines()
     if lines is None or lines.GetNumberOfCells() == 0:
@@ -91,10 +103,10 @@ def _line_offsets(polydata):
     conn = vtk_to_numpy(lines.GetConnectivityArray())
     for a, b in zip(offsets[:-1], offsets[1:]):
         if b > a and not np.array_equal(conn[a:b], np.arange(conn[a], conn[a] + (b - a))):
-            return np.zeros(0, dtype=np.uint32)   # not sequential: no offsets
+            return np.zeros(0, dtype=np.uint32)   # not sequential: no ranges
     starts = conn[offsets[:-1]]
-    end = conn[offsets[-1] - 1] + 1        # one past the last point of the last line
-    return np.append(starts, end).astype(np.uint32, copy=False)
+    counts = np.diff(offsets)
+    return np.column_stack([starts, counts]).ravel().astype(np.uint32, copy=False)
 
 
 def _line_indices(polydata):
@@ -224,7 +236,7 @@ def line_part(name, polydata, scalar_array, extras=None):
     index = _line_indices(polydata)
     if index.size == 0:
         return None
-    return Part(name, "lines", attrs, index, offsets=_line_offsets(polydata))
+    return Part(name, "lines", attrs, index, ranges=_line_ranges(polydata))
 
 
 def pack(parts, meta):
@@ -258,11 +270,12 @@ def pack(parts, meta):
             "index": index,
             "counts": {"vertices": part.n_vertices, "primitives": part.n_primitives},
         }
-        if part.offsets is not None and part.offsets.size:
-            entry = add(part.offsets)
+        if part.ranges is not None and part.ranges.size:
+            entry = add(part.ranges)
             entry["type"] = "u32"
-            spec["offsets"] = entry
-            spec["counts"]["polylines"] = max(int(part.offsets.size) - 1, 0)
+            entry["components"] = 2          # (start, count) per polyline
+            spec["ranges"] = entry
+            spec["counts"]["polylines"] = int(part.ranges.size) // 2
         header_parts.append(spec)
 
     header = dict(meta)
@@ -297,6 +310,6 @@ def unpack(blob):
             "counts": spec["counts"],
             "attributes": {k: view(v) for k, v in spec["attributes"].items()},
             "index": view(spec["index"]),
-            "offsets": view(spec["offsets"]) if "offsets" in spec else None,
+            "ranges": view(spec["ranges"]) if "ranges" in spec else None,
         })
     return header, parts

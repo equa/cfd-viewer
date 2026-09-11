@@ -468,6 +468,21 @@ def main():
                   f"{lines['vertices']:,} -> {tubes['vertices']:,}")
             check("comets still ride the tube",
                   page.evaluate("window.__viz.comets()")["hasTravel"])
+
+            # The guard against SPURIOUS CONNECTIONS, which counts cannot catch.
+            # While the wire shipped only polyline starts and the client inferred
+            # each length from the next one, the tube bridged the orphan points
+            # vtkStreamTracer leaves between polylines -- drawing a straight run
+            # from a line's end out to a stray seed on the cut plane and back.
+            # The tube is the same centreline as the lines, so its longest step
+            # must be the lines' longest step.
+            spans = page.evaluate("window.__viz.streamSpans()")
+            check("the tube introduces no step longer than the lines have",
+                  spans["tubeMax"] <= spans["lineMax"] * 1.01 + 1e-9,
+                  f"tube {spans['tubeMax']:.4f} vs lines {spans['lineMax']:.4f}")
+            check("and no step spans a big fraction of the domain",
+                  spans["tubeMax"] < spans["domain"] * 0.2,
+                  f"longest step {spans['tubeMax']:.3f} of a {spans['domain']:.1f} domain")
             shot(page, out / "07-tubes.png")
 
             # Width is a shader uniform, so it must rebuild nothing at all.

@@ -25,10 +25,12 @@ export function decodeScene(buffer) {
     mode: spec.mode,
     counts: spec.counts,
     index: view(spec.index),
-    // Per-polyline, not per-vertex: where each line starts and ends. Present
-    // only on LINES parts, and what lets the client build tubes itself instead
-    // of the server shipping ~9x the wire in tube geometry.
-    offsets: spec.offsets ? view(spec.offsets) : null,
+    // Per-polyline (start, count) pairs, not per-vertex. Present only on LINES
+    // parts, and what lets the client build tubes itself instead of the server
+    // shipping ~9x the wire in tube geometry. COUNTS are explicit because the
+    // polylines do NOT tile the point array -- the tracer leaves orphan points
+    // between them, and inferring a length from the next start swallowed those.
+    ranges: spec.ranges ? view(spec.ranges) : null,
     attributes: Object.fromEntries(
       Object.entries(spec.attributes)
         .map(([k, e]) => [k, { array: view(e), components: e.components }]),
