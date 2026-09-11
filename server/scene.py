@@ -77,8 +77,12 @@ PART_INPUTS = {
             "contour_value", "contour_min", "contour_max"],
     # The stream seeds are masked points off the cutter output, so the plane
     # always matters here -- no condition.
-    "stream": ["vector_field", "stream_seeds", "stream_length", "stream_tubes",
-               "stream_radius", "plane_axis", "plane_coord", "field", "component"],
+    #
+    # `stream_tubes` and `stream_radius` are deliberately ABSENT: tubes are built
+    # in the browser from these same lines (see _part_stream), so switching
+    # representation or changing the width re-extracts nothing.
+    "stream": ["vector_field", "stream_seeds", "stream_length",
+               "plane_axis", "plane_coord", "field", "component"],
     "glyph": [
         "vector_field", "glyph_source", "glyph_count", "glyph_scale",
         "glyph_scale_by", "field", "component",
@@ -407,38 +411,36 @@ class SceneSource:
         return divisor
 
     def _part_stream(self, ctx):
-        """Streamlines, as lines or as tubes.
+        """Streamlines, always as LINES.
 
         This is the expensive one -- ``vtkStreamTracer`` is 2.6 s of the 3.1 s
         server time on ``s2`` -- and it costs exactly the same in the Trame path.
         It is why the streamline panel keeps an Apply button.
+
+        **Tubes are not built here any more.** ``vtkTubeFilter`` only inflates
+        data the browser can inflate itself, and shipping the result is ~9x the
+        wire for no saving in server time: measured on ``s2``, 10.30 MB gzipped
+        against 1.13 MB for the same streamlines as lines, with the tracer
+        dominating both (3.4 s either way). The client builds the tube from the
+        line points and the polyline offsets (``web/src/viewer/tube.js``), which
+        also makes the tubes/lines toggle and the tube width instant rather than
+        a round trip. ``pipeline.stream_tube`` stays for the resting Trame app,
+        which still renders its tubes server-side.
         """
         pipe = self.pipeline
         q = ctx["query"]
-        tubes = _flag(q, "stream_tubes")
         pipe.update_streamlines(
             True,
             int(_num(q, "stream_seeds", 200)),
-            _num(q, "stream_radius", 1.0),
+            1.0,
             _num(q, "stream_length", 1.0),
-            tubes,
+            False,
             1,
         )
         pipe.tracer.Update()
-        # Bake travel time BEFORE the tube filter runs, so a tubed streamline
-        # carries it too (vtkTubeFilter interpolates point data onto the tube).
         ctx["travelDivisor"] = self._add_travel(pipe.tracer.GetOutput())
-        extras = {"travel": TRAVEL_ARRAY}
-        if tubes:
-            # Tubes are real triangles, so they ship down the surface path and
-            # arrive lit -- the WebGL line-width cap (1 px, which made the Trame
-            # line-width slider inert) is exactly what tubes exist to escape.
-            pipe.stream_tube.Modified()
-            pipe.stream_tube.Update()
-            return wire.surface_part("stream", pipe.stream_tube.GetOutput(),
-                                     COLOR_ARRAY, extras=extras)
         return wire.line_part("stream", pipe.tracer.GetOutput(),
-                              COLOR_ARRAY, extras=extras)
+                              COLOR_ARRAY, extras={"travel": TRAVEL_ARRAY})
 
     def _part_glyph(self, ctx):
         """Arrows on the cut plane or on the isosurface. ``vtkGlyph3D`` emits

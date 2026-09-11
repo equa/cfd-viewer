@@ -252,6 +252,7 @@ This split *is* the architecture, and the UI tags every control `server` or
 | camera, view presets, F-pick, lighting, theme, legend | true cell values, the isosurface's locked field |
 | per-part solid colour, colour-by-field | *robust range and Rescale: a cheap `/api/range`, no extraction* |
 | **streamline comets** (an animated dash pattern over a baked `travel` attribute) | — |
+| **streamlines as tubes, and their width** (built from the line data in the browser) | streamline seeds and max length (the tracer) |
 
 Two things moved from the server column to the client column in the port, and
 both were wins: **bands and the opacity ramp** (a transfer function in VTK is a
@@ -379,6 +380,68 @@ is drag-only purely to match the UX that was tuned in Trame.
   mandatory before the wire. Normals are computed server-side (`SplittingOff`, so
   the point count stays 1:1 with the scalars) and skipped when the input already
   has them (the isosurface arrives via `vtkPolyDataNormals`).
+
+### Tubes are built in the browser (2026-09-11)
+
+The server ships streamlines as **lines only**. `vtkTubeFilter` was doing
+nothing the client cannot do, and shipping its output was expensive:
+
+| `s2`, 200 seeds | server time | gzipped wire | vertices |
+|---|---|---|---|
+| lines | 3481 ms | **1.13 MB** | 59 863 |
+| tubes | 3368 ms | **10.30 MB** | 441 808 |
+
+**9x the wire for no saving in server time** — the 3.4 s is `vtkStreamTracer`,
+which runs either way. On hotRoom it is 19x raw (0.5 MB against 9.6 MB).
+
+`web/src/viewer/tube.js` rebuilds it locally with a parallel-transport frame,
+the same approach `vtkTubeFilter` takes. Measured build cost: **4.3 ms** for
+hotRoom's 18 k points, **28.5 ms** for 120 k — one or two frames, once per
+fetch.
+
+**The width is a uniform, not geometry.** The builder emits the tube's
+*centreline* positions with the ring's radial direction as the vertex normal,
+and the vertex shader displaces by `normal * uTubeRadius`. So dragging the width
+slider moves no vertices and rebuilds nothing — verified: the vertex count is
+identical before and after. `uTubeRadius` is 0 on every other material, where
+the displacement is an exact no-op.
+
+Consequences worth keeping straight:
+
+- `stream_tubes` and `stream_radius` left `PART_INPUTS` and moved from `request`
+  to `appearance`. Switching representation is instant **the first time**, not
+  just on a cache hit, and the width never round-trips.
+- Only `stream_seeds` and `stream_length` still sit behind the Apply button,
+  because only they re-run the tracer. Deferring the others would have been a
+  lie about their cost.
+- Comets work unchanged: `travel` is replicated around each ring, so a tubed
+  streamline animates exactly like a line one.
+- `pipeline.stream_tube` **stays** — the resting Trame app still tubes
+  server-side. This was a client-side addition plus one small wire field; the
+  shared pipeline's API was not touched.
+
+**Traps hit building it:**
+
+- **The polyline offsets had to be shipped.** `_line_indices` flattens polylines
+  into segment pairs, which loses where each line starts — and a tube needs to
+  walk a line in order. `_line_offsets` adds them (0.7 kB against 214 kB of
+  positions). It is only this cheap because the tracer's connectivity is
+  *sequential* within each polyline; that is checked at runtime rather than
+  assumed, and the function returns no offsets if it ever stops being true.
+- **`decodeScene` has to read the new buffer.** Forgetting it made `partInfo`
+  return null with no error anywhere — the tube silently failed to build. If a
+  new per-part buffer is added, both ends need it.
+- **`const` is not hoisted.** Placing the `domain` helper below the effect that
+  used it was a temporal-dead-zone `ReferenceError` at render, i.e. a blank
+  page, not a warning.
+- **Inflate the bounding sphere by the radius.** It is computed from the
+  centreline, so without the correction the tube gets frustum-culled while still
+  partly on screen.
+- **A ~180 degree tangent flip collapses the transported normal.** A hairpin in
+  a streamline would otherwise emit NaNs and blank the whole draw call; the
+  builder re-seeds the frame instead.
+- **`partInfo` assumed triangles**, so it reported "1.51 vertices per triangle"
+  for a line part. Lines carry 2 indices per primitive.
 
 ### Streamline comets (2026-09-09)
 

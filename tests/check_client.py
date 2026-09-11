@@ -447,6 +447,49 @@ def main():
                   not page.locator(ctl("apply-stream")).is_enabled())
             shot(page, out / "04-streamlines.png")
 
+            # ------------------------------------ tubes, built in the browser
+            print("\nstreamline tubes (client-built)")
+            lines = page.evaluate("window.__viz.partInfo('stream')")
+            check("streamlines arrive as lines", lines["mode"] == "lines",
+                  f"{lines['primitives']:,} segments, {lines['vertices']:,} vertices")
+            n = len(scene)
+            page.click(ctl("stream-tubes"))
+            page.wait_for_timeout(1500)
+            tubes = page.evaluate("window.__viz.partInfo('stream')")
+            # The whole point: the server ships lines only, because its tube
+            # geometry was ~9x the wire (10.30 MB gzipped against 1.13 MB on s2)
+            # for no saving in server time.
+            check("switching to tubes costs no round trip", len(scene) == n,
+                  f"{len(scene) - n} request(s)")
+            check("tubes are real triangle geometry", tubes["mode"] == "triangles",
+                  f"{tubes['triangles']:,} triangles from {lines['vertices']:,} line vertices")
+            check("the tube has many more vertices than the line",
+                  tubes["vertices"] > lines["vertices"] * 4,
+                  f"{lines['vertices']:,} -> {tubes['vertices']:,}")
+            check("comets still ride the tube",
+                  page.evaluate("window.__viz.comets()")["hasTravel"])
+            shot(page, out / "07-tubes.png")
+
+            # Width is a shader uniform, so it must rebuild nothing at all.
+            n = len(scene)
+            before_verts = tubes["vertices"]
+            slider_drag(page, ctl("stream-radius"), fraction=0.85)()
+            page.wait_for_timeout(700)
+            after = page.evaluate("window.__viz.partInfo('stream')")
+            check("tube width costs no round trip", len(scene) == n,
+                  f"{len(scene) - n} request(s)")
+            check("tube width rebuilds no geometry (it is a uniform)",
+                  after["vertices"] == before_verts,
+                  f"{before_verts:,} vertices before and after")
+
+            n = len(scene)
+            page.click(ctl("stream-tubes"))
+            page.wait_for_timeout(1200)
+            check("switching back to lines costs no round trip", len(scene) == n,
+                  f"{len(scene) - n} request(s)")
+            check("and really is lines again",
+                  page.evaluate("window.__viz.partInfo('stream')")["mode"] == "lines")
+
             # ------------------------------------------ streamline animation
             print("\nstreamline comets")
             wait_idle(page, scene)

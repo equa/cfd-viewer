@@ -44,7 +44,7 @@ const BUILDERS = {
 
 export function SidePane({
   meta, request, setRequest, appearance, setAppearance, setStyle, plane,
-  comets, setComets, canAnimate,
+  comets, setComets, canAnimate, tubes, setTubes, domain,
 }) {
   const active = appearance.activeTool || 'cutplane'
   const setVisible = (part, on) => setAppearance({
@@ -122,6 +122,9 @@ export function SidePane({
               comets={comets}
               setComets={setComets}
               canAnimate={canAnimate}
+              tubes={tubes}
+              setTubes={setTubes}
+              domain={domain}
             />
           </div>
         )

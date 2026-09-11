@@ -121,7 +121,7 @@ the (real) image-size win.
 | **Cut plane** | An X/Y/Z-aligned plane positioned by world coordinate — the anchor for everything below. Optionally a *crinkle* slice: the true cell layer rather than a flat cut |
 | **Boundary** | The room shell, neutral or field-coloured, with near-wall culling so you can see in, mesh edges, opacity, cut-away-at-plane, and per-patch read selection |
 | **Isosurfaces** | 1 / 3 / 5 nested isosurfaces of the coloured field, or **locked** to a field of their own — so you can contour speed and colour by temperature |
-| **Streamlines** | RK45 integration seeded from the cut plane, as lines or tubes, coloured by the field. **Animate flow** sends comets along them at the local flow speed — which is also the only thing that shows a streamline's *direction* |
+| **Streamlines** | RK45 integration seeded from the cut plane, as lines or **tubes built in the browser** (so the representation and the width are instant). **Animate flow** sends comets along them at the local flow speed — which is also the only thing that shows a streamline's *direction* |
 | **Arrows** | Glyphs on the plane (an even grid) or on the isosurface, uniform length or scaled by magnitude |
 | **Geometry** | The building outline from `constant/triSurface/building*.obj`, as feature edges or full wireframe |
 | Bottom bar | Time-step player, six axis-aligned camera presets plus iso, time re-scan |
@@ -131,12 +131,21 @@ The cut plane deliberately drives the slice, the stream seeds *and* the arrows.
 For room airflow that matches how a result actually gets read: choose a plane,
 then ask what the air is doing on it.
 
+Streamline **tubes are built in the browser** from the line data, not shipped.
+`vtkTubeFilter`'s output was 9x the wire for no saving in server time (measured
+on a 2.3 M-cell case: 10.30 MB gzipped against 1.13 MB) since the tracer
+dominates either way. Inflating locally takes a few milliseconds, makes the
+lines/tubes switch instant, and turns the width into a shader uniform — it
+displaces the tube's centreline along the ring normal, so dragging it rebuilds
+nothing.
+
 The streamline animation is an animated dash pattern rather than particles — no
 particle buffer, no per-frame CPU work, one uniform. It rides the transport time
 `vtkStreamTracer` already computes (`IntegrationTime`), so the comets move at
 the **local flow speed** and visibly rip through a plume while crawling in the
 corners. Try it with **Tubes** on: on 1-px lines a comet is a short bright
 segment that gets lost in a coiled tangle, on tubes it is a discrete object.
+Tubes cost nothing now, so there is no reason not to.
 
 ### Which controls cost a round trip
 
@@ -149,7 +158,7 @@ worth seeing while you use it:
   shader uniforms or GPU state: instant, no request.
 - **server** — colour *field* and component, cut-plane position, isovalues, the
   isosurface's locked field, seed and glyph counts, time step, patch selection,
-  crinkle slice, tubes, true cell values. These change what has to be extracted.
+  crinkle slice, true cell values. These change what has to be extracted.
   Robust range and **Rescale** are the exception: they change no geometry, so
   they come from a cheap `/api/range` rather than re-extracting anything.
 

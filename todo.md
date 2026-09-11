@@ -116,13 +116,26 @@ vanish). Covered by a check that uses the shell as it ships.
 - Can the switch between tubes/lines be local to renderer? Presently strls are
   recreated on server I think, when tubes are turned on strls are re-generated
   (or added). Careful not do destroy the Comets though.
-  — **already local, measured.** Lines and tubes are separate cache entries, so
-  only the *first* switch each way costs a request; after that it is 0. Measured
-  toggling tubes on/off/on/off: `requests = 1, 0, 0, 0`, and the comets survive
-  every switch (`hasTravel: true`). So the server work happens once per case per
-  mode and never again. Holding both on the GPU permanently would double the
-  stream payload and the tube-filter cost for no gain over the cache — tell me
-  if the first switch still feels slow on a big case and I will look again.
+  — **done: tubes are now built in the browser.** You were right that the
+  backend was regenerating them, and right that it did not need to. The server
+  ships lines only; `web/src/viewer/tube.js` inflates them with a
+  parallel-transport frame (what `vtkTubeFilter` does), in 4.3 ms for hotRoom
+  and 28.5 ms for 120 k points.
+  - It was costing far more than expected. On s2: **10.30 MB gzipped of tube
+    geometry against 1.13 MB for the same streamlines as lines — 9x the wire —
+    for no saving in server time**, since `vtkStreamTracer` dominates either way
+    (3.4 s both). 19x raw on hotRoom.
+  - Switching is now instant the *first* time, not just on a cache hit.
+  - **The width became free too.** The builder emits centreline points with the
+    ring's radial direction as the vertex normal, so the shader displaces by
+    `normal * uTubeRadius` — dragging the width slider moves no vertices and
+    rebuilds nothing (verified: identical vertex count before and after). So you
+    do get a live thickness control for streamlines after all, just via tubes
+    rather than `Line2`.
+  - Comets survive: `travel` is replicated around each ring.
+  - Only Seeds and Max length still sit behind Apply, because only they re-run
+    the tracer. `pipeline.stream_tube` stays for the Trame app, which still
+    tubes server-side — the shared pipeline API was not touched.
 
 
 ## Color map and color range options

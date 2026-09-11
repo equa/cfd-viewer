@@ -45,6 +45,14 @@ export default function App() {
     setAppearanceState((a) => ({ ...a, ...patch }))
   }, [])
 
+  // The domain diagonal, so tube widths scale with the case instead of being a
+  // fixed number that is invisible in a hall and absurd in a duct.
+  const domain = meta
+    ? Math.hypot(meta.bounds[1] - meta.bounds[0],
+                 meta.bounds[3] - meta.bounds[2],
+                 meta.bounds[5] - meta.bounds[4]) || 1
+    : 1
+
   // -- the viewer ------------------------------------------------------
 
   useEffect(() => {
@@ -142,6 +150,16 @@ export default function App() {
   useEffect(() => { viewerRef.current?.setLighting(appearance.lighting) }, [appearance.lighting])
 
   useEffect(() => { viewerRef.current?.setComets(appearance.comets) }, [appearance.comets])
+
+  useEffect(() => { viewerRef.current?.setTubes(appearance.tubes) }, [appearance.tubes])
+
+  // Scale the default tube radius to the case the first time its bounds arrive.
+  useEffect(() => {
+    if (!meta) return
+    setAppearanceState((a) => (a.tubes.sized === meta.case
+      ? a
+      : { ...a, tubes: { ...a.tubes, radius: domain * 0.0015, sized: meta.case } }))
+  }, [meta, domain])
 
   useEffect(() => {
     viewerRef.current?.setTheme(appearance.theme === 'light')
@@ -252,6 +270,10 @@ export default function App() {
     setAppearanceState((a) => ({ ...a, comets: { ...a.comets, ...patch } }))
   }, [])
 
+  const setTubes = useCallback((patch) => {
+    setAppearanceState((a) => ({ ...a, tubes: { ...a.tubes, ...patch } }))
+  }, [])
+
   const onView = useCallback((direction) => viewerRef.current?.setView(direction), [])
   const onReset = useCallback(() => {
     if (info) viewerRef.current?.frameAll(info.header.bounds)
@@ -337,6 +359,9 @@ export default function App() {
           comets={appearance.comets}
           setComets={setComets}
           canAnimate={canAnimate}
+          tubes={appearance.tubes}
+          setTubes={setTubes}
+          domain={domain}
         />
         <div className="stage" ref={stageRef}>
           <Hud info={info} stats={stats} />

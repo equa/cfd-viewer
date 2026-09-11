@@ -16,6 +16,7 @@
 export const VERT = /* glsl */`
   attribute float scalar;
   attribute float travel;
+  uniform float uTubeRadius;
   varying float vScalar;
   varying float vTravel;
   varying vec3 vNormal;
@@ -23,7 +24,12 @@ export const VERT = /* glsl */`
     vScalar = scalar;
     vTravel = travel;
     vNormal = normalize(normalMatrix * normal);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Tube geometry arrives as CENTRELINE points whose normal is the ring's
+    // radial direction, so this displacement is the tube itself -- which is why
+    // the width slider moves no vertices. 0 everywhere else: an exact no-op,
+    // since it then adds normal * 0.
+    vec3 placed = position + normal * uTubeRadius;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(placed, 1.0);
   }`
 
 export const VERT_LINE = /* glsl */`

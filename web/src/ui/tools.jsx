@@ -328,6 +328,7 @@ export function ContourTool({ meta, request, setRequest, style, setStyle }) {
 
 export function StreamTool({
   meta, request, setRequest, style, setStyle, comets, setComets, canAnimate,
+  tubes, setTubes, domain,
 }) {
   /*
    * Everything here is heavy: vtkStreamTracer is 2.6 s of the 3.1 s server time
@@ -336,11 +337,12 @@ export function StreamTool({
    * app decided. The vector field stays live because it is also the arrows'
    * orientation field, and changing it while arrows are shown should be visible.
    */
+  // Only what actually re-runs the tracer is deferred. Tubes and their width
+  // left this group when tube-building moved into the browser: they cost
+  // nothing now, so making you press Apply for them would be a lie.
   const tune = useDeferred({
     stream_seeds: request.stream_seeds,
     stream_length: request.stream_length,
-    stream_tubes: request.stream_tubes,
-    stream_radius: request.stream_radius,
   }, (draft) => setRequest(draft))
 
   return (
@@ -375,28 +377,6 @@ export function StreamTool({
         onCommit={(v) => tune.set({ stream_length: v })}
         data-ctl="stream-length"
       />
-      {/* Tubes are triangles, so they escape the WebGL 1-px line-width cap that
-          made the Trame line-width slider inert. That slider is not ported. */}
-      <Switch
-        size="xs"
-        label={tagged('Tubes', 'server')}
-        description="Real geometry — thick lines are impossible in WebGL"
-        checked={tune.draft.stream_tubes}
-        onChange={(e) => tune.set({ stream_tubes: e.currentTarget.checked })}
-        data-ctl="stream-tubes"
-      />
-      {tune.draft.stream_tubes ? (
-        <LabelledSlider
-          label="Tube width"
-          min={0.2}
-          max={5}
-          step={0.1}
-          precision={1}
-          value={tune.draft.stream_radius}
-          onCommit={(v) => tune.set({ stream_radius: v })}
-          data-ctl="stream-radius"
-        />
-      ) : null}
       <Button
         fullWidth
         mt="xs"
@@ -408,6 +388,38 @@ export function StreamTool({
       >
         Apply
       </Button>
+
+      <Divider my="sm" />
+
+      {/*
+        Tubes are built in the BROWSER from the same lines the server already
+        sent, so this is a client control and the width is a shader uniform.
+        Shipping tube geometry instead cost ~9x the wire (10.30 MB gzipped
+        against 1.13 MB on s2) for no saving in server time, since the tracer
+        dominates either way. Tubes also escape the WebGL 1-px line-width cap,
+        which is why they are how you get thick streamlines here.
+      */}
+      <Switch
+        size="xs"
+        label={tagged('Tubes', 'client')}
+        description="Built in the browser — thick lines are impossible in WebGL"
+        checked={tubes.on}
+        onChange={(e) => setTubes({ on: e.currentTarget.checked })}
+        data-ctl="stream-tubes"
+      />
+      {tubes.on ? (
+        <LabelledSlider
+          label="Tube width"
+          min={domain / 4000}
+          max={domain / 100}
+          step={domain / 4000}
+          precision={3}
+          live
+          value={tubes.radius}
+          onChange={(v) => setTubes({ radius: v })}
+          data-ctl="stream-radius"
+        />
+      ) : null}
 
       <ColourBy
         ctl="stream"

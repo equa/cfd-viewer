@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { FRAG, FRAG_LINE, VERT, VERT_LINE } from './shaders.js'
+import { buildTubeGeometry } from './tube.js'
 
 /*
  * The pixels. Everything above this file is React and knows no three.js;
@@ -91,6 +92,11 @@ export class Viewer {
     // travel-units per second. One unit is the median streamline's whole
     // transport time, so ~0.35 crosses a typical line in about three seconds.
     this.comets = { on: false, speed: 0.35 }
+    // Streamlines as tubes, built here rather than on the server. `radius` is a
+    // uniform (see the vertex shader), so only `on` and `sides` ever rebuild.
+    this.tubes = { on: false, radius: 0.02, sides: 8 }
+    this._streamLines = null   // the decoded LINE part, kept so tubes can be
+                               // rebuilt without another fetch
     this.opacityMap = false
     this.lighting = { ambient: 0.35, diffuse: 0.65, lightKit: true }
     this.meshes = new Map()      // part name -> Mesh | LineSegments
@@ -167,6 +173,8 @@ export class Viewer {
       // Per material, not shared: only the streamlines animate. Everything
       // else keeps it at 0, where the shader is an exact no-op.
       uComets: { value: 0 },
+      // Likewise: only a client-built tube displaces along its normal.
+      uTubeRadius: { value: 0 },
     }
     // Colouring uniforms are shared by both flavours now: streamlines and
     // arrows can be drawn in a solid colour just as the shell can.
@@ -211,6 +219,11 @@ export class Viewer {
    * because its unit of work is the scene, not the part. */
   setParts({ header, parts }, { visible = {}, styles = {} } = {}) {
     for (const part of parts) {
+      if (part.name === 'stream' && part.mode === 'lines') {
+        // Remember the lines themselves. Tubes are derived from these, so
+        // toggling representation later costs no request at all.
+        this._streamLines = part
+      }
       this._removePart(part.name)
       const geometry = new THREE.BufferGeometry()
       for (const [name, attr] of Object.entries(part.attributes)) {
@@ -218,6 +231,11 @@ export class Viewer {
       }
       geometry.setIndex(new THREE.BufferAttribute(part.index, 1))
 
+      // Tubes are this part drawn differently, not a different part.
+      if (part.name === 'stream' && this.tubes.on && part.mode === 'lines') {
+        this._addStreamTube(part, visible, styles)
+        continue
+      }
       const scalars = 'scalar' in part.attributes
       let object
       if (part.mode === 'lines') {
@@ -246,8 +264,84 @@ export class Viewer {
     }
     // A refetched stream part is a new material, so re-apply the animation.
     this._applyComets()
-    if (header.range) this.setRange(header.range[0], header.range[1])
+    if (header?.range) this.setRange(header.range[0], header.range[1])
     return header
+  }
+
+  /* Build the streamline tube from the line part and add it to the scene.
+   *
+   * The geometry is centreline positions plus radial normals; the shader turns
+   * that into a tube of `uTubeRadius`. Vertex attributes (scalar, travel) are
+   * replicated around each ring, so colouring and the comets behave exactly as
+   * they do on the lines. */
+  _addStreamTube(part, visible = {}, styles = {}) {
+    const positions = part.attributes.position?.array
+    const offsets = part.offsets
+    if (!positions || !offsets || offsets.length < 2) return false
+    const carried = {}
+    for (const [name, attr] of Object.entries(part.attributes)) {
+      if (name !== 'position') carried[name] = attr.array
+    }
+    const built = buildTubeGeometry({
+      positions, offsets, attributes: carried, sides: this.tubes.sides,
+    })
+    if (!built) return false
+
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.BufferAttribute(built.position, 3))
+    geometry.setAttribute('normal', new THREE.BufferAttribute(built.normal, 3))
+    for (const [name, values] of Object.entries(built.attributes)) {
+      geometry.setAttribute(name, new THREE.BufferAttribute(values, 1))
+    }
+    geometry.setIndex(new THREE.BufferAttribute(built.index, 1))
+    // The bounds are computed from the CENTRELINE, so they under-report by the
+    // radius and the tube would be culled early when it is only just off
+    // screen. Inflate them to match what the shader actually draws.
+    geometry.computeBoundingSphere()
+    if (geometry.boundingSphere) geometry.boundingSphere.radius += this.tubes.radius
+
+    const mesh = new THREE.Mesh(geometry, this._material('triangles', {
+      hasScalar: 'scalar' in built.attributes,
+    }))
+    mesh.material.uniforms.uTubeRadius.value = this.tubes.radius
+    mesh.name = 'stream'
+    mesh.renderOrder = RENDER_ORDER.stream
+    mesh.visible = visible.stream !== false
+    this.meshes.set('stream', mesh)
+    this.scene.add(mesh)
+    this.setStyle('stream', styles.stream || this.styles.get('stream') || {})
+    return true
+  }
+
+  /* Lines or tubes, built from the same payload. No fetch either way -- which
+   * is the point: the server stopped shipping tube geometry because it is ~9x
+   * the wire for data the browser can derive. */
+  setTubes({ on, radius, sides }) {
+    const before = { ...this.tubes }
+    this.tubes = {
+      on: on ?? this.tubes.on,
+      radius: radius ?? this.tubes.radius,
+      sides: sides ?? this.tubes.sides,
+    }
+    const mesh = this.meshes.get('stream')
+    // Width alone is a uniform: no rebuild, no reupload.
+    if (mesh?.material.uniforms?.uTubeRadius && this.tubes.on) {
+      mesh.material.uniforms.uTubeRadius.value = this.tubes.radius
+      if (mesh.geometry.boundingSphere) {
+        mesh.geometry.computeBoundingSphere()
+        mesh.geometry.boundingSphere.radius += this.tubes.radius
+      }
+    }
+    const needsRebuild = before.on !== this.tubes.on || before.sides !== this.tubes.sides
+    if (!needsRebuild || !this._streamLines) return
+    const visible = { stream: mesh ? mesh.visible : true }
+    this._removePart('stream')
+    if (this.tubes.on) {
+      this._addStreamTube(this._streamLines, visible, {})
+    } else {
+      this.setParts({ header: {}, parts: [this._streamLines] }, { visible, styles: {} })
+    }
+    this._applyComets()
   }
 
   /* Drop a part entirely -- what an eye toggle does when it goes off. The
@@ -704,11 +798,17 @@ export class Viewer {
     if (!mesh) return null
     const index = mesh.geometry.getIndex()
     const verts = mesh.geometry.getAttribute('position')?.count ?? 0
-    const prims = index ? index.count / 3 : 0
+    // Lines carry 2 indices per primitive, triangles 3 -- dividing by 3
+    // regardless reported nonsense for the streamline part.
+    const perPrimitive = mesh.isLineSegments ? 2 : 3
+    const prims = index ? index.count / perPrimitive : 0
     return {
+      mode: mesh.isLineSegments ? 'lines' : 'triangles',
       vertices: verts,
-      triangles: prims,
-      verticesPerTriangle: prims ? Number((verts / prims).toFixed(2)) : null,
+      triangles: mesh.isLineSegments ? 0 : prims,
+      primitives: prims,
+      verticesPerTriangle: (!mesh.isLineSegments && prims)
+        ? Number((verts / prims).toFixed(2)) : null,
       colored: mesh.material.uniforms?.uColored?.value ?? null,
       hasScalar: mesh.material.uniforms?.uHasScalar?.value ?? null,
     }

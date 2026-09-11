@@ -81,8 +81,6 @@ export function initialRequest(meta) {
     vector_field: meta.vectorField,
     stream_seeds: 60,
     stream_length: 4.0,
-    stream_tubes: false,
-    stream_radius: 1.4,
     glyph_source: 'slice',
     glyph_count: 400,
     glyph_scale: 1.0,
@@ -123,6 +121,10 @@ export function initialAppearance(theme) {
     // Off by default: it is a reading aid you reach for, and a moving picture
     // is the wrong default for someone taking a measurement off the screen.
     comets: { on: false, speed: 0.35, period: 0.4 },
+    // Streamlines as tubes. In `appearance`, not `request`: the server ships
+    // lines only and the browser inflates them, so both the representation and
+    // the width are free (the width is a shader uniform).
+    tubes: { on: false, radius: 0.02, sides: 8 },
   }
 }
 
