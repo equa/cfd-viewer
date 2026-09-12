@@ -4,80 +4,35 @@ Browser-based post-processing for OpenFOAM cases, aimed at an IDA ICE CFD
 backend. See `README.md` for what it does and how to run it; this file records
 what cost time to discover.
 
-## Two front ends, one pipeline (2026-09-08)
+## The Trame front end is mothballed (2026-09-12)
 
-The repo holds **two** front ends over **one** VTK pipeline:
-
-| | where | status |
-|---|---|---|
-| **VTK pipeline** | `foamviz/case.py`, `pipeline.py`, `colors.py` | shared, maintained |
-| **three.js client** | `server/` (extraction over HTTP) + `web/` (React + Mantine + three.js) | **where new work goes** |
-| **FoamViz (Trame + vtk.js)** | `foamviz/app.py` | resting |
+This repo is a **React + three.js client over a Python/VTK extraction server**.
+`foamviz/` reads OpenFOAM and drives the filters, `server/` packs geometry onto
+the wire, `web/` draws it.
 
 ```
-python main.py --data ./data            # three.js client  (default, :5003)
-python main.py --data ./data --trame    # FoamViz          (:8080)
+python main.py --data ./data --port 5003
 ```
 
-**Why both live on `main`.** The Trame UI is not being developed any more, but
-it is not on a branch of its own either, and that is deliberate: the moment
-`pipeline.py` lives in two places it forks, and the CFD pipeline is the asset
-here — it is renderer-agnostic and it is what the three.js spike proved
-survives a front-end change. So `app.py` stays in the tree as a second,
-unmaintained entry point, and a change to the shared pipeline updates its call
-sites **in the same commit**. It must keep constructing and keep passing
-`tests/test_pipeline.py`; if it ever becomes genuinely expensive to keep, delete
-it rather than let it rot in place and lie about being current.
+The original **FoamViz (Trame + vtk.js) front end lives on the frozen `trame`
+branch** and is gone from here. It was the whole app until 2026-09-08, then a
+second entry point while the three.js client caught up, and is now retired. If
+you need it — to compare behaviour, or to recover a feature that was never
+ported — `git show trame:foamviz/app.py`.
 
-**The `trame` branch** is a frozen snapshot of the Trame app as it stood at
-`4a58f11`. Frozen means frozen: if the shared pipeline on `main` gains a fix
-worth having there, cherry-pick it deliberately.
+What that means in practice:
 
-**The deployed `cfd-viz` service builds the three.js client** from `main`
-(switched 2026-09-08). `cfd-backend/Containerfile` gained a `viz-build` node
-stage that clones this repo once and runs the Vite build, and the runtime stage
-copies the whole tree from it — so the Python source and the built client always
-come from one commit, and the runtime image needs no git.
-`cfd-backend/Containerfile.trame` still builds the Trame app from the `trame`
-branch as a **manual** fallback (CI does not build it), to be deleted once the
-new client has run in the deployment long enough to trust.
-
-Two things about that image not to "tidy":
-
-- **`--server` must stay in its CMD.** It is not only "do not open a browser":
-  it also makes an empty `--data` root non-fatal, so the service starts on a
-  fresh or not-yet-mounted `CFD_HOME` and picks cases up as they appear. Without
-  it an empty volume kills the process and the container restart-loops — a bug
-  this stack has already had once (`6a3e688`).
-- **It installs `requirements-core.txt`, not `requirements.txt`.** The core file
-  is exactly what the three.js service needs (vtk, aiohttp, matplotlib, numpy);
-  the full file adds it plus the trame packages. `main.py` imports `foamviz.app`
-  lazily *because of this* — a top-level import would make the service refuse to
-  start over a dependency it never uses — and `--trame` without trame installed
-  fails with a message naming the fix rather than a traceback.
-
-**The image's build guard.** `viz-build` checks, right after the clone, that the
-branch it landed on actually has `web/package.json`, `web/package-lock.json`,
-`requirements-core.txt` and `main.py`. This exists because the stage clones
-*another* repo, so the commit it gets can simply predate the layout the
-Containerfile expects — trivially caused by forgetting to push. Without the
-guard the first symptom is six layers down, as a bare
-`pip: No such file or directory: requirements-core.txt` pointing at the pip
-command rather than at the stale clone. That happened once, on the very first CI
-run after the switch. The guard prints the offending files, the branch, and the
-cloned HEAD's subject line, which makes "your clone is one commit behind"
-immediately obvious.
-
-`libosmesa6`/`libgl1` are still installed in that image even though this client
-never renders server-side (nothing in `server/` calls `Render()`). What is not
-established is whether VTK can still *construct* a `vtkRenderWindow` with no GL
-backend present at all, and both front ends share one `FoamPipeline`, which
-builds one at import. Dropping them is a real size win; verify construction
-survives first.
-
-**Renamed** from `cfd-trame-vtk-viewer` to `cfd-viewer`, since `main` is no
-longer a Trame app. References in `cfd-backend` (docs, Containerfile,
-`frontend/vite.config.js`) were updated with it.
+- **`pipeline.py` no longer has a second consumer**, so its API is free to
+  change. The rule that kept it additive ("both front ends call this") is
+  retired with the branch; `tests/test_pipeline.py` is now the only guard.
+- **Its render half is dead weight.** The renderer, light kit, actors, mappers,
+  triad, camera helpers, `screenshot`, `write_vtkjs` and the offscreen render
+  window exist only because Trame rendered server-side. This server never calls
+  `Render()`. Stripping them is a real simplification and is the thing that
+  would finally let the `cfd-viz` image drop `libosmesa6`/`libgl1` — see
+  "Not done, deliberately".
+- The `trame` branch is **frozen**, not maintained. If a pipeline fix ever
+  matters there, cherry-pick it deliberately.
 
 ## Working agreements (Niklas, merged from todo.md 2026-09-09)
 
@@ -96,10 +51,12 @@ Standing instructions for how to work in this repo, not one-off requests.
   reached that way without complicating the code "too much" — ask when the
   trade-off is unclear. This is the same instinct the client/server table
   encodes; when in doubt, the client column is the better place to land.
-- **Be careful with API changes to the shared pipeline.** `foamviz/case.py`,
-  `pipeline.py` and `colors.py` serve **both** front ends. Additive, optional
-  parameters; never change a signature the Trame app calls without updating its
-  call sites in the same commit. `tests/test_pipeline.py` is the guard.
+- **Be careful with API changes to `foamviz/`.** `case.py`, `pipeline.py` and
+  `colors.py` are the CFD layer, and the thing this project has proven is
+  durable — it survived a whole front-end change untouched. It no longer has a
+  second consumer (the Trame app retired with its branch), so the old "keep it
+  additive" rule is relaxed; `tests/test_pipeline.py` is now the only guard, so
+  lean on it.
 
 ## Resuming in a new workspace
 
@@ -131,7 +88,7 @@ need updating — the checks are deliberately concrete.
 - **Container venv at `/opt/venv`, on `PATH`** (2026-09-04): baked into the image
   from `requirements.txt` with **plain `vtk` 9.7** + system **`libosmesa6`** and
   the Playwright/Chromium apt libs. `python`/`pip`/`playwright` all resolve to it.
-  Run things directly: `python tests/test_pipeline.py`, `python tests/browser_check.py`.
+  Run things directly: `python tests/test_pipeline.py`, `python tests/check_client.py`.
   **No `LD_LIBRARY_PATH` staging any more** — apt puts OSMesa on the default
   linker path. This is the primary env now.
 - Legacy: a `vtk-osmesa` 9.3.1 venv still exists at `/home/node/.venvs/foamviz`
@@ -155,13 +112,10 @@ need updating — the checks are deliberately concrete.
   (`--extra-index-url https://wheels.vtk.org`, which 301s to a GitLab package
   index), frozen at **9.3.1**, wheels only for cp36–cp312 on linux x86_64 and
   win amd64. Python 3.13+/macOS/arm64 cannot resolve it at all.
-- **trame does not lag VTK.** `trame-vtk` 2.11.15 requires only `trame-client`
-  — no VTK pin anywhere. VTK 9.6.2 was verified end-to-end including vtk.js
-  client-side serialisation.
 - OpenFOAM 13 at `/opt/cfd/OpenFOAM-13`; `source /opt/cfd/OpenFOAM-13/etc/bashrc`.
 - **Playwright + Chromium are fully installed in the image (2026-09-04):**
   browser under `$PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`, all Chromium system
-  libs apt-installed (`ldd` on the shell is clean). `browser_check.py` launches
+  libs apt-installed (`ldd` on the shell is clean). `check_client.py` launches
   headless Chromium (WebGL 2.0 via SwiftShader) with **no `LD_LIBRARY_PATH`**.
   The old "libs can't be installed, stage on LD_LIBRARY_PATH" recipe is obsolete;
   the Containerfile apt list (libosmesa6 + ~22 Chromium libs) replaces it.
@@ -175,24 +129,14 @@ need updating — the checks are deliberately concrete.
   "Lighting" panel** at the bottom of the side pane (hidden by default): a **Light kit**
   toggle (default on; off → `RemoveAllLights` → VTK's default headlight) and
   Ambient/Diffuse sliders (default 0.3/0.7) → `set_light_kit` / `set_lighting`.
-  The ambient floor is the part that reliably survives to the **vtk.js client**
-  (local mode does its own lighting; server-side lights may not serialise) — it
-  guarantees no face is pure black in either mode, and it lights the
-  server-rendered report PNGs. The slice stays `LightingOff` (flat) and is left
-  out. Lighting prefs are **persisted globally** to a JSON settings file
-  (`_save_settings`/`_load_settings`, default `<case_root>/.foamviz-settings.json`
-  — persistent on the CFD_HOME volume — override with `$FOAMVIZ_SETTINGS`), so
-  they survive a server restart. (The shared-session server already keeps state
-  across page reloads; the file adds cross-restart survival. Not cookies —
-  global, server-side, and verifiable.)
+  All of this lives in `pipeline.py`'s render half, which nothing in this repo
+  uses any more (see "mothballed"). The client lights the scene itself in a
+  shader; the note survives because the *rule* still applies there — two-sided
+  key + fill over an ambient floor, so no face reads as black.
 - **Never pass a freshly constructed source inline.**
   `glyph.SetSourceConnection(vtk.vtkArrowSource().GetOutputPort())` **segfaults**
   — Python collects the temporary while the pipeline still references it. Keep an
   attribute for every source. This cost the most time of anything in the build.
-- **Actor-level transforms do not survive serialisation to vtk.js.** The
-  orientation triad only rendered correctly in one mode until its
-  position/scale/rotation were baked into the geometry with
-  `vtkTransformPolyDataFilter`.
 - **Do not colour by vector mode on a lookup table.** Same reason. `pipeline.py`
   bakes a derived scalar array (`FoamVizColor`) instead, so both render modes
   agree and the data range is trivially correct.
@@ -204,6 +148,26 @@ need updating — the checks are deliberately concrete.
   groups duplicate their member patches, so only `patch/*` is exposed. It also
   advertises fields such as `T.orig` that never appear in the output — read the
   field list from the actual output arrays, not from the reader.
+- **`vtkFeatureEdges`: feature and manifold edges are OPPOSITE toggles.**
+  Feature + manifold *together* yields only the feature edges, but manifold
+  *alone* yields every interior edge. So the building geometry's two modes are
+  feature edges = `FeatureEdges` on / `Manifold` off (sharp + boundary, the
+  architectural outline), and wireframe = `FeatureEdges` **off** / `Manifold`
+  on. Boundary edges stay on for both. Only the current mode's edges are ever
+  built, so the big all-edges set costs nothing until wireframe is chosen.
+- **Crinkle slice: use `vtkExtractGeometry`, NOT
+  `vtk3DLinearGridCrinkleExtractor`.** The latter is VTK's threaded 3D-linear
+  fast path and it **hung the server** — steady memory growth, no output,
+  restart needed — even on small cases, while computing in ~2 ms headlessly.
+  Never reproduced headlessly, so unconfirmed, but its `vtkSMPTools` thread pool
+  inside an async server is the prime suspect, and it handles linear cells only.
+  `vtkExtractGeometry` + `ExtractBoundaryCellsOn`/`ExtractOnlyBoundaryCellsOn`
+  is the general, single-threaded, all-cell-type equivalent (what ParaView's
+  crinkle relies on). Slower, but crinkle is a deliberate "show me the mesh".
+- **Arrow length must be normalised by the SEED set's own max |vector|**, not
+  the whole domain's. Scaling by a domain-wide peak made the arrows vanish
+  whenever the colour field was a large scalar like T; `_seed_vector_max` reads
+  the plane grid / isosurface samples where arrows are actually drawn.
 
 ## The three.js client (2026-09-08)
 
@@ -416,9 +380,8 @@ Consequences worth keeping straight:
   lie about their cost.
 - Comets work unchanged: `travel` is replicated around each ring, so a tubed
   streamline animates exactly like a line one.
-- `pipeline.stream_tube` **stays** — the resting Trame app still tubes
-  server-side. This was a client-side addition plus one small wire field; the
-  shared pipeline's API was not touched.
+- `pipeline.stream_tube` is now **unused** — it was kept for the Trame app,
+  which tubed server-side. It goes when the render half does.
 
 **Traps hit building it:**
 
@@ -601,9 +564,9 @@ contour speed, colour by temperature. That is what "lock" has to mean, and it is
 also the useful case: an isosurface coloured by its *own* field is a single flat
 colour, verified (a T isosurface ships scalars 176.9..176.9).
 
-Kept additive for the resting Trame app's sake: `apply_contour_array()` is a new
-method, `update_contour()` is untouched, and with `contour_field` unset the
-filter contours `COLOR_ARRAY` exactly as before. It carries its own
+`apply_contour_array()` was added rather than folded into `update_contour()`,
+which is untouched; with `contour_field` unset the filter contours `COLOR_ARRAY`
+exactly as before. It carries its own
 `_baked_contour` signature guard for the same reason `apply_color_array` does —
 baking dirties `case.internal`, whose MTime bump re-executes every filter fed by
 it (see the perf invariant). `update_data()` and `release_case()` clear it.
@@ -622,14 +585,9 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 
 ### Not done, deliberately
 
-- **"Add to report".** The Trame app's Report button writes `figure_NN.png` +
-  `figure_NN.json` into `<case>/report/`. It is **not ported**, because it needs
-  a decision first, and the decision is on a real seam: does the report image
-  come from the **client canvas** (matches what the user sees, bands and opacity
-  included) or from a **server render** (needs every appearance setting to travel
-  with the request)? Every setting the shader owns is a setting the server does
-  not know — that is the cost of the control this architecture buys. Decide it,
-  then port. See "Case-report figures" below for what already exists.
+- **"Add to report".** Not ported, and it needs a decision before it is: does
+  the figure come from the client canvas or from a server render? See
+  "Case-report figures" below — that is where the seam is.
 - **Cell-data (flat) colouring of the surface** needs non-indexed triangles with
   the cell scalar replicated per vertex (3× the vertex data). The server's
   `cell_data` flag is wired and bakes the array, but the client still draws
@@ -650,113 +608,22 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
   and components for the declarative ones (camera, controls, outline, triad).
   Worth doing for the team's sake, not for the pixels.
 
-## Trame traps hit here
-
-**These sections are the RESTING Trame app** (`foamviz/app.py`, and the `trame`
-branch). They are kept because the app is kept, because the deployed `cfd-viz`
-service still builds from that branch, and because several of them are really
-notes about `pipeline.py` — which is shared and live. Do not port a workaround
-from here into the three.js client without checking whether the constraint that
-forced it still exists; several do not (turntable rotation, the plane-outline
-mount dance, the camera push, banding, the opacity ramp).
-
-
-
-- **In local (vtk.js) mode the client owns its camera.** A camera set
-  server-side (`renderer` camera + `ResetCamera`) is invisible until pushed:
-  `view.push_camera()` (wired as `ctrl.view_push_camera`). `view.reset_camera()`
-  only *refits* the client's own orientation, so calling it after a preset
-  clobbered the orientation — which is why the X/Y/Z/Iso view buttons "never
-  worked". `set_view` and the initial `reset_camera=True` load now push instead.
-  - **Corollary — never `push_remote_camera_on_end_interaction()` in local
-    mode.** That observer fires on every EndInteraction (mouse up / leave) and
-    `setCamera()`s the server camera onto the client, which re-applies the focal
-    point and **resets the client's centre of rotation** — orbiting felt broken
-    and needed constant R. Removed 2026-08-18. Pushing a camera to the client is
-    fine on a *deliberate* action (a view button); doing it on every mouse-up is
-    not. The server camera already tracks the client in local mode, so it gained
-    nothing.
-  - **Turntable rotation is NOT available with trame-vtk 2.11.15 (local mode).**
-    Rotation is a client (vtk.js) interactor setting, not a server
-    `vtkInteractorStyle` (which does nothing in local mode). vtk.js's rotate
-    manipulator *does* support turntable via `useWorldUpVec`/`worldUpVec`, but:
-    (1) trame's `interactor_settings` applier (client `Md()`) forwards only
-    `button/shift/control/alt/scrollEnabled/dragEnabled` and **drops** those
-    keys; (2) the interactor/style helper is closure-captured on the client (no
-    `expose()`, not global) so it can't be patched from injected JS or `js_call`.
-    Tried the reactive-prop path (a `turntable` toggle) — the toggle changed the
-    prop but the flag never reached the manipulator, so it did nothing; reverted
-    2026-08-21. Re-enable once a trame-vtk forwards manipulator props: bind the
-    local view's `interactor_settings` to a state var whose Rotate entry carries
-    `useWorldUpVec: True, worldUpVec: [0,0,1]`.
-- **Keyboard shortcuts are extensible via `KEY_SHORTCUTS`** (`app.py`): a pressed
-  `event.key` → a CSS selector, and one injected `window` keydown listener
-  (`client.Script`, `_KEY_JS_TEMPLATE`) clicks the matched element. So a shortcut
-  rides an existing button's own click handler — no JS↔Python bridge. To add one:
-  give the target element a `js-*` class and add a row. Shift makes an uppercase
-  key (shift+x → `-x`). vtk.js already binds `r` to reset the camera.
-  (`client.Script` renders as `<trame-script :script="trame__inline_script_N">`;
-  the JS lives in that state var and runs client-side, like `client.Style`.)
-- **`F` sets the centre of rotation from the point under the cursor**
-  (ParaView-style focus). Unlike the axis shortcuts it needs the pointer
-  position *and* a server round-trip, so it cannot ride the click-a-button
-  bridge. `_FOCUS_JS` tracks the cursor and, on `F` over the 3D `<canvas>`,
-  calls `window.trame.trigger('foamviz_pick_cor', [x, y, w, h])` — trame's own
-  client→server call (`window.trame` exposes `.trigger(name, args, kwargs)`,
-  the general JS→Python path when there's no button to click). The trigger is
-  registered imperatively (`self.server.trigger(name)(fn)`; there is no
-  `@controller.trigger` decorator). Server side, `pipeline.pick_cor` sizes the
-  offscreen window to the client canvas so the projection aspect matches, casts
-  a `vtkCellPicker`, and — since vtk.js orbits the *focal point* (no separate
-  COR) — sets focal point to the pick and slides the camera along its view
-  direction so the point lands at screen centre (view direction + distance
-  preserved: no tilt, no zoom, just a pan-to-centre). Then `view_push_camera` +
-  `view_update`. A miss (empty space) is a silent no-op.
-- **`VBtnToggle(...).add_children([VBtn(...), ...])` renders the buttons twice.**
-  A widget constructed while another element is the active parent attaches
-  there too. Build children inside `with toggle:`.
-- **Vue template expressions cannot see `document`, `window`, or the
-  surrounding component's `$refs`.** Unknown identifiers resolve to `undefined`,
-  so failures look like `Cannot read properties of undefined`. The PNG download
-  therefore uses a real aiohttp route registered through
-  `ctrl.on_server_bind` — see `_add_http_routes`. Do not "fix" it back into a
-  `data:` URI: Chromium refuses a scripted click on a multi-megabyte data URL.
-- **An aiohttp `@web.middleware`'s second parameter must be named `handler`.**
-  aiohttp calls middlewares as `partial(mw, handler=next)` — by keyword — so any
-  other name (e.g. `next_handler`) raises `got an unexpected keyword argument
-  'handler'` on *every* request and 500s the whole app. Bit the `?case=`
-  preselect middleware in `_add_http_routes`.
-- `html.A` silently drops a `ref=` kwarg.
-- `trame-vtk`'s client POSTs `/paraview/` on startup and gets a harmless 405.
-  Expected; filtered in `tests/browser_check.py`.
-
 ## Testing
 
-**`main.py` logs at WARNING for `--trame` and INFO otherwise, and that is not a
-style choice.** trame_client/trame_server emit a line *per widget attribute* at
-INFO — tens of thousands while the UI is built. If the caller piped stdout and
-is not reading it (`tests/browser_check.py` does exactly that), the 64 kB pipe
-buffer fills and the process **blocks before it listens**. The symptom is
-`FAILURE: server never came up`, which is a long way from "the log level is too
-low". Cost a debugging round after the front-end split; do not "tidy" the two
-levels into one.
-
-**`tests/browser_check.py` must pass `--trame`.** `main.py` now defaults to the
-three.js client, so without the flag every selector in that suite misses.
-
-Four suites, all runnable directly under `/opt/venv` (no `LD_LIBRARY_PATH`):
+Three suites, all runnable directly under `/opt/venv` (no `LD_LIBRARY_PATH`):
 
 | | what it covers | last run |
 |---|---|---|
 | `tests/test_pipeline.py` | the shared VTK pipeline, no browser, ~30 s | **63/63** |
 | `tests/check_client.py` | the three.js client in real Chromium | **93/93** |
-| `tests/browser_check.py` | the resting Trame app, 9 steps (needs `--trame`) | **PASS** |
 | `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
 
 - `test_pipeline.py` asserts **output counts** for every filter, because an
   empty VTK filter raises nothing and renders as a perfectly plausible blank
-  image. It is also the guard that keeps the resting Trame app honest: it
-  exercises the pipeline both front ends share.
+  image. With Trame gone it is the **only** guard on `pipeline.py`. Note ~35 of
+  its checks still assert on actors and mappers — render-side state this server
+  never uses — which is what makes stripping the render half a real (if
+  tractable) job rather than a delete.
 - `check_client.py` mostly does **not** ask "did it render" — it asks **which
   controls cause a refetch**, by counting `/api/scene` requests around each
   interaction (zero for a colour-map switch, zero for a whole cut-plane drag,
@@ -772,10 +639,9 @@ Four suites, all runnable directly under `/opt/venv` (no `LD_LIBRARY_PATH`):
   `preserveDrawingBuffer` reads back blank" — applied to the Trame/vtk.js view
   and is **not** how the three.js suite works; that renderer sets
   `preserveDrawingBuffer` (it needs it for `toDataURL` screenshots anyway).
-- Selectors: the three.js client carries `data-ctl="<name>"` on every control
-  for exactly this purpose. The Trame app uses `js-*` classes instead, because
-  Vuetify's own markup has nothing stable to select on and
-  `get_by_label("Field")` also matches "Vector field".
+- Selectors: every control carries `data-ctl="<name>"` for exactly this
+  purpose. Mantine's own markup has nothing stable to select on, and note
+  `data-ctl` lands on the `input` element itself, not a wrapper.
 - Two things that make browser tests flaky if ignored, both learned the hard
   way and both handled by `wait_idle()` / a domain-relative epsilon in
   `check_client.py`: the **busy overlay captures clicks by design**, so
@@ -807,58 +673,6 @@ cd data/hotRoom && ./Allclean && ./Allrun
 Chosen as the nearest tutorial analogue to an IDA ICE `HEATING` case:
 buoyancy-driven room airflow with a thermal plume, steady state.
 
-## Geometry tool + outline changes (2026-08-17)
-
-- **Geometry tool** (6th tool): reads a building OBJ from `constant/triSurface/`
-  via `vtkOBJReader` (lazily; `set_case` only sets the filename, `has_geometry`
-  gates the UI). setupIceCase indexes geometry, so the file is `building.obj`
-  **or** `building<N>.obj` (e.g. `building10.obj`) — `set_case` searches
-  `building\d*\.obj`, first match (bare name first, then by index).
-  - **ONE fixed actor/mapper fed by a single `vtkFeatureEdges`**, rendered as
-    flat lines throughout. The mode is a **filter-parameter toggle**, not a
-    scene/mapper mutation — so the output re-serialises to the vtk.js client
-    cleanly, exactly like changing the contour count. This is the pattern that
-    works; the ones that DIDN'T (each corrupted the client, learned the hard
-    way): swapping the mapper's input (stale input → filled triangles), changing
-    the actor's representation, and actor add/remove (re-added actors lost their
-    properties → FE came back shaded, WF as surfaces).
-  - **Feature edges** = FeatureEdges on, Manifold off (sharp + boundary — the
-    architectural outline). **Wireframe** = FeatureEdges *off*, Manifold on
-    (every edge). They are OPPOSITE toggles because `vtkFeatureEdges` quirk:
-    feature+manifold *together* yields only the feature edges, but manifold
-    *alone* yields all interior edges. Boundary stays on for both.
-  - Footprint: only the current mode's edges exist — feature edges are small; the
-    full all-edges set is built only when wireframe is actually chosen.
-  State `geometry_visible/mode/opacity/line_width`; cheap handler. Only
-  `building.obj` (or `building<N>.obj`) for now — more `triSurface` files later.
-- **Red plane outline is drag-only, and now client-side.** Hidden by default; the
-  position slider's `start` shows it and `plane_slider_release` hides it. It is a
-  declarative vtk.js child moved in the browser — see the DONE note under
-  "Cut-plane slider smoothness" for the full mechanism (this superseded the old
-  server-side `plane_outline` actor / `_on_plane_slide` per-tick move).
-- **The always-on domain outline box (`vtkOutlineFilter`) was removed** — the
-  building geometry is the context now.
-
-## Light/dark theme (2026-08-17)
-
-The embedding app (cfd-frontend) drives the theme via `?theme=light|dark` on the
-iframe URL. FoamViz is a shared single session (UI built once), so the theme
-switches **reactively**, not by rebuild:
-
-- `ui_theme` state is bound to `<VApp :theme>` (the layout is built with
-  `theme=("ui_theme",)`, which renders `:theme="ui_theme"` — verified), so the
-  whole Vuetify chrome (drawer/toolbar/controls) re-themes at runtime.
-- The floating overlays (legend, bottom bar, mode switch, section headers) are
-  styled with Vuetify's theme CSS vars — `rgba(var(--v-theme-surface), …)` /
-  `rgb(var(--v-theme-on-surface))` — so they follow the same switch with no
-  per-theme CSS.
-- The 3D viewport is VTK, not CSS: `pipeline.set_theme(light)` flips the
-  renderer background and **inverts the neutral geometry line colour** (light
-  lines on dark, dark on light — field-coloured actors need no change).
-- The `?theme` middleware (beside `?case` in `_add_http_routes`) calls
-  `_set_theme`, which sets `ui_theme` + calls `pipeline.set_theme` + re-renders.
-  Default is dark.
-
 ## Architecture in one paragraph
 
 **Shared.** `case.py` wraps `vtkOpenFOAMReader` and hands out **snapshots** —
@@ -874,30 +688,23 @@ and `server/wire.py` packs the polydata as typed arrays; `web/` decodes them
 into `BufferGeometry` and owns appearance in a shader. There is no server-side
 render in this path. See "The three.js client" above.
 
-**The resting Trame front end.** `app.py` is the Trame UI: state dict, change
-handlers, one `update_scene()` that pushes all state into the pipeline and
-redraws.
-
-**Perf invariant (2026-09-01), Trame path: a toggle must leave
-`case.internal`'s MTime untouched.** (The `_baked` guard it describes lives in
-the shared `apply_color_array`, so the three.js server inherits the benefit —
-its per-part signatures are the equivalent discipline one level up.) `update_scene()` runs on *every* change (incl. a mere visibility/
+**Perf invariant: do not dirty `case.internal` for nothing.** Bumping its MTime
+re-executes every filter fed by it — the cutter, hence the stream seeds, hence
+the tracer, plus isosurfaces and glyphs. Two things used to do that on every
+update and are guarded: `update_scene()` runs on *every* change (incl. a mere visibility/
 opacity toggle). If it dirties `case.internal`, its MTime bumps and every filter
 fed by it — the cutter, hence the stream **seeds**, hence the tracer + tube, plus
-isosurfaces and glyphs — re-executes *and* re-serialises to the vtk.js client
-(trame caches serialized arrays by MTime, so a bump forces a re-hash/re-encode of
-the big streamline array). That made toggling any actor as expensive as
-recomputing the streamlines. TWO places dirtied it and both are now guarded:
+isosurfaces and glyphs — re-executes. On a big case that makes an incidental
+change as expensive as recomputing the streamlines. TWO places dirtied it and both are now guarded:
 - `apply_color_array()` re-baked `FoamVizColor` (Remove/AddArray) every call —
   guarded by a `_baked` signature `(field, component, use_cell_data)`, cleared by
   `update_data()` on reload so fresh data still re-bakes.
 - `SetActiveVectors(field)` bumps the MTime **even when that field is already
-  active** (VTK doesn't short-circuit it) — `update_scene` now sets it only when
-  `GetVectors().GetName()` actually differs.
+  active** (VTK does not short-circuit it), so it is set only when the active
+  vector name actually differs.
 
-Verified by instrumenting the real `update_scene`: on a geometry/surface/slice/
-opacity toggle the internal→cutter→seeds→tracer→tube MTimes all stay stable; a
-real field/vector change still bumps and re-integrates. Keep both guards.
+Keep both guards. The per-part signatures in `server/scene.py` are the same
+discipline one level up: they stop work reaching the pipeline at all.
 The cut plane is the hub — the slice and the stream-tracer seeds derive from it
 (the arrows have their own plane grid, see below).
 
@@ -924,72 +731,6 @@ The cut plane is the hub — the slice and the stream-tracer seeds derive from i
   isosurface" seeds off the contour output (mask-points). `update_glyphs` takes
   the plane axis+coord to size the grid.
 
-## UX batch + arrows scaling + cut-plane smoothness (2026-09-01 → 09-04)
-
-- **Arrows (3a316e5):** always orient by a selectable **vector field** (default
-  U), independent of the colour field; **length normalised by the seed set's own
-  max |U|**, not the whole-domain max (arrows went invisible when colouring by a
-  large scalar like T). Selector shares `vector_field` with streamlines.
-- **UX:** streamlines default to **lines** (two actors — line + tube — toggled by
-  visibility, NOT a mapper-input swap, which caused ribbon artefacts, 86967fc);
-  boundary defaults to **opacity 1**; colour **Bands** + range/cell options live
-  in an **Options popover with an Apply button** (defers heavy work on big cases);
-  **Auto-range** toggle sits in the top toolbar. NB **WebGL caps line width at 1**
-  — the stream line-width slider has no visible effect; not fixable.
-- **Colour-map weighted opacity: NOT available (reverted cd543e2).** The
-  discretizable-CTF + opacity-ramp spike rendered nothing in vtk.js local mode
-  and broke colour-map/bands (the discretizable LUT doesn't serialise). Don't
-  retry without a fundamentally different approach.
-- **Cut-plane slider smoothness — DONE (2026-09-04), client-side vtk.js outline.**
-  The red plane frame is now a **declarative client-side outline** — a
-  `VtkGeometryRepresentation` + `VtkPolyData` nested *inside* the
-  `VtkRemoteLocalView` (see `_content`). It injects the same `"view"` context the
-  view provides (`provide("view", c)` → `a.renderer.addActor`), so it renders into
-  **the same vtk.js renderer and shares the camera** — no second renderer, no
-  reverse-engineering. Its **actor `position` slides it** along the active axis by
-  `plane_slider` via an inline ternary binding, moved **entirely in the browser**:
-  the render is client-side and **no heavy per-tick server work runs** (no change
-  handler, no `view.update()`/`full_state` re-store), so the lag is gone (verified:
-  the release is the only committing round trip). That kills what the reverted
-  server-side attempts couldn't (delta push 7ee3d35, throttle 03a5005 — all still
-  paid the round trip + `full_state` re-store on every tick).
-  - **`plane_slider` has NO `@change`.** The slider writes it live; the outline
-    follows it client-side; the cut runs **once**, on release
-    (`plane_slider_release` → commit active coord + `plane_apply`). A per-tick
-    handler would just reintroduce the lag.
-  - **Mount gotchas (cost time, don't re-derive):** in `VtkRemoteLocalView` the
-    vtk.js renderer is **null until the first scene sync AND again after the view
-    is torn down** (`beforeDelete` nulls it) — a **Client↔Server mode switch** (or a
-    reconnect) rebuilds the view, so the renderer is transiently null. A child that
-    is *mounted* during that window crashes in `a.renderer.addActor(null)` (the
-    library's `Hh.onMounted` has no null guard). The obvious event gate — the view's
-    `afterSceneLoaded` — **does NOT propagate through the wrapper** in trame-vtk
-    2.11.16 (never fires on the Python side). So the outline is gated
-    **`v_if="plane_outline_on"` — mounted only while a drag is in progress**
-    (`start=` JS sets it true, `plane_slider_release` sets it false, both
-    client-side, no round trip). It therefore never lingers mounted to be caught by
-    a rebuild, and by drag time the scene has long rendered so the renderer is live.
-    (An earlier gate on a persistent `plane_outline_ready` flag flipped on first
-    grab still left the child mounted across a later mode switch → `addActor(null)`
-    "after a while". Don't reintroduce a persistent mount.) Guarded by
-    `browser_check.py` step **8b** (drags the plane after a Server→Client switch).
-  - **Actor transforms are fine here.** The "actor transforms don't survive
-    serialisation" trap (see Trame traps) is about *server→vtk.js* serialisation;
-    this actor lives natively in the client, so `position`/`visibility` apply
-    directly. A change to the reactive `actor` prop triggers
-    `representation.dataChanged()` → `view.render()`, so it repaints with no
-    server involvement.
-  - **Base points** (the rectangle spanning the two non-normal axes, at coord 0 on
-    the normal — position supplies the coordinate) are rebuilt in Python only on
-    **case load / axis switch** by `_set_plane_outline_base`, from `_sync_plane_ui`.
-  - **Server (remote) render mode:** the declarative child isn't rendered there, so
-    a drag shows **no live outline** — the cut just lands on release. Acceptable:
-    server mode is the GPU-less fallback, and it no longer round-trips per tick
-    either. The old server-side `plane_outline` actor + `update_plane_outline` +
-    `set_plane_outline_visible` were **removed** from `pipeline.py`.
-  - Covered by `browser_check.py` step **1b/1c** (drags the plane slider, asserts
-    the red frame appears mid-drag and the slice moves on release).
-
 ## Memory management (2026-09-07)
 
 Where the memory actually sits, and what a case switch does with it. All figures
@@ -1009,9 +750,8 @@ memory:
    reader output.
 3. **The pipeline's filter outputs** — `FoamPipeline` lives for the process and
    every filter keeps its last-executed output.
-4. **trame's serialized-array cache** — in local (vtk.js) mode every array
-   shipped to the browser is kept in `SynchronizationContext.data_array_cache`,
-   keyed by md5, holding a reference to the `vtkDataArray` itself.
+4. **The client's part cache** — but that one lives in the *browser*, capped by
+   bytes, and is not this process's memory at all (see the part model above).
 
 **A case switch does free the old case** — plain refcounting, no reference
 cycles (`gc.collect()` changes nothing). Two things used to spoil that, both
@@ -1036,66 +776,45 @@ Deliberately **not** per time step: inside one case the arrays just freed are
 the same size as the ones about to be allocated, so leaving them in the arena is
 what keeps time stepping cheap.
 
-**Still open — leaving the viewer frees nothing.** It is a shared single session
-(one pipeline, one camera) with no teardown on disconnect, and trame's array
-cache is pruned *only* inside `get_view_state` (trame_vtk
-`modules/vtk/protocols/local_rendering.py`), for arrays with refcount 1 that are
->20 s old. Close the tab and nothing prunes, so the last case's arrays stay
-cached; it self-cleans once you come back and interact. trame_server exposes no
-`on_client_exit` hook (only `on_server_exited`), so a trim-on-leave would need
-either a client-count heartbeat or the arrays to be dropped some other way.
-Sizing rule of thumb meanwhile: **the viewer's RSS settles near the largest
-single case opened, not the sum.**
+**Sizing rule of thumb: the server's RSS settles near the largest single case
+opened, not the sum.** Leaving the viewer frees nothing on the server — one
+process holds one open case with no teardown on disconnect — but the browser
+side now owns its own geometry, so closing the tab does reclaim that half.
 
 ## Backend integration
 
-### Decided (2026-08-11, with Niklas)
+### How it deploys (decided 2026-08-11 with Niklas; still current)
 
-Integrating into the EQUA CFD frontend (repo `cfd-restful-backend`, the
-`cfd-backend`/`cfd-file-server`/`cfd-frontend` images):
-
-- **Shape:** FoamViz becomes a **4th service, `cfd-viz`**, behind the nginx
-  `cfd-frontend`, which proxies `/viz/*` (HTTP **and** WebSocket upgrade) to it.
-  It reads cases straight off the shared `CFD_HOME` volume — no OpenFOAM install
-  needed, `vtkOpenFOAMReader` reads the case files directly. React embeds it as
-  a **full-page** view via `<iframe src="/viz/?case=<id>">`.
-- **Process model:** **shared single session** (few users) for now — one
-  `main.py --server --data $CFD_HOME` process. Per-session launcher is the later
-  productisation, not now.
-- **A1 done:** `?case=<name>` deep link — `_preselect()` + an aiohttp request
-  middleware in `_add_http_routes` (server-side; window.location is unreachable
-  from Vue expressions). Verify with the screenshot filename, see below.
-- **A3 done:** service robustness. `main.py --server` no longer exits on an
-  empty `--data` (interactive use still does); the app stores `case_root`,
-  clears `_loading` on an empty start, and `_preselect()` re-scans the case root
-  (`_rescan_cases()`, also refreshing the drawer) when the name is unknown — so
-  cases created after startup resolve. Note: only lazy rescan on deep link; the
-  drawer does not auto-poll for new cases.
-  - **Empty-case startup must not crash the serializer (2026-09-05).** Serving
-    empty used to crash on `on_server_ready`: trame's local-render serializer
-    walks every actor and calls `mapper.GetInputAlgorithm().Update()`, and
-    `surface_mapper` had **no input** until `update_surface` ran (never, with no
-    case) → `AttributeError: 'NoneType'` → the process exits and the container
-    **restart-loops**. This bit Niklas on Podman/WSL, where the case dir came up
-    empty (a mis-mounted volume) — nothing to do with WSL, GL, or the harmless
-    EGL/X11 probe warnings (VTK falls back to OSMesa; that path is fine).
-    `pipeline._bootstrap_empty()` now defaults `surface_mapper` to `surface_input`
-    and seeds the `case.internal`-fed filters (cutter/crinkle/contour/tracer +
-    glyph_probe source) with an empty `vtkUnstructuredGrid`, so the scene
-    serialises to empty geometry cleanly (also kills the `vtkCutter` "0
-    connections" ERR spam). Guarded by a `test_pipeline.py` invariant: with no
-    case loaded, no actor's mapper has a `None` input algorithm.
-- **A2 DONE** — serving under the `/viz/` base path behind nginx works;
-  confirmed in Niklas's deployment (see the 502 note below for the one real
-  problem found there, which was nginx upstream re-resolution, not the base
-  path). The three.js client meets the same requirement differently and more
-  simply: `base: ''` in `web/vite.config.js` plus relative API paths, so one
-  build works at `/` and under `/viz/` with no wslink involved.
-
-**Verifying A1 without a browser:** the PNG route names its file
-`foamviz-<case_name>-t<time>.png`. So: start `main.py --server --data data`,
-`GET /?case=s2`, then `GET /foamviz/screenshot.png` and read the
-`Content-Disposition` filename — it should contain `s2`.
+- **Shape:** a 4th service, **`cfd-viz`**, behind the nginx `cfd-frontend`,
+  which proxies `/viz/*` to it. It reads cases straight off the shared
+  `CFD_HOME` volume — no OpenFOAM install needed, `vtkOpenFOAMReader` parses the
+  case files directly. The React cockpit embeds it **full-page** as
+  `<iframe src="/viz/?case=<id>">`.
+- **Process model:** one shared process. Per-session launching is the later
+  productisation; see the open questions below.
+- **Deep links:** `?case=<name>` and `?theme=light|dark`, read from the URL by
+  the client itself (`urlOptions` in `web/src/api.js`). Serving under the
+  `/viz/` prefix works because the build is relative — `base: ''` plus relative
+  API paths — so one build serves at `/` and under `/viz/`.
+- **Empty `CFD_HOME` must not be fatal.** `--server` makes it non-fatal and the
+  server picks cases up as they appear; without it the process exits and the
+  container **restart-loops**. This bit Niklas once on Podman/WSL with a
+  mis-mounted volume — nothing to do with WSL, GL, or the harmless EGL/X11 probe
+  warnings. `pipeline._bootstrap_empty()` is the other half: it seeds the
+  `case.internal`-fed filters (cutter/crinkle/contour/tracer + glyph_probe
+  source) with an empty `vtkUnstructuredGrid` so their `Update()` is a clean
+  no-op before any case loads, which also kills the `vtkCutter` "0 connections"
+  ERR spam. Guarded by a `test_pipeline.py` invariant.
+- **The 502 that cost two rounds, fixed in cfd-backend (`b7dbd07`).** nginx pins
+  the upstream IP it resolved at startup, so a restarted `cfd-viz` with a new IP
+  became unreachable: `connect() failed (113: Host is unreachable)`. Fix is
+  `resolver ${NGINX_RESOLVER}` plus a **variable** `proxy_pass` (a variable is
+  what forces per-request re-resolution). **The gotcha:** the resolver var must
+  be set by an entrypoint hook that is **executable** — the nginx entrypoint
+  only *sources* `docker-entrypoint.d/*.envsh` with `+x`, silently ignoring the
+  rest. Hence `--chmod=755` on `scripts/nginx-resolver.envsh`.
+- Niklas runs rootless, nginx on host port 8080. The `cfd-viz` image clones this
+  repo at build time, so **push before rebuilding**.
 
 ### Remaining open questions
 
@@ -1112,8 +831,7 @@ API on :5001) and `project_iceopenfoam` (EQUA's OpenFOAM-13 extension libs).
    answering while it works — and the client owns its own camera, so the
    "one camera" half of this problem is simply gone. What remains is that two
    users still share one open case: real concurrency needs a process per
-   session. (The Trame path additionally needs the trame launcher for that;
-   the three.js path needs no special machinery, just more processes.)
+   session, which needs no special machinery here — just more processes.
 3. **Case discovery.** `find_cases()` scans for `system/controlDict`. The
    backend addresses cases by UUID directory with a `metadata.json`
    (`CASE-ID`, `N-CELLS`, `TURB-MODEL`, `ZONE-NAMES`, `END-ITER`, `CFD-OK`…)
@@ -1137,281 +855,47 @@ API on :5001) and `project_iceopenfoam` (EQUA's OpenFOAM-13 extension libs).
    `vtkOpenFOAMReader` subclass, so the rest is unchanged. Verified on a real
    decomposePar'd hotRoom (root time 0, processor0 at 1730): detection True,
    `vtkPOpenFOAMReader` present in the wheel, reads all processor dirs serially
-   → 32 000 global cells, all fields. Both front ends surface it: the Trame
-   drawer caption and the three.js top bar both show "· decomposed"
-   (`data/geometric-fancoil-and-beam` exercises it, 644 413 cells).
-6. **Render mode default — SETTLED, and now moot.** Niklas reported client-side
-   (vtk.js) rendering "impressive already" at 12 M cells, so the Trame app
-   defaults to `local` with server mode as the GPU-less fallback. The three.js
-   client has no such switch at all: it always renders in the browser, and the
-   server never renders. If a genuinely GPU-less client ever matters again,
-   that is a new feature there, not a toggle.
+   → 32 000 global cells, all fields. The top bar shows "· decomposed" when it
+   is in play (`data/geometric-fancoil-and-beam` exercises it, 644 413 cells).
+6. **Render mode — CLOSED.** Rendering happens in the browser, full stop; the
+   server never renders. Niklas had already reported client-side rendering
+   "impressive already" at 12 M cells, which is what made server rendering
+   redundant. If a genuinely GPU-less client ever matters again, that is a new
+   feature, not a toggle.
 7. **Comfort metrics.** Draught rate, PMV/PPD, operative temperature are what
    the IDA ICE side actually reports, and none are OpenFOAM fields. They would
    be derived arrays computed at load — the same mechanism as `FoamVizColor`,
    so the hook already exists (`pipeline.apply_color_array`).
 
-## Slider debounce — DONE (2026-08-14)
-
-The heavy sliders no longer re-render on every drag tick. `_slider(debounce=True)`
-binds the thumb (and its live label) to a `<name>_draft` mirror and commits the
-real state var only on release, via the VSlider `@end` event
-(`end="<name> = <name>_draft"` — client-side JS, one flush). The real-var change
-then runs the heavy handler once, behind the busy overlay. Debounced:
-`plane_position`, `contour_count`, `stream_seeds`, `stream_length`, `glyph_count`
-(listed in `_DEBOUNCED`). Cheap render-only sliders (opacity, tube width, glyph
-size) stay live. `_sync_drafts()` (called from `load_case`) re-mirrors the drafts
-so a slider follows programmatic changes instead of snapping back to a stale
-drag value; it's the hook for the reset the To-do list will add.
-
-Note on trame 3.2.5: `VSlider._event_names` is empty at class level — events are
-resolved per instance, so `end=`/`start=` bind fine (verified: the template
-emits `@end`), the earlier `_event_names` claim was wrong.
-
-The **time** slider is deliberately left live: playback steps it programmatically
-and `tests/browser_check.py` step 7 drives it with keyboard arrows expecting a
-live label. A mouse-drag of it on a big case would still flood — revisit if it
-bites (it would need the same draft treatment plus a per-step draft resync in the
-play loop, and a client-side label mapping index→time).
-
-Alternatives rejected during the original build: server-side throttle/debounce
-(still pays the round trip, feels laggy not stepped) and lowering default counts
-(treats the symptom).
-
-## Case-report figures — Trame only; NOT ported (2026-08-16, still open)
-
-> **The three.js client does not have this**, deliberately — see "Not done,
-> deliberately" above. It needs a decision first: does the figure come from the
-> client canvas (matching what the user sees, bands and opacity included) or
-> from a server render (which needs every appearance setting to travel with the
-> request)? Everything below describes the working Trame implementation, which
-> is the thing to port once that is settled.
+## Case-report figures — still open, and it needs a decision first
 
 Goal (with Niklas): build a scene, "Add to case report", and have it appear in
-the cfd-frontend case report — a **frozen** interactive snapshot (rotate/zoom, no
-toggles). The headline deliverable is a **single self-contained `.html` export**
-of the report with the scenes inlined (opens offline, no running services); the
-existing browser print-to-PDF stays (scenes show as their poster PNG there).
+the cfd-frontend case report as a **frozen** snapshot (rotate/zoom, no toggles).
+The headline deliverable is a **single self-contained `.html` export** with the
+scenes inlined, so it opens offline with no running services; browser
+print-to-PDF stays, with scenes showing as a poster PNG.
 
-Format decided: **vtk.js scene** (`.vtkjs`), not glTF — it is the same vtk.js
-renderer the client already uses, so the report looks identical to the live view
-(glTF risks PBR-shading the flat CFD field colours). Storage: **inside the case**,
-`<case>/report/` (Niklas confirmed cfd-viz has write access to `CFD_HOME`).
+**The three.js client has no Report button, deliberately.** The decision to make
+first sits on a real seam this architecture creates: does the figure come from
+the **client canvas** — matching exactly what the user sees, bands, opacity ramp
+and all — or from a **server render**, which would need every appearance setting
+to travel with the request? Every setting the shader owns is a setting the
+server does not know. That is the price of the control the split buys, and it
+lands here.
 
-**DONE — capture (this repo).** The toolbar "Report" button → `add_to_report`
-writes per figure into `<case>/report/`: `figure_NN.png` (poster/print) and
-`figure_NN.json` (caption + field/component/range/preset/n_colors + gradient +
-ticks, so the report redraws the colour bar from `colors.py` — the poster is the
-3D view only, no legend). Caption comes from a state field or `_auto_caption()`.
-The server render window's camera already tracks the client's orbit in local mode
-(that's also how the Client→Server switch works), so the server-side screenshot
-frames what the user set up. (Do NOT use `push_remote_camera_on_end_interaction()`
-for this — see the camera trap under "Trame traps": it resets the client's centre
-of rotation on every mouse-up. It was removed 2026-08-18.)
+Client-canvas is the obvious answer now that nothing renders server-side:
+`Viewer.screenshot()` already exists (it is the toolbar camera button), and
+`preserveDrawingBuffer` is already on. The open part is the interactive scene,
+not the poster.
 
-**vtk.js scene export is MOTHBALLED (2026-08-17):** `figure_NN.vtkjs`
-(`vtkJSONSceneExporter` output, zipped) is no longer written — the interactive
-report viewer is shelved, and unused scenes just pile up on disk. Gated behind
-`EXPORT_VTKJS = False`; `write_vtkjs` and the zip code are kept, so it's a
-one-line flip to re-enable once a viewer is built.
+**What the Trame app did**, for reference — `git show trame:foamviz/app.py`, and
+the figures it wrote are still readable by the cfd-backend side: per figure into
+`<case>/report/`, a `figure_NN.png` poster plus a `figure_NN.json` carrying
+caption, field/component/range/preset/bands, and the colour-bar gradient and
+ticks so the report redraws the bar from `colors.py` (the poster is the 3D view
+only, no legend). Interactive `.vtkjs` export was built and then mothballed —
+unused scenes just accumulated.
 
-- **Trap:** `vtkJSONSceneExporter` leaves the render window in a state that
-  **segfaults** a subsequent `vtkWindowToImageFilter`. So capture the PNG
-  *before* the scene export, and `screenshot()` now calls `render_window.Render()`
-  first (also needed because, with no live client driving it, the window may be
-  unrendered during a headless export).
-
-**TODO — the rest (cfd-backend repo).** (2) backend route to list/serve a case's
-`report/` figures; (3) a Figures section in `frontend/src/pages/Report.jsx` (PNG
-in print, interactive vtk.js viewer on screen); (4) the single-file HTML export —
-assemble the React-rendered tables/charts + one inlined vtk.js viewer +
-base64-embedded scenes into a downloadable `.html` (client-side assembly reuses
-React's rendering; the viewer is one small vtk.js bundle inlined once).
-
-## To-do list
-
-> **Historical (Trame era). This list is closed.** Every item below landed in
-> the Trame app, and the resulting UX was then *ported* to the three.js client
-> rather than rebuilt — so the decisions still hold, but read
-> "What the debouncing became" above for where a control's cost changed. Kept
-> for the implementation notes underneath, which are still the reasons things
-> are shaped the way they are.
-
-Things for future consideration and work, added by Niklas. Remove items when
-implemented, and feel free to fix formatting. We will fix and remove items as we
-go, and Niklas may add more. Read the whole list before starting — the ordering
-does not necessarily reflect a good implementation order.
-
-### Widget re-arrangement — DONE 2026-08-15
-
-All of the below shipped (see "Widget re-arrangement — DONE" implementation note):
-
-- ~~Move the viewport buttons (X / Y / Z / Iso) and the time control to a bottom
-  bar.~~ Floating bottom bar over the 3D view (`_bottom_bar`).
-- ~~Add widget-type buttons (slice, isosurfaces, streamlines, boundary) to the top
-  bar, revealing that widget's submenu in the side bar.~~ Top-bar tool selector
-  (`active_tool`), sections shown via `v-show`.
-    - ~~Merge "Room shell" and "Boundary patches" → "Boundary".~~
-    - ~~Merge "Cut plane" and "Slice" → "Cut plane".~~
-- ~~Colour settings stay permanently in the side bar, submenus below them.~~
-    - ~~Integer input for number of colours ("banded" colouring).~~ `n_colors`
-      (0 = smooth), banded via flat transfer-function nodes; legend bands too.
-
-### Slider behaviour
-
-- ~~Delay slider actions until the slider is released.~~ **Done 2026-08-14** for
-  the heavy geometry sliders (see "Slider debounce — DONE" above).
-    - ~~Draw a plane outline that follows the slider during the drag.~~ **Done**,
-      then made fully client-side **2026-09-04** — the red frame is a declarative
-      vtk.js child of the view, slid in the browser with no server round trip (see
-      the "Cut-plane slider smoothness — DONE" note).
-    - ~~Numeric input for the plane position in world coordinates.~~ **Done, then
-      reworked 2026-08-16** into X/Y/Z world-point fields + an Apply button, with
-      the world point (not a fraction) as the source of truth — see the plane
-      note under implementation notes. Fields are inert until Apply; the slider
-      previews live and auto-applies on release; a normal switch keeps X/Y/Z.
-    - (Optional, not done) debounce the time slider too — see the note in the
-      "Slider debounce — DONE" section.
-
-### Visualisation options
-
-- ~~Boundary visualisation: default to "cull front face", with a toggle.~~
-  **Done 2026-08-14** — "Cull near walls" switch in the Room shell panel,
-  default on (`surface_cull` → `SetFrontfaceCulling`).
-- ~~Toggle between point-interpolated values and true cell values.~~
-  **Done 2026-08-14** — "True cell values" switch in the Colour panel
-  (`use_cell_data`); bakes a cell `FoamVizColor` and switches the surface/slice
-  mapper association. Contour/streamlines/glyphs stay on point data.
-- ~~Slice-plane visualisation: when the mesh is shown, switch to a "crinkle
-  slice".~~ **Done 2026-08-15** — the "Mesh (crinkle)" switch on the Cut plane
-  tool feeds the slice from a crinkle extractor (`vtkExtractGeometry` since
-  2026-08-17) instead of the cutter (see the implementation note below).
-
-## To-do — implementation notes (Claude)
-
-Grounding notes for the list above. All of it **is** implemented (in the Trame
-app, and carried over to the three.js client); the "not yet implemented" this
-line used to say has been true of nothing here since 2026-08-15. Code pointers
-are to `foamviz/app.py` (line numbers drift). A suggested order is at the end.
-
-### Slider behaviour — do this first
-
-Already scoped under "Known work, deferred" above (the `VSlider` `start`/`end`
-draft-variable approach — no server round trip during the drag, one
-`update_scene()` on release). Worth doing first: it's the biggest felt win, and
-it makes the **new busy overlay** pleasant on heavy sliders — otherwise a drag
-flashes the overlay every tick, since `plane_position`/`contour_count`/
-`stream_seeds`/`glyph_count` are in the "heavy" handler group now. `_slider()` in
-`app.py` is shared by every panel, so add a `debounce=True` parameter to it
-rather than editing each slider; keep the cheap sliders live.
-
-The cut-plane controls were then **reworked (2026-08-16)** into a single clean
-model — the earlier fraction/`plane_coord` bidirectional sync was fiddly. Now:
-
-- **Source of truth = the world point `plane_x`/`plane_y`/`plane_z` + the normal
-  `plane_axis`.** Only the active-axis coordinate positions the cut (the plane is
-  axis-aligned); the other two are remembered, so switching the normal keeps
-  them. `_active_coord()` reads `plane_<axis>`; everything funnels through
-  `update_scene()`, which passes it to `update_plane` as a **world coordinate**,
-  not a fraction (no fractions anywhere).
-- **The X/Y/Z fields are inert** (no `@change`) until **Apply** (`plane_apply` →
-  `_busy_call(_do_plane_apply)`), which clamps into range, reflects the value on
-  the slider (`_sync_plane_ui`) and redraws. That is the "debounce" for typed
-  input — keystrokes never redraw.
-- **The slider drives `plane_slider` live, with NO `@change`** (ranged by
-  `axis_min`/`axis_max`). The client-side red frame follows it in the browser
-  (zero round trips); release (`@end` → `ctrl.plane_slider_release`) writes the
-  active coordinate and cuts once. See "Cut-plane slider smoothness — DONE" for
-  the outline mechanism and the mount gotchas.
-- **Axis switch** (`_on_plane_axis`) just calls `plane_apply`, which re-ranges the
-  slider to the new axis and redraws — X/Y/Z untouched.
-- Kept axis-aligned; a free plane (arbitrary normal) would be a much bigger
-  change and isn't what was asked. Fields take decimals (a slice needs sub-metre
-  precision), not integers.
-
-### Widget re-arrangement — DONE 2026-08-15
-
-- **`TOOLS` is the single source** for the six tools (key, title, icon). It
-  drives both the side-pane **tool stack** (`_tool_stack()`, bound to
-  `active_tool`) and the settings sections, so they can't drift. Each tool has a
-  `_tool_<key>(title, icon)` builder; `_drawer()` loops `TOOLS` and wraps each in
-  a `v-show` div. `TOOL_VISIBLE` maps each tool key → its actor-visibility state
-  var (the eye toggle).
-- **Layout (rearranged 2026-08-21):** global **Colour** settings live in the
-  **top bar** (essentials inline: Field/Component/Colour map/Bands/Rescale; the
-  rest — range mode, min/max, cell values — behind an "Options" `VMenu` with
-  `activator="parent"`). The **side pane** holds the vertical tool stack at top
-  (each row: a tool button that selects its settings + an **eye toggle**,
-  `mdi-eye`/`mdi-eye-off`, that flips the actor's `*_visible` var directly), the
-  selected tool's settings below, then the collapsible Lighting panel.
-- **Tools are control-only, not visibility.** Selecting a tool only changes which
-  settings show (`v-show`, so panels stay mounted and keep their state).
-  Visibility is the separate per-row eye toggle, so a slice + streamlines +
-  isosurfaces can all be visible while you tweak just one. The eye sets the
-  `*_visible` state var client-side; its `@change` handler (`_on_cheap` /
-  `_on_heavy`) updates the actor — no per-tool render logic.
-- **Cut-plane-hub question, resolved:** the plane controls live in the "Cut
-  plane" tool (merged with the slice, per spec), and the "Slice, stream seeds and
-  arrows all sit on this plane" caption stays. Moving the seeding plane while
-  configuring streamlines/arrows means a hop to the Cut plane tool — acceptable,
-  and it kept the layout duplication-free. If that hop proves annoying, the tidy
-  fix is to promote the plane block to a second persistent section (like Colour),
-  *not* to repeat the control in three tabs.
-- **Bottom bar** is a floating strip inside `.foamviz-stage` (`_bottom_bar`),
-  matching the legend/mode overlays — not the Vuetify `footer` (which carries the
-  "Powered by trame" branding, kept). Camera presets left, time group right. The
-  `js-time-slider` / `js-time-label` / `js-refresh-times` test hooks moved with
-  it; the time slider stays live (not debounced) so playback and the keyboard
-  browser-test step still work.
-- **Sections:** `_panel()` (expansion panel) was replaced by `_section(title,
-  icon)` — a plain header + body div — since only one tool shows at a time. The
-  browser test's `panel()` accordion helper became `tool()` (clicks the top-bar
-  button).
-- **Banded colouring:** `n_colors` state (0 = smooth). `colors.color_transfer_function`
-  bakes banding into the CTF *nodes* as flat plateaus (two coincident-value-safe
-  nodes per band) — NOT `vtkDiscretizableColorTransferFunction`, whose `DeepCopy`
-  (used by `set_color_range` on every range change) drops the discretize flag
-  (verified). `css_gradient` gained a matching stepped branch, so the legend
-  bands too.
-
-### Visualisation options
-
-- ~~**Cull front face**~~ — **Done.** `surface_cull` (default True) →
-  `surface_actor.GetProperty().SetFrontfaceCulling`, in the cheap/live handler.
-- ~~**Point-interpolated vs true cell values**~~ — **Done.** `use_cell_data`
-  (cheap handler). `apply_color_array` bakes `FoamVizColor` into point data
-  always, and into cell data too when the toggle is on; `_color_by_association`
-  switches the surface/slice mapper between `UsePointFieldData` and
-  `UseCellFieldData`. Cell arrays were verified present on the internal mesh,
-  boundary patches, and the cutter output. Contour/streamlines/glyphs keep
-  reading the point array. (Note: auto-range still samples point data — a cell
-  extreme can slightly exceed it; not worth special-casing.)
-- ~~**Crinkle slice**~~ — **Done 2026-08-15; extractor swapped 2026-08-17.** The
-  "Mesh (crinkle)" switch feeds the slice from a crinkle extractor sharing the
-  cutter's `vtkPlane` (position slider drives both), via a `vtkGeometryFilter`
-  → polydata for the shared slice mapper; `update_slice` swaps the mapper input
-  when `slice_edges` is on (a heavy/overlay handler — real extraction).
-  - **Now `vtkExtractGeometry` + `ExtractBoundaryCellsOn`/`ExtractOnlyBoundaryCellsOn`**
-    (general, single-threaded, all cell types — ParaView-style).
-  - **Was `vtk3DLinearGridCrinkleExtractor`** (threaded 3D-linear fast path). It
-    **hung the trame server** — steady memory growth, no output, container
-    restart needed — even on small cases, while computing in ~2 ms *headlessly*.
-    Could not reproduce headlessly (so unconfirmed), but the threaded fast path
-    (vtkSMPTools) inside the async server is the prime suspect, and it is
-    linear-cells-only. The general filter removed the thread pool and gained
-    all-cell-type robustness. If it *still* hangs deployed, instrument the
-    `crinkle_surface.Update()` path (it runs during render, so no app-level log
-    today) or consider disabling crinkle behind a flag.
-
-### Suggested order
-
-1. ~~**Slider debounce**~~ — **done** (core; plane outline + numeric XYZ remain).
-2. ~~**Cull-front-face** and **point/cell toggle**~~ — **done 2026-08-14**.
-3. ~~**Widget re-arrangement** (+ banded colouring)~~ — **done 2026-08-15**.
-4. ~~**Crinkle slice**~~ — **done 2026-08-15**.
-5. ~~Slider refinements: plane outline during drag, numeric XYZ plane position.~~
-   — **done 2026-08-15**.
-
-**The backlog is now empty** (bar the optional time-slider debounce). All of it
-is server-side verified but awaits Niklas's browser confirmation.
- 
+**Still TODO on the cfd-backend side** regardless of which route wins: a route
+to list and serve a case's `report/` figures, a Figures section in
+`frontend/src/pages/Report.jsx`, and the single-file HTML export.

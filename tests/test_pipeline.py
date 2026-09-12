@@ -120,7 +120,7 @@ def main():
     # (The cut-plane drag preview is no longer a server-side actor: in local mode
     # it is a client-side vtk.js outline moved in the browser -- see app.py's
     # plane_outline_* state and the VtkGeometryRepresentation child of the view.
-    # browser_check.py covers it end to end.)
+    # check_client.py covers it end to end.)
 
     # building geometry (OBJ): the demo case ships a room-box building.obj.
     # One fixed actor; the mode toggles manifold edges on a single

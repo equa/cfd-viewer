@@ -9,34 +9,26 @@ no `foamToVTK`, no ParaView install.
 
 ![default view](docs/01-default.png)
 
-## Two front ends, one VTK pipeline
+## How it is put together
 
-The CFD work is renderer-agnostic, and that turned out to be the durable part of
-this project. `foamviz/case.py`, `pipeline.py` and `colors.py` are shared and
-maintained; two front ends sit on top of them.
+VTK does every CFD filter on the server; the browser draws the result. The
+server extracts geometry per **part** — boundary, slice, isosurface,
+streamlines, arrows, geometry — and ships plain triangles, line segments and
+scalars (`foamviz/` + `server/`). The client turns those into `BufferGeometry`
+and colours them in a shader (`web/`), so it knows no CFD at all.
 
-**The React + three.js client** (`server/` + `web/`) is where development
-happens. VTK extracts geometry on the server and ships plain triangles and
-scalars; the browser draws them with three.js and knows no CFD. Colouring,
-banding, opacity and the camera are shader uniforms and GPU state, so they cost
-no round trip at all.
+That division is the point. Colour map, range, banding, opacity, per-part
+visibility, the camera and the streamline animation are shader uniforms or GPU
+state, so they cost **no round trip**; only what has to be re-*extracted* does.
 
-**FoamViz** (`foamviz/app.py`), the original [Trame](https://kitware.github.io/trame/)
-+ vtk.js app, is **resting**: kept working and kept honest about pipeline
-changes, but no longer where new UX work goes. The `trame` branch is a frozen
-snapshot of it.
-
-The `cfd-viz` service in the `cfd-backend` stack builds the three.js client from
-`main`; that repo's `Containerfile.trame` still builds the Trame app from the
-`trame` branch as a manual fallback.
-
-Both are kept in one tree on purpose — the moment `pipeline.py` exists in two
-places it forks, and the pipeline is the asset. See `CLAUDE.md`.
+> **The original Trame + vtk.js front end (FoamViz) was mothballed on
+> 2026-09-12** and lives on the frozen **`trame` branch**. Nothing here depends
+> on it. To look at it: `git show trame:foamviz/app.py`.
 
 ## Running it
 
 ```bash
-pip install -r requirements.txt        # or requirements-core.txt, without trame
+pip install -r requirements.txt
 
 # the client, once
 cd web && npm install && npm run build && cd ..
@@ -44,11 +36,6 @@ cd web && npm install && npm run build && cd ..
 # the server (serves web/dist at /)
 python main.py --data ./data --port 5003
 ```
-
-`requirements-core.txt` is exactly what the three.js path needs (vtk, aiohttp,
-matplotlib, numpy); `requirements.txt` is that plus the trame packages for the
-resting front end. The container installs the core file, which is why
-`main.py` imports the Trame app lazily.
 
 Then open <http://localhost:5003/>.
 
@@ -58,13 +45,6 @@ to the Python process:
 ```bash
 python main.py --data ./data --port 5003     # terminal 1
 cd web && npm run dev                        # terminal 2 -> http://localhost:5173/
-```
-
-The resting Trame app:
-
-```bash
-python main.py --data ./data --trame         # :8080, opens a browser
-python main.py --data ./data --trame --server # :8080, headless
 ```
 
 `--data DIR` points at either a single case directory or a directory of them; a
@@ -198,12 +178,11 @@ cd data/hotRoom && ./Allclean && ./Allrun
 ## Layout
 
 ```
-main.py                CLI entry point for both front ends
+main.py                CLI entry point
 
 foamviz/case.py        vtkOpenFOAMReader wrapper: times, fields, patches, snapshots
-foamviz/pipeline.py    the VTK filter graph: representations, colouring, render window
-foamviz/colors.py      colour map presets, shared by the 3D view and the legend
-foamviz/app.py         the RESTING Trame UI
+foamviz/pipeline.py    the VTK filter graph: cutter, contour, tracer, glyphs, colouring
+foamviz/colors.py      colour map presets, shared by the shader LUT and the legend
 
 server/scene.py        per-part extraction; PART_INPUTS declares what makes a part stale
 server/wire.py         vtkPolyData -> typed arrays ("FVS1" binary format)
@@ -219,12 +198,12 @@ docs/                  screenshots, and the three.js spike report with its measu
 
 ### Design decisions worth knowing
 
-**Colour scalars are baked into an array.** Instead of asking the mapper for
-"the magnitude of U" at render time, `pipeline.py` computes a plain scalar array
+**Colour scalars are baked into an array.** Instead of asking a mapper for "the
+magnitude of U" at render time, `pipeline.py` computes a plain scalar array
 (`FoamVizColor`) and colours by that. Vector modes on a lookup table are a
-render-side concept that does not survive serialisation to a browser renderer,
-so baking them keeps every front end showing the same picture and makes the data
-range trivially correct. It also means isosurfaces contour whatever you are
+render-side concept that does not survive being shipped to a browser, so baking
+them means the client receives a number per vertex and makes the data range
+trivially correct. It also means isosurfaces contour whatever you are
 currently colouring by, which turns out to be the intuitive behaviour.
 
 **The reader is pulled, not connected.** `FoamCase.load()` requests a time step
@@ -247,8 +226,7 @@ custom accessor. `server/wire.py` ships raw typed arrays that map 1:1 onto
 
 ```bash
 python tests/test_pipeline.py      # 63 checks, ~30 s, no browser — the shared pipeline
-python tests/check_client.py       # 93 checks — the three.js client in real Chromium
-python tests/browser_check.py      # the resting Trame app
+python tests/check_client.py       # 104 checks — the client in real Chromium
 python tests/bench.py hotRoom s2   # server-side extraction sizes and timings
 ```
 
@@ -266,7 +244,7 @@ zero for a colour-map switch, zero for a whole cut-plane drag, exactly one for
 the release, and zero for returning to a cached time step. It also asserts the
 red plane outline actually appears mid-drag by counting red pixels.
 
-Both browser suites read rendered pixels through a `readPixels` hook in the page
+The browser suite reads rendered pixels through a `readPixels` hook in the page
 rather than from a screenshot: the HUD, legend and busy overlay sit on top of
 the canvas, so a page screenshot of an *empty* scene comes back colourful.
 
@@ -280,11 +258,11 @@ the canvas, so a page screenshot of an *empty* scene comes back colourful.
   boundary at full mesh resolution, mostly flat walls. gzip takes the whole
   payload to 24 %, which made this non-urgent rather than solved; patch
   selection helps immediately, `vtkQuadricDecimation` is the real fix.
-- **Report figures.** The Trame app can write a figure into `<case>/report/`.
-  Not ported yet, and it needs a decision first: does the image come from the
-  client canvas (matching what the user sees, bands and opacity included) or
-  from a server render (which would need every appearance setting to travel with
-  the request)? See `CLAUDE.md`.
+- **Report figures.** "Add to case report" is not built here yet, and needs a
+  decision first: does the image come from the client canvas (matching what the
+  user sees, bands and opacity included) or from a server render (which would
+  need every appearance setting to travel with the request)? The mothballed
+  Trame app wrote them, so the format exists — see `CLAUDE.md`.
 - **Comfort metrics.** The IDA ICE side cares about draught rate, PMV/PPD and
   operative temperature, none of which are OpenFOAM fields. They would be
   derived arrays computed on load — a natural extension of the same baked-array

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """cfd-viewer -- browse OpenFOAM results in a web browser.
 
-Two front ends over one VTK pipeline (see CLAUDE.md "Two front ends"):
+    python main.py --data ./data --port 5003
 
-    python main.py --data ./data              # React + three.js (default)
-    python main.py --data ./data --trame      # FoamViz, the Trame/vtk.js app
+VTK extracts server-side (``foamviz/`` + ``server/``); the browser draws with
+React and three.js (``web/``).
 
-The pipeline (``foamviz/case.py``, ``pipeline.py``, ``colors.py``) is shared and
-maintained. The Trame UI (``foamviz/app.py``) is resting: kept working and
-kept honest about pipeline changes, but no longer where new UX work goes.
+The original Trame + vtk.js front end was mothballed on 2026-09-12 and lives on
+the frozen ``trame`` branch.
 """
 
 import argparse
@@ -34,11 +33,6 @@ def main():
     parser.add_argument("--port", type=int, default=5003)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument(
-        "--trame",
-        action="store_true",
-        help="serve the resting Trame/vtk.js front end instead of the three.js client",
-    )
-    parser.add_argument(
         "--server",
         action="store_true",
         help="service mode: tolerate an empty --data root (cases are picked up "
@@ -48,17 +42,10 @@ def main():
     )
     args = parser.parse_args()
 
-    # WARNING for the Trame path, deliberately. trame_client/trame_server log a
-    # line per widget attribute at INFO, which is tens of thousands of lines
-    # while the UI is built -- and if the caller has piped stdout without
-    # reading it (tests/browser_check.py does), the 64 kB pipe buffer fills and
-    # the process BLOCKS BEFORE IT LISTENS. That reads as "server never came
-    # up", which is a long way from "the log level is too low".
     logging.basicConfig(
-        level=logging.WARNING if args.trame else logging.INFO,
+        level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    log.setLevel(logging.INFO)
     logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
     logging.getLogger("aiohttp.server").setLevel(logging.WARNING)
 
@@ -77,27 +64,6 @@ def main():
     else:
         log.info("%d case(s) under %s: %s",
                  len(cases), args.data, ", ".join(c.name for c in cases))
-
-    if args.trame:
-        # Imported lazily, and that is load-bearing: trame lives only in
-        # requirements.txt, not requirements-core.txt, so the cfd-viz container
-        # image does not carry it. A top-level import would make the three.js
-        # service refuse to start over a dependency it never uses.
-        try:
-            from foamviz.app import FoamViz
-        except ImportError as exc:
-            parser.error(
-                f"--trame needs the trame packages, which are not installed ({exc}). "
-                "They are deliberately absent from requirements-core.txt (what the "
-                "container installs); use `pip install -r requirements.txt`."
-            )
-
-        # Trame defaults to 8080; keep that rather than the viewer's 5003, so an
-        # existing --trame invocation behaves as it always did.
-        port = args.port if args.port != 5003 else 8080
-        FoamViz(args.data).start(port=port, host=args.host,
-                                 open_browser=not args.server)
-        return
 
     from server.app import serve
 

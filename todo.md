@@ -1,11 +1,11 @@
 # Pending improvements to the viz UX
 
-> **Note (2026-09-08):** development moved to the React + three.js client
-> (`server/` + `web/`); the Trame app is resting. Items below that were closed
-> against the Trame UI stay closed — the UX was ported, not rebuilt. Where a
-> control changed cost (bands and colour range are now instant; the two
-> line-width sliders were dropped as provably inert under WebGL), see
-> "What the debouncing became" in `CLAUDE.md`.
+> **Note (2026-09-12):** the Trame front end is **mothballed** and gone from
+> `main` — it lives on the frozen `trame` branch. Items below that were closed
+> against the old Trame UI stay closed: the UX was *ported*, not rebuilt. Where
+> a control changed cost in the move (bands and colour range became instant;
+> tubes and their width became client-side; the line-width sliders were dropped
+> as provably inert under WebGL), see `CLAUDE.md`.
 
 Claude: You may edit this file. Short comments on progress like "done" or "refused" for example.
 
@@ -36,6 +36,9 @@ much". Ask when needed.
 
 Remember to be careful with API changes to the backend stuff, since it can serve
 both trame and three.js ftb.
+— **overtaken 2026-09-12:** with Trame mothballed, `foamviz/` has one consumer
+again, so the "keep it additive" constraint is gone. `tests/test_pipeline.py` is
+now the only guard on it, so lean on that instead.
 
 ### Performance
 
@@ -145,8 +148,8 @@ vanish). Covered by a check that uses the shell as it ships.
     affected. A geometric check now guards it: the tube's longest step must
     equal the lines' longest step (measured identical to 17 significant digits).
   - Only Seeds and Max length still sit behind Apply, because only they re-run
-    the tracer. `pipeline.stream_tube` stays for the Trame app, which still
-    tubes server-side — the shared pipeline API was not touched.
+    the tracer. (`pipeline.stream_tube` was kept then for the Trame app; since
+    the mothballing it is simply unused, and goes when the render half does.)
 
 
 ## Color map and color range options
