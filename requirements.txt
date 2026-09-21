@@ -31,11 +31,18 @@
 # Verified on VTK 9.3.1, 9.6.2 and 9.7.
 #
 # NB this server never RENDERS -- it only extracts, and nothing in server/ calls
-# Render(). So OSMesa is very likely unnecessary now. NOT yet verified:
-# FoamPipeline still CONSTRUCTS a vtkRenderWindow at import (left over from the
-# mothballed Trame front end, which did render server-side), and whether that
-# construction survives with no GL backend at all is untested. The cfd-viz image
-# still installs libosmesa6 for that reason. See CLAUDE.md.
+# Render(). FoamPipeline does still CONSTRUCT a vtkRenderWindow at init (left
+# over from the mothballed Trame front end, which did render server-side), and
+# whether that survives with no GL backend present was long untested.
+#
+# It is tested now, and the answer is acted on: as of 2026-09 the cfd-viz image
+# installs NEITHER libosmesa6 NOR libgl1, and cfd-restful-backend's
+# tests/smoke/viz.sh constructs a real FoamPipeline inside the built image on
+# every release. If that ever fails, the two packages go back.
+#
+# This is about the CONTAINER. On a workstation where you actually render --
+# running the old Trame front end, or anything that calls Render() -- you still
+# want a GL backend installed, per the apt/dnf lines above.
 # ---------------------------------------------------------------------------
 vtk>=9.4
 

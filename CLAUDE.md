@@ -28,9 +28,14 @@ What that means in practice:
 - **Its render half is dead weight.** The renderer, light kit, actors, mappers,
   triad, camera helpers, `screenshot`, `write_vtkjs` and the offscreen render
   window exist only because Trame rendered server-side. This server never calls
-  `Render()`. Stripping them is a real simplification and is the thing that
-  would finally let the `cfd-viz` image drop `libosmesa6`/`libgl1` — see
-  "Not done, deliberately".
+  `Render()`. Stripping them is a real simplification — see "Not done,
+  deliberately".
+  **Update 2026-09:** this is no longer what blocks dropping Mesa. The
+  `cfd-viz` image now installs neither `libosmesa6` nor `libgl1`, and
+  cfd-restful-backend's `tests/smoke/viz.sh` constructs a real `FoamPipeline`
+  inside the built image on every release to prove the window can still be
+  *constructed* without a GL backend. Stripping the render half is still worth
+  doing, but as a simplification, not as a prerequisite.
 - The `trame` branch is **frozen**, not maintained. If a pipeline fix ever
   matters there, cherry-pick it deliberately.
 
@@ -102,7 +107,10 @@ need updating — the checks are deliberately concrete.
 - `requirements.txt` asks for plain **`vtk>=9.4`**. Since 9.4 the stock PyPI
   wheels contain EGL *and* OSMesa render windows and fall back X11 → EGL →
   OSMesa at runtime. They **dlopen** libEGL/libOSMesa instead of bundling, so a
-  slim container still needs `apt-get install libosmesa6`.
+  slim container that actually RENDERS needs `apt-get install libosmesa6`.
+  A container that only *extracts* does not: since 2026-09 the `cfd-viz` image
+  ships without it, guarded by `tests/smoke/viz.sh` in cfd-restful-backend. The
+  dev image below is a different case — it renders, via Playwright/Chromium.
 - **The image now installs `libosmesa6` (apt)**, so `/opt/venv` runs stock `vtk`
   9.7 straight from `requirements.txt` — no `vtk-osmesa`, no `LD_LIBRARY_PATH`.
   Verified 2026-09-04: the 9-step browser suite is green on it. (Older containers
