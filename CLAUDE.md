@@ -30,12 +30,15 @@ What that means in practice:
   window exist only because Trame rendered server-side. This server never calls
   `Render()`. Stripping them is a real simplification — see "Not done,
   deliberately".
-  **Update 2026-09:** this is no longer what blocks dropping Mesa. The
-  `cfd-viz` image now installs neither `libosmesa6` nor `libgl1`, and
-  cfd-restful-backend's `tests/smoke/viz.sh` constructs a real `FoamPipeline`
-  inside the built image on every release to prove the window can still be
-  *constructed* without a GL backend. Stripping the render half is still worth
-  doing, but as a simplification, not as a prerequisite.
+  **Update 2026-09-21 — confirmed, and it IS the blocker.** Dropping
+  `libosmesa6`/`libgl1` from the `cfd-viz` image was tried and failed
+  cfd-restful-backend's `tests/smoke/viz.sh` immediately:
+  `vtkRenderWindow construct ... [FAIL]`. VTK needs a GL backend present to
+  *construct* a render window, not only to render into one — and the failure
+  came at a bare `vtkRenderWindow`, before `FoamPipeline` was involved, so this
+  is VTK's own factory rather than our code. The packages are back and the
+  smoke test guards them. Stripping the render half is therefore the *only*
+  route to dropping them, which makes it worth more than a tidy-up.
 - The `trame` branch is **frozen**, not maintained. If a pipeline fix ever
   matters there, cherry-pick it deliberately.
 
@@ -107,10 +110,10 @@ need updating — the checks are deliberately concrete.
 - `requirements.txt` asks for plain **`vtk>=9.4`**. Since 9.4 the stock PyPI
   wheels contain EGL *and* OSMesa render windows and fall back X11 → EGL →
   OSMesa at runtime. They **dlopen** libEGL/libOSMesa instead of bundling, so a
-  slim container that actually RENDERS needs `apt-get install libosmesa6`.
-  A container that only *extracts* does not: since 2026-09 the `cfd-viz` image
-  ships without it, guarded by `tests/smoke/viz.sh` in cfd-restful-backend. The
-  dev image below is a different case — it renders, via Playwright/Chromium.
+  slim container needs `apt-get install libosmesa6` — and that holds even for a
+  container that only *extracts*, because VTK requires a backend to CONSTRUCT a
+  `vtkRenderWindow` at all. Tested 2026-09-21 by removing it from `cfd-viz`:
+  immediate failure, packages restored. See the pipeline note above.
 - **The image now installs `libosmesa6` (apt)**, so `/opt/venv` runs stock `vtk`
   9.7 straight from `requirements.txt` — no `vtk-osmesa`, no `LD_LIBRARY_PATH`.
   Verified 2026-09-04: the 9-step browser suite is green on it. (Older containers

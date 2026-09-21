@@ -35,10 +35,14 @@
 # over from the mothballed Trame front end, which did render server-side), and
 # whether that survives with no GL backend present was long untested.
 #
-# It is tested now, and the answer is acted on: as of 2026-09 the cfd-viz image
-# installs NEITHER libosmesa6 NOR libgl1, and cfd-restful-backend's
-# tests/smoke/viz.sh constructs a real FoamPipeline inside the built image on
-# every release. If that ever fails, the two packages go back.
+# It is tested now, and the answer is NO: dropping libosmesa6/libgl1 from the
+# cfd-viz image on 2026-09-21 failed cfd-restful-backend's tests/smoke/viz.sh at
+# once -- "vtkRenderWindow construct ... [FAIL]". VTK needs a backend present to
+# CONSTRUCT a render window, not merely to render into one. The image keeps both
+# packages, and that smoke test now guards it on every release.
+#
+# So the way to drop them is not the apt line: it is to stop constructing a
+# render window at all, i.e. strip the pipeline's render half. See CLAUDE.md.
 #
 # This is about the CONTAINER. On a workstation where you actually render --
 # running the old Trame front end, or anything that calls Render() -- you still
