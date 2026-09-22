@@ -31,18 +31,20 @@
 # Verified on VTK 9.3.1, 9.6.2 and 9.7.
 #
 # NB this server never RENDERS -- it only extracts, and nothing in server/ calls
-# Render(). FoamPipeline does still CONSTRUCT a vtkRenderWindow at init (left
-# over from the mothballed Trame front end, which did render server-side), and
-# whether that survives with no GL backend present was long untested.
+# Render(). FoamPipeline used to CONSTRUCT a vtkRenderWindow at init anyway,
+# left over from the mothballed Trame front end, and that turned out to matter:
+# VTK needs a GL backend PRESENT to construct one, not merely to render into it.
+# Dropping libosmesa6/libgl1 from the cfd-viz image on 2026-09-21 failed
+# immediately -- "vtkRenderWindow construct ... [FAIL]".
 #
-# It is tested now, and the answer is NO: dropping libosmesa6/libgl1 from the
-# cfd-viz image on 2026-09-21 failed cfd-restful-backend's tests/smoke/viz.sh at
-# once -- "vtkRenderWindow construct ... [FAIL]". VTK needs a backend present to
-# CONSTRUCT a render window, not merely to render into one. The image keeps both
-# packages, and that smoke test now guards it on every release.
+# Fixed 2026-09-22 by building it lazily instead (see the render_window property
+# in foamviz/pipeline.py), so extraction -- all this server ever does -- needs no
+# GL at all, and the cfd-viz image now ships without either package.
 #
-# So the way to drop them is not the apt line: it is to stop constructing a
-# render window at all, i.e. strip the pipeline's render half. See CLAUDE.md.
+# Anything that genuinely renders still needs them: screenshot(), write_vtkjs(),
+# pick_cor(), and the rendering sections of tests/test_pipeline.py. Verified by
+# running that suite with vtkRenderWindow patched to raise: 48 checks pass with
+# no GL, and the first failure is pick_cor, which really does render.
 #
 # This is about the CONTAINER. On a workstation where you actually render --
 # running the old Trame front end, or anything that calls Render() -- you still
