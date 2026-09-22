@@ -78,6 +78,16 @@ def main():
 
     print("\npipeline")
     pipe = FoamPipeline()
+
+    # Constructing the pipeline must NOT construct a render window. VTK needs a
+    # GL backend present to build one at all -- not merely to render into it --
+    # so an eager render window makes libosmesa6/libgl1 a hard dependency for
+    # every consumer, including the scene server, which never renders: it reads
+    # polydata straight off the filters. That cost the cfd-viz image
+    # mesa-libgallium and libllvm19, and their vulnerabilities, for a code path
+    # the service never takes. Guard the invariant here so it cannot creep back.
+    check("construction takes no GL dependency (no render window built)",
+          pipe.rendering_started is False)
     # Empty-case invariant: with NO case loaded, every actor's mapper must still
     # have a valid input algorithm. trame's local-render serializer calls
     # mapper.GetInputAlgorithm().Update() on every actor at on_server_ready -- a

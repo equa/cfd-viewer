@@ -116,17 +116,60 @@ class FoamPipeline:
         self.light_kit.AddLightsToRenderer(self.renderer)
         self.renderer.TwoSidedLightingOn()
 
-        self.render_window = vtk.vtkRenderWindow()
-        self.render_window.SetOffScreenRendering(1)
-        self.render_window.AddRenderer(self.renderer)
-        self.render_window.SetSize(1200, 800)
-        self.render_window.SetMultiSamples(0)
-
-        self.interactor = vtk.vtkRenderWindowInteractor()
-        self.interactor.SetRenderWindow(self.render_window)
-        self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+        # The render window and interactor are built ON FIRST USE, not here.
+        # See the `render_window` property below.
+        self._render_window = None
+        self._interactor = None
 
         self.lut = colors.color_transfer_function(self.preset, 0.0, 1.0)
+
+    # ── Rendering, on demand ────────────────────────────────────────────────
+    #
+    # Constructing a vtkRenderWindow requires a GL backend to be PRESENT --
+    # not merely to render, but to construct at all. VTK probes X11, then EGL,
+    # then OSMesa, and raises if none resolves. That made an eagerly-built
+    # render window a hard dependency on libosmesa6/libgl1 for every consumer
+    # of this class, including the three.js scene server, which never renders
+    # anything: it reads polydata straight off the filters (see
+    # server/scene.py) and ships triangles to the browser.
+    #
+    # The cost was not theoretical. libosmesa6 pulls in mesa-libgallium and
+    # libllvm19, and those three accounted for a large share of the cfd-viz
+    # image's vulnerability findings -- for a code path the service never
+    # takes.
+    #
+    # So: build it lazily. Anything that genuinely renders -- `screenshot`,
+    # `write_vtkjs`, `pick_focus`, the test suite -- gets a render window the
+    # moment it asks, exactly as before, and needs a GL backend to be present
+    # as it always did. Anything that only extracts never triggers it, and can
+    # run in an image with no GL libraries at all.
+    @property
+    def render_window(self):
+        if self._render_window is None:
+            rw = vtk.vtkRenderWindow()
+            rw.SetOffScreenRendering(1)
+            rw.AddRenderer(self.renderer)
+            rw.SetSize(1200, 800)
+            rw.SetMultiSamples(0)
+            self._render_window = rw
+        return self._render_window
+
+    @property
+    def interactor(self):
+        if self._interactor is None:
+            it = vtk.vtkRenderWindowInteractor()
+            it.SetRenderWindow(self.render_window)
+            it.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+            self._interactor = it
+        return self._interactor
+
+    @property
+    def rendering_started(self):
+        """True once something has actually asked for a render window.
+
+        Only useful for tests and diagnostics: it answers "did constructing
+        this pipeline quietly take a GL dependency again?"""
+        return self._render_window is not None
 
     def _build_filters(self):
         # --- boundary surface -------------------------------------------
