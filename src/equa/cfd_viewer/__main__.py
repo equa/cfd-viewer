@@ -38,12 +38,20 @@ def main(argv=None):
     parser.add_argument("--port", type=int, default=5003)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument(
+        "--mode",
+        choices=["server"],
+        default="server",
+        help="run mode (default and, for now, only: server). Server mode is what "
+             "the cfd-backend container runs: an empty --data root is not fatal "
+             "-- cases are picked up as they appear, so an empty CFD_HOME does "
+             "not restart-loop the service",
+    )
+    parser.add_argument(
         "--server",
-        action="store_true",
-        help="service mode: tolerate an empty --data root (cases are picked up "
-             "as they appear) and never open a browser. Required for the "
-             "container: without it an empty CFD_HOME is fatal and the "
-             "service restart-loops",
+        dest="mode",
+        action="store_const",
+        const="server",
+        help="alias for --mode server, kept for the cfd-viz image's command line",
     )
     args = parser.parse_args(argv)
 
@@ -63,11 +71,9 @@ def main(argv=None):
             f"no OpenFOAM case found under {source.describe()!r} "
             "(a case is a directory containing system/controlDict)"
         )
-        # Interactive use: a mistyped --data is worth failing on. Service mode
-        # keeps running and discovers cases on demand as they appear -- a solve
-        # writing its first time step must not need a viewer restart.
-        if not args.server:
-            parser.error(msg)
+        # Server mode keeps running and discovers cases on demand as they
+        # appear -- a solve writing its first time step must not need a viewer
+        # restart. (The local mode of phase 2 will rather ask for a folder.)
         log.warning("%s; serving empty, will pick up cases on demand", msg)
     else:
         log.info("%d case(s) under %s: %s",
@@ -75,7 +81,7 @@ def main(argv=None):
 
     from .server.app import serve
 
-    serve(source, host=args.host, port=args.port)
+    serve(source, host=args.host, port=args.port, mode=args.mode)
 
 
 if __name__ == "__main__":

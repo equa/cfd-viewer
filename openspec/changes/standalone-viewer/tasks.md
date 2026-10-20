@@ -118,7 +118,11 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
 
 ## 6. Config and health endpoints
 
-- [ ] 6.1 Add `GET /api/config` (`mode`, `version`, `canAddFolders`, `canUpload`) and `GET /health`. Add `--mode`, which accepts only `server` for now and defaults to it, with `--server` as an alias. Verify pytest cases for both endpoints, including that neither opens a case nor scans a root.
+- [x] 6.1 Add `GET /api/config` (`mode`, `version`, `canAddFolders`, `canUpload`) and `GET /health`. Add `--mode`, which accepts only `server` for now and defaults to it, with `--server` as an alias. Verify pytest cases for both endpoints, including that neither opens a case nor scans a root.
+  - Result: `GET /health` returns 200 `ok`. `GET /api/config` returns `{mode, version, canAddFolders: false, canUpload: false}`. `--mode {server}` is the default, with `--server` kept as an alias that stores the same value.
+  - `tests/test_endpoints.py` builds the app over a tripwire source that fails the test if a root is scanned, and checks that no case is opened.
+  - Behaviour change, as agreed in the proposal round: the default mode is now `server`, so an empty `--data` warns and serves instead of exiting 2 (group 5 still had the old exit).
+  - Results: pytest 31, contract 56/56.
 
 ## 7. Start screen (client)
 

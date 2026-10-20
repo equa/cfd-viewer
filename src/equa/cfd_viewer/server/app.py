@@ -23,6 +23,7 @@ from pathlib import Path
 
 from aiohttp import web
 
+from .. import __version__
 from ..foamviz import colors
 
 from .scene import SceneSource
@@ -71,8 +72,19 @@ this process:</p>
 </body>"""
 
 
-def make_app(source):
+# What the server can do, per run mode. Phase 1 has only ``server`` (the
+# cockpit's cfd-viz); ``local`` and ``hosted`` add "Add folder" and "Upload
+# case" to the start screen through the same flags (openspec standalone-viewer,
+# design D4).
+MODES = {
+    "server": {"canAddFolders": False, "canUpload": False},
+}
+
+
+def make_app(source, mode="server"):
     """The aiohttp app over a case source (``sources.DirectorySource``)."""
+    if mode not in MODES:
+        raise ValueError(f"unknown mode {mode!r}")
     scene_source = SceneSource(source)
     # The filter graph is shared mutable state; one extraction at a time.
     lock = asyncio.Lock()
@@ -100,6 +112,15 @@ def make_app(source):
                      f"{', '.join(exc.args[1])}")
         except CaseNotFound:
             raise web.HTTPNotFound(text=f"no case {key!r}")
+
+    async def health(_request):
+        """Up and accepting requests. Touches no case root, opens no case."""
+        return web.Response(text="ok")
+
+    async def config(_request):
+        """What this server is and can do; the client's start screen reads it.
+        Cheap by design: no case root is scanned and no case is opened."""
+        return web.json_response({"mode": mode, "version": __version__, **MODES[mode]})
 
     async def cases(_request):
         """``cases`` (names) as it always was, plus ``entries`` with the rest."""
@@ -172,6 +193,8 @@ def make_app(source):
 
     app = web.Application()
     app.router.add_get("/", index)
+    app.router.add_get("/health", health)
+    app.router.add_get("/api/config", config)
     app.router.add_get("/api/cases", cases)
     app.router.add_get("/api/meta", meta)
     app.router.add_get("/api/times", times)
@@ -185,6 +208,7 @@ def make_app(source):
     return app
 
 
-def serve(source, host="0.0.0.0", port=5003):
-    log.info("cfd-viewer serving %s on http://%s:%d/", source.describe(), host, port)
-    web.run_app(make_app(source), host=host, port=port, print=None)
+def serve(source, host="0.0.0.0", port=5003, mode="server"):
+    log.info("cfd-viewer %s (%s mode) serving %s on http://%s:%d/",
+             __version__, mode, source.describe(), host, port)
+    web.run_app(make_app(source, mode=mode), host=host, port=port, print=None)
