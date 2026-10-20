@@ -6,7 +6,7 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 
 - Commits follow Conventional Commits from task 1.3 on, and are staged by name.
 - All work from group 2 on happens on the branch `feat/standalone-foundation`. It reaches `main` only through group 11, because cfd-backend builds from whatever is on `main` (design D11).
-- After every group from 2 to 9, `doit ci` must pass (until group 8 adds it, run the suites directly; the pipeline baseline is 72 since 3.2): lint, both suites, the golden contract test and, once group 9 adds it, the cockpit contract check.
+- After every group from 2 to 9, `doit ci` must pass (until group 8 adds it, run the suites directly; the pipeline baseline is 72 since 3.2, the browser baseline 115 since 7.4): lint, both suites, the golden contract test and, once group 9 adds it, the cockpit contract check.
 
 ## 1. Baseline and safety net (before anything moves)
 
@@ -126,24 +126,30 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
 
 ## 7. Start screen (client)
 
-- [ ] 7.1 Update `api.js`:
+- [x] 7.1 Update `api.js`:
   - add `config()`;
   - add `caseEntries()`, which reads `entries`;
   - surface an unknown-case 404 from `/api/meta` as a typed error.
 
   Verify through the browser suite.
-- [ ] 7.2 Add `web/src/ui/StartScreen.jsx`, built with Mantine.
+  - Result: `api.config()` and `api.caseEntries()` are added. Errors now throw `ApiError` carrying `.status`, so a 404 from `/api/meta` is told apart from a failed extraction. `setUrlCase(id)` writes `?case=` with `history.replaceState` and keeps `?theme=`.
+- [x] 7.2 Add `web/src/ui/StartScreen.jsx`, built with Mantine.
   - It holds a case table with label, relative path, cells and a decomposed badge, plus a text filter, a refresh button, and the empty and not-found notices.
   - It shows when there is no `?case=` and more than one case, or after a not-found error.
   - Keep the React tree stable (CLAUDE.md, "The React tree shape must not change once the Viewer exists"): the start screen overlays the stage, which stays mounted.
   - Verify visually against `data/` with its several cases.
-- [ ] 7.3 Choosing a case sets `?case=<id>` with `history.replaceState` and keeps `?theme=`. The TopBar case switcher lists the label, with the id underneath, from `entries`. Verify that a reload reopens the same case.
-- [ ] 7.4 Extend `tests/check_client.py` with the start-screen scenarios. Verify the suite passes with the new checks, and that the task 1.1 count is still met.
+  - Result: `web/src/ui/StartScreen.jsx` holds a header bar (brand, version, mode), "Open a case", the filter, Refresh, the not-found notice, and a table (label with the directory name under it when they differ, path, cells, decomposed badge).
+  - It overlays `.app` with `position: absolute`, so the stage and the Viewer stay mounted; `Busy` is hidden while it shows.
+  - Checked visually on `data/`: three cases, including `case-1` (the label from `geometric-fancoil-and-beam`'s metadata), 644,413 cells, decomposed; s2 2,337,156; hotRoom 32,000. Both themes.
+- [x] 7.3 Choosing a case sets `?case=<id>` with `history.replaceState` and keeps `?theme=`. The TopBar case switcher lists the label, with the id underneath, from `entries`. Verify that a reload reopens the same case.
+  - Result: `App` keeps a `caseKey` (from `?case=` or a pick). `/api/meta` runs only when there is one. `initialRequest` stores `meta.caseId`, so every later request names the case by id. The switcher lists `entries` by id, showing the label with the path or name and the id underneath. A reload reopens the same case. The screenshot file name uses `meta.case`.
+- [x] 7.4 Extend `tests/check_client.py` with the start-screen scenarios. Verify the suite passes with the new checks, and that the task 1.1 count is still met.
   - The start screen shows with several cases, and no `/api/scene` request is made until a pick.
   - One case opens directly.
   - `?case=` plus `?theme=` skips the start screen.
   - An unknown `?case=` shows the notice.
   - Filtering makes no `/api/meta`, `/api/range` or `/api/scene` request.
+  - Result: 11 new checks, so the browser baseline is now **115/115**. They cover every start-screen scenario, including a second server on a root with exactly one case. No `/api/meta`, `/api/range` or `/api/scene` request is made before a pick or while filtering. pytest 31, pipeline 72/72, contract 56/56. Ruff is unchanged at 7.
 
 ## 8. Tooling
 

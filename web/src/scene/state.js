@@ -56,7 +56,8 @@ export const VIEW_BUTTONS = [
 export function initialRequest(meta) {
   const [lo, hi] = [0, 1]
   return {
-    case: meta.case,
+    // The id, not the name: unambiguous for every request that follows.
+    case: meta.caseId ?? meta.case,
     time_index: Math.max(meta.times.length - 1, 0),
     patches: [],                    // empty = every patch
     field: meta.colorField,

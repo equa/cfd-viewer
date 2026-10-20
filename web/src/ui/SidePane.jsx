@@ -43,7 +43,7 @@ const BUILDERS = {
 }
 
 export function SidePane({
-  meta, request, setRequest, appearance, setAppearance, setStyle, plane,
+  meta, entries, onOpenCase, request, setRequest, appearance, setAppearance, setStyle, plane,
   comets, setComets, canAnimate, tubes, setTubes, domain,
 }) {
   const active = appearance.activeTool || 'cutplane'
@@ -53,11 +53,20 @@ export function SidePane({
 
   return (
     <div className="sidepane">
+      {/* The same entries as the start screen, opened by id: two cases may
+          share a directory name. Until the list arrives, the open case alone. */}
       <Select
         {...SELECT}
-        data={meta?.cases || []}
+        data={caseOptions(entries, meta, request.case)}
         value={request.case || null}
-        onChange={(v) => v && setRequest({ case: v })}
+        onChange={(v) => v && v !== request.case && onOpenCase(v)}
+        renderOption={({ option }) => (
+          <div>
+            <Text size="xs">{option.label}</Text>
+            {option.detail && <Text size="xs" c="dimmed">{option.detail}</Text>}
+          </div>
+        )}
+        searchable={entries.length > 8}
         allowDeselect={false}
         mb={4}
         data-ctl="case"
@@ -184,4 +193,16 @@ export function SidePane({
       </Accordion>
     </div>
   )
+}
+
+
+function caseOptions(entries, meta, current) {
+  if (entries.length) {
+    return entries.map((e) => ({
+      value: e.id,
+      label: e.label,
+      detail: e.label !== e.name ? `${e.name} · ${e.id}` : `${e.path} · ${e.id}`,
+    }))
+  }
+  return meta && current ? [{ value: current, label: meta.caseLabel ?? meta.case }] : []
 }

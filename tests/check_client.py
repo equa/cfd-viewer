@@ -20,6 +20,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -159,6 +160,104 @@ def ctl(name):
     return f'[data-ctl="{name}"]'
 
 
+def start_server(data, port):
+    """The package entry point, from the checkout's src/ when not installed.
+
+    (The contract tests drive main.py instead: that is the command line
+    cfd-backend's image runs.)"""
+    env = {**os.environ,
+           "PYTHONPATH": os.pathsep.join(filter(None, [str(ROOT / "src"),
+                                                       os.environ.get("PYTHONPATH")]))}
+    return subprocess.Popen(
+        [sys.executable, "-m", "equa.cfd_viewer", "--data", str(data), "--port", str(port)],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
+    )
+
+
+def stop_server(proc):
+    proc.terminate()
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
+def start_screen_checks(browser, cases, args, out):
+    """The start screen (openspec standalone-viewer, start-screen spec).
+
+    On the suite's own server (several cases under --data) and on a second one
+    whose root holds a single case. Counts /api/meta, /api/range and
+    /api/scene requests, because the start screen must cost none of them.
+    """
+    base = f"http://127.0.0.1:{PORT}"
+    print("\nstart screen")
+    page = browser.new_page(viewport={"width": 1300, "height": 800})
+    heavy = []
+    page.on("request", lambda r: heavy.append(r.url)
+            if any(k in r.url for k in ("api/meta", "api/range", "api/scene")) else None)
+
+    if len(cases) > 1:
+        page.goto(f"{base}/", wait_until="domcontentloaded")
+        page.wait_for_selector(ctl("case-row"), timeout=60_000)
+        rows = page.locator(ctl("case-row")).count()
+        check("no ?case=: start screen lists every case", rows == len(cases),
+              f"{rows} rows, {len(cases)} cases")
+        check("no ?case=: nothing extracted before a pick", not heavy, str(heavy[:2]))
+        shot(page, out / "06-start-screen.png")
+
+        page.fill(ctl("case-filter"), args.case[:3])
+        page.wait_for_timeout(300)
+        rows_filtered = page.locator(ctl("case-row")).count()
+        check("filter narrows the list", 1 <= rows_filtered < rows, f"{rows_filtered} rows")
+        check("filtering costs no meta/range/scene request", not heavy, str(heavy[:2]))
+
+        page.locator(ctl("case-row"), has_text=args.case).first.click()
+        page.wait_for_selector(ctl("start-screen"), state="detached", timeout=30_000)
+        colours, _ = wait_for_render(page)
+        picked = parse_qs(urlparse(page.url).query).get("case", [""])[0]
+        check("picking a case opens it", colours >= 40, f"{colours} colours")
+        check("the address bar carries the case id", len(picked) == 12 and picked != args.case,
+              page.url)
+
+        page.reload(wait_until="domcontentloaded")
+        colours, _ = wait_for_render(page)
+        check("a reload reopens the same case",
+              parse_qs(urlparse(page.url).query).get("case", [""])[0] == picked
+              and page.locator(ctl("start-screen")).count() == 0, page.url)
+    else:
+        print("  (only one case under --data; the several-cases checks need more)")
+
+    heavy.clear()
+    page.goto(f"{base}/?case={args.case}&theme=light", wait_until="domcontentloaded")
+    colours, _ = wait_for_render(page)
+    check("?case= and ?theme=: opens directly, no start screen",
+          page.locator(ctl("start-screen")).count() == 0 and colours >= 40)
+    check("?theme=light is applied",
+          page.get_attribute(".app", "data-theme") == "light")
+
+    page.goto(f"{base}/?case=no-such-case", wait_until="domcontentloaded")
+    page.wait_for_selector(ctl("case-notice"), timeout=30_000)
+    check("unknown ?case=: start screen with a notice",
+          "not found" in page.inner_text(ctl("case-notice")),
+          page.inner_text(ctl("case-notice")))
+    page.close()
+
+    # A root holding exactly one case: no start screen at all.
+    with tempfile.TemporaryDirectory(prefix="cfdv-one-") as tmp:
+        (Path(tmp) / args.case).symlink_to(Path(args.data).resolve() / args.case)
+        single = start_server(tmp, PORT + 1)
+        try:
+            wait_for_server(PORT + 1, single)
+            page = browser.new_page(viewport={"width": 1300, "height": 800})
+            page.goto(f"http://127.0.0.1:{PORT + 1}/", wait_until="domcontentloaded")
+            colours, _ = wait_for_render(page)
+            check("one case: opens directly", colours >= 40
+                  and page.locator(ctl("start-screen")).count() == 0, f"{colours} colours")
+            page.close()
+        finally:
+            stop_server(single)
+
+
 def slider_drag(page, selector, steps=20, fraction=0.75):
     """Drag a Mantine slider from its centre towards `fraction` of its width.
 
@@ -205,17 +304,7 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    # The package entry point, from the checkout's src/ when not installed.
-    # (The contract tests drive main.py instead: that is the command line
-    # cfd-backend's image runs.)
-    env = {**os.environ,
-           "PYTHONPATH": os.pathsep.join(filter(None, [str(ROOT / "src"),
-                                                       os.environ.get("PYTHONPATH")]))}
-    server = subprocess.Popen(
-        [sys.executable, "-m", "equa.cfd_viewer",
-         "--data", args.data, "--port", str(PORT)],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
-    )
+    server = start_server(args.data, PORT)
     try:
         cases = wait_for_server(PORT, server)
         print(f"server up; cases: {', '.join(cases)}")
@@ -744,13 +833,11 @@ def main():
             check("no page or console errors", not errors,
                   "; ".join(errors[:3]) if errors else "")
             shot(page, out / "05-final.png")
+
+            start_screen_checks(browser, cases, args, out)
             browser.close()
     finally:
-        server.terminate()
-        try:
-            server.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            server.kill()
+        stop_server(server)
 
     print(f"\n{checks - len(failures)}/{checks} checks passed; screenshots in {out}")
     if failures:

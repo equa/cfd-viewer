@@ -241,3 +241,41 @@ body {
   color: var(--mantine-color-red-4);
   padding: 0 24px;
 }
+
+/* ── start screen ────────────────────────────────────────── */
+
+/*
+ * Overlays the whole app instead of replacing it: the stage underneath, and
+ * the Viewer's WebGL context with it, stays mounted (see StartScreen.jsx).
+ */
+.app { position: relative; }
+
+.start {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--mantine-color-body);
+}
+
+.start-head {
+  flex: 0 0 var(--topbar-height);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.start-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.start-list { flex: 1 1 auto; min-height: 0; }
+
+.start-row { cursor: pointer; }

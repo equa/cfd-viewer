@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, urlOptions } from './api.js'
+import { ApiError, api, setUrlCase, urlOptions } from './api.js'
 import { Viewer } from './viewer/Viewer.js'
 import { useScene } from './scene/useScene.js'
 import { initialAppearance, initialRequest } from './scene/state.js'
@@ -7,6 +7,7 @@ import { TopBar } from './ui/TopBar.jsx'
 import { SidePane } from './ui/SidePane.jsx'
 import { BottomBar } from './ui/BottomBar.jsx'
 import { Busy, Hud, Legend } from './ui/overlays.jsx'
+import { StartScreen } from './ui/StartScreen.jsx'
 import { useShortcuts } from './ui/shortcuts.js'
 
 /*
@@ -37,6 +38,16 @@ export default function App() {
   // server returned, not on what was asked for -- an empty stream part cannot
   // be animated however the request looked.
   const [canAnimate, setCanAnimate] = useState(false)
+
+  // Which case to open: an id or a name. From ?case= (the cockpit passes a
+  // directory name), else chosen on the start screen or in the switcher.
+  const [caseKey, setCaseKey] = useState(url.case || null)
+  const [config, setConfig] = useState(null)
+  const [entries, setEntries] = useState([])
+  const [entriesLoading, setEntriesLoading] = useState(true)
+  // The start screen: shown when there is no case to open, or the one asked
+  // for does not exist (then with the server's reason as `notice`).
+  const [start, setStart] = useState({ show: false, notice: null })
 
   const setRequest = useCallback((patch) => {
     setRequestState((r) => (typeof patch === 'function' ? patch(r) : { ...r, ...patch }))
@@ -84,21 +95,60 @@ export default function App() {
     return () => clearInterval(id)
   }, [])
 
+  // -- cases and the start screen ----------------------------------------
+
+  // Both cheap -- neither opens a case -- so they are fetched up front even when
+  // ?case= is given: the switcher lists the same entries as the start screen.
+  const refreshEntries = useCallback(() => {
+    setEntriesLoading(true)
+    return api.caseEntries()
+      .then((list) => { setEntries(list); return list })
+      .catch(() => { setEntries([]); return [] })
+      .finally(() => setEntriesLoading(false))
+  }, [])
+
+  // Open a case by id, and put the id in the address bar so a reload or a
+  // bookmark reopens it.
+  const openCase = useCallback((id) => {
+    setUrlCase(id)
+    setCaseKey(id)
+    setStart({ show: false, notice: null })
+  }, [])
+
+  useEffect(() => {
+    api.config().then(setConfig).catch(() => {})
+    refreshEntries().then((list) => {
+      if (url.case) return           // embedded or bookmarked: open it directly
+      if (list.length === 1) openCase(list[0].id)
+      else setStart({ show: true, notice: null })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // -- metadata --------------------------------------------------------
 
   useEffect(() => {
+    if (!caseKey) return undefined
     let cancelled = false
-    const name = request?.case || url.case
-    api.meta(name).then((m) => {
+    api.meta(caseKey).then((m) => {
       if (cancelled) return
       setMeta(m)
       // A case switch keeps the appearance but rebuilds the request: bounds,
-      // fields and time steps are all new.
-      setRequestState((r) => (r && r.case === m.case ? r : initialRequest(m)))
-    }).catch(() => { /* surfaced by the scene fetch */ })
+      // fields and time steps are all new. The request carries the case's id,
+      // so every later call names it unambiguously.
+      setRequestState((r) => (r && r.case === (m.caseId ?? m.case) ? r : initialRequest(m)))
+    }).catch((e) => {
+      if (cancelled) return
+      if (e instanceof ApiError && e.status === 404) {
+        // A stale bookmark or a deleted case: say so, and offer the others.
+        const reason = e.message.startsWith('no case') ? 'not found' : e.message
+        setStart({ show: true, notice: `Case “${caseKey}”: ${reason}.` })
+        refreshEntries()
+      }
+      // Anything else is surfaced by the scene fetch, as before.
+    })
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request?.case])
+  }, [caseKey, refreshEntries])
 
   // -- the colour table ------------------------------------------------
 
@@ -315,7 +365,7 @@ export default function App() {
     if (!data) return
     const link = document.createElement('a')
     link.href = data
-    link.download = `foamviz-${request?.case || 'scene'}-t${info?.header.time ?? 0}.png`
+    link.download = `foamviz-${meta?.case || 'scene'}-t${info?.header.time ?? 0}.png`
     link.click()
   }, [request?.case, info])
 
@@ -351,6 +401,8 @@ export default function App() {
       <div className="body">
         <SidePane
           meta={meta}
+          entries={entries}
+          onOpenCase={openCase}
           request={req}
           setRequest={setRequest}
           appearance={appearance}
@@ -379,9 +431,19 @@ export default function App() {
             onView={onView}
             onRefreshTimes={onRefreshTimes}
           />
-          <Busy show={busy || !request} error={error} />
+          <Busy show={!start.show && (busy || !request)} error={start.show ? null : error} />
         </div>
       </div>
+      {start.show && (
+        <StartScreen
+          entries={entries}
+          config={config}
+          notice={start.notice}
+          loading={entriesLoading}
+          onOpen={openCase}
+          onRefresh={refreshEntries}
+        />
+      )}
     </div>
   )
 }
