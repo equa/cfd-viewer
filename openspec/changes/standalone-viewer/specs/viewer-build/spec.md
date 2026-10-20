@@ -81,26 +81,14 @@ Until cfd-backend builds from this repository's own `Dockerfile`, a checkout of 
 - **WHEN** the server has started and `GET /health` is requested
 - **THEN** it answers 200 without touching any case root
 
-### Requirement: No matplotlib at runtime
+### Requirement: One dependency set for every deployment
 
-The package SHALL declare only `vtk`, `aiohttp` and `numpy` as runtime dependencies, and SHALL NOT import matplotlib. The colour-map presets SHALL come from tables committed in the package.
+Every deployment SHALL install the same locked runtime dependency set, from `uv.lock`, without leaving out a package or module: the cfd-viz image, this repository's image, an installed wheel, and the Windows bundle from phase 2. Leaving anything out of one deployment SHALL be a recorded decision, based on a measured saving, with a test that runs on that deployment.
 
-The PyPI `vtk` wheel itself declares `matplotlib>=2.0.0`, so a pip or uv install still pulls matplotlib in. What this requirement buys is that nothing loads it, which lets the Windows bundle (phase 2) leave it out. Every colour the viewer derives from them SHALL be identical to what matplotlib produced: the `/api/lut` bytes, the VTK transfer functions (smooth and banded) and the CSS legend gradients.
+#### Scenario: requirements.txt and the lock agree
 
-#### Scenario: Identical colours
-
-- **WHEN** the colour test runs with matplotlib installed as a development dependency
-- **THEN** `/api/lut` bytes, banded transfer-function nodes and legend gradients match matplotlib's for every preset
-
-#### Scenario: Runs without loading matplotlib
-
-- **WHEN** the server has served `/api/lut` for every preset, a banded scene and the legend gradients
-- **THEN** `matplotlib` is not in `sys.modules`
-
-#### Scenario: Runs with matplotlib absent
-
-- **WHEN** matplotlib is made unimportable (as in a bundle that excludes it)
-- **THEN** the pipeline suite and every preset still work
+- **WHEN** `requirements.txt` is regenerated from `uv.lock`
+- **THEN** it is identical to the committed file
 
 ### Requirement: One command checks everything
 

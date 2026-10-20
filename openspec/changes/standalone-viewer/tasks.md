@@ -55,15 +55,15 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 - [x] 2.3 Add `pyproject.toml` and `uv.lock`. Verify `uv sync` works on a fresh `.venv` under Python 3.12 and 3.14, and that `uv run cfd-viewer --help` runs.
   - Build with hatchling and hatch-vcs, with a fallback version.
   - `requires-python = ">=3.12"`.
-  - Runtime dependencies: `vtk>=9.4`, `aiohttp>=3.9`, `numpy>=1.26`, plus matplotlib until group 4.
-  - A dev group with pytest, ruff, playwright, pillow and matplotlib.
+  - Runtime dependencies: `vtk>=9.4`, `aiohttp>=3.9`, `numpy>=1.26` and `matplotlib>=3.8` (kept; D10 is withdrawn).
+  - A dev group with pytest, ruff, playwright and pillow.
   - The console script `cfd-viewer`.
   - Result: `uv lock` resolves 32 packages. `uv sync` works on 3.12.3 and on 3.14.8, both with VTK 9.7.1. The version comes from git: `0.0.1.dev90+g…` while untagged. The ruff config (`E,F,I,UP`, line length 100) is in `pyproject.toml`; with it, ruff reports 7 findings, the 5 from 1.2 plus 2 import-grouping findings from the relative imports. Group 8 fixes them.
 - [x] 2.4 Reduce `main.py` to a shim that calls the package's `main()` with the same options. Verify `python main.py --help` exits 0, and that `python main.py --server --data data --host 0.0.0.0 --port 5003` serves as before.
   - Result: `main.py` is a shim over `equa.cfd_viewer.__main__`. It keeps the default `--data <checkout>/data`.
 - [x] 2.5 Generate `requirements.txt` from the lock file (`uv export --no-dev --no-hashes`). Verify `pip install -r requirements.txt` into a fresh Python 3.14 venv gives a runtime in which `python main.py --server --data data` serves hotRoom.
   - Result: verified with plain `pip` on a fresh 3.14.8 venv. The exact cfd-viz command line (`python main.py --server --data "$CFD_HOME" --host 0.0.0.0 --port "$VIZ_PORT"`) on a UUID-named hotRoom serves `/api/cases`, `/api/scene` and the client from `web/dist`.
-  - Finding: `vtk`'s own wheel declares `matplotlib>=2.0.0`, so matplotlib stays installed even after group 4 drops it from our dependencies. Group 4, the `viewer-build` spec and design D10 are reworded to match: the viewer stops *importing* matplotlib, and the Windows bundle can exclude it.
+  - Finding: `vtk`'s own wheel declares `matplotlib>=2.0.0`, so matplotlib stays installed even after group 4 drops it from our dependencies. This led to withdrawing D10 and group 4: matplotlib stays in every deployment.
   - The old hand-written GL/VTK notes in `requirements.txt` move to CLAUDE.md in 11.3; the file is generated now.
 - [x] 2.6 Find the client directory in this order: `WEB_DIST_DIR`, then the packaged `equa/cfd_viewer/web/`, then the repo's `web/dist` (the path the cfd-viz image uses), then the hint page. Include `web/dist` in the wheel as `equa/cfd_viewer/web/`. Verify:
   - an installed wheel in a temporary venv outside the repo serves `/` with the client;
@@ -83,16 +83,9 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
   - The directory listing and modification times are unchanged afterwards.
 - [ ] 3.3 Correct the CLAUDE.md "VTK-Python traps" note that says the reader needs a `.foam` file. Verify the note cites the 2026-10-20 test.
 
-## 4. Colour tables without matplotlib (D10)
+## 4. (Withdrawn: colour tables without matplotlib)
 
-- [ ] 4.1 Add `tools/write_colormaps.py`. It writes `src/equa/cfd_viewer/foamviz/colormaps.json` with 256 RGB entries per preset, taken from matplotlib's own lookup tables. Commit the generated file. Verify that rerunning the script produces an identical file.
-- [ ] 4.2 Rewrite `colors.py` to sample the tables the way matplotlib does (`int(x * 256)`, clipped to 255) for smooth, banded and legend output. Verify:
-  - a new `tests/test_colors.py`, skipped when matplotlib is absent, matches matplotlib for every preset and for band counts 2–16: the `/api/lut` bytes, the banded transfer-function nodes and the `css_gradient` output;
-  - the `/api/lut` hashes in the contract test are unchanged.
-- [ ] 4.3 Drop matplotlib from our runtime dependencies, keep it in the dev group for `test_colors.py`, and regenerate `uv.lock` and `requirements.txt`. matplotlib still arrives through `vtk`'s own dependency, so it can't be uninstalled. Verify:
-  - `matplotlib` is not in `sys.modules` after a server has served every LUT, a banded scene and the legend gradients;
-  - `test_pipeline.py` passes with matplotlib made unimportable (a `sys.modules["matplotlib"] = None` guard in a small wrapper);
-  - the task 2.5 check on 3.14 passes.
+Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in every deployment, and keeping deployments identical outweighs saving about 10% of the bundle. The group number is kept so the other references stay valid.
 
 ## 5. Case sources (D1)
 
@@ -145,7 +138,7 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
   - `test_py` (pytest without the browser marker; includes the contract test) and `test_ui` (the browser suite);
   - `test`;
   - `web_build` (`npm ci && npm run build`);
-  - `package` (`uv build` after `web_build`, then a wheel-contents check for `equa/cfd_viewer/web/index.html` and `colormaps.json`);
+  - `package` (`uv build` after `web_build`, then a wheel-contents check for `equa/cfd_viewer/web/index.html`);
   - `requirements_check` (the exported requirements equal `requirements.txt`);
   - `ci`.
 

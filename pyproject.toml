@@ -16,7 +16,8 @@ dependencies = [
     "vtk>=9.4",
     "aiohttp>=3.9",
     "numpy>=1.26",
-    # Only for colour-map sampling; replaced by committed tables (design D10).
+    # Colour-map tables (foamviz/colors.py). VTK depends on it too, so it is in
+    # every deployment either way (openspec standalone-viewer, design D10).
     "matplotlib>=3.8",
 ]
 

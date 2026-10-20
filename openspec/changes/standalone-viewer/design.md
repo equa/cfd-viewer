@@ -116,7 +116,7 @@ A browser cannot hand a *path* to the server: both the File System Access API an
 - **Size is the cost.** The VTK wheel is large: `vtkmodules` is 564 MB unpacked on Linux.
   - PyInstaller's VTK hook collects every module. We exclude the modules we don't import, using an explicit list in the spec file, and measure.
   - The target is a zip under 250 MB. The first build will show whether that holds.
-  - Dropping `matplotlib` (D10) helps.
+  - Leaving packages or VTK modules out of the bundle is **not** the default (D10, and the viewer-build spec: one dependency set). VTK's 564 MB is the only lever worth considering. That is decided in phase 2, on a measured bundle, and only with the Windows smoke test in place.
 - **The console window** stays visible in v1, titled "CFD Viewer — close this window to stop". It is honest and it shows errors.
   - A tray icon (`pystray`) and `--noconsole` can follow.
   - The UI also gets a "Quit viewer" item in local mode.
@@ -224,13 +224,15 @@ Dockerfile        three stages like thermarest's: node web build → uv builder 
 - **Removing the shims.** `main.py`, the `foamviz/` package and `requirements.txt` go only after cfd-backend builds from this repo's `Dockerfile` or image. Until then they are part of the contract (D11).
 - **Commits** follow Conventional Commits from here on. Versions use semantic-release's `1.0.0-beta.N` scheme. A local `.releaserc.json` and commitlint config are added only when CI is.
 
-### D10. Drop matplotlib (agreed 2026-10-20)
+### D10. Keep matplotlib (the drop was withdrawn 2026-10-20)
 
-`colors.py` uses matplotlib only to sample colour maps into 256-entry tables. Writing those tables once to a small committed data file keeps the colours byte-identical. The `/api/lut` bytes and the VTK transfer function both come from the same tables, and it stops the viewer loading matplotlib at all.
+Proposed first: replace `colors.py`'s matplotlib sampling with committed colour tables, to take matplotlib out of the dependencies. **Withdrawn**, because the premise didn't hold:
 
-The PyPI `vtk` wheel declares `matplotlib>=2.0.0` itself (found 2026-10-20 in task 2.5), so matplotlib stays *installed* in pip/uv environments and in the cfd-viz image. The real saving is in the Windows bundle (D6): since nothing imports it, PyInstaller can exclude matplotlib and its dependencies (pillow, fonttools, kiwisolver, contourpy and others).
+- **It can't leave the deployments.** The PyPI `vtk` wheel itself declares `matplotlib>=2.0.0` (found in task 2.5). So the cfd-viz image, every pip/uv install and every dev environment keep it whatever this package declares.
+- **The only possible saving was excluding it from the Windows bundle.** Measured: matplotlib and the packages it pulls in are about 78 MB installed and about 25 MB zipped, roughly 10% of the expected zip, against VTK's 564 MB installed.
+- **That saving isn't worth a difference between deployments.** A bundle-only exclusion is a bundle-only failure mode, met first on a customer's machine. The committed tables would also be code that reproduces exactly what `import matplotlib` already gives.
 
-`tests/test_pipeline.py` gains a check that the committed tables match matplotlib, when matplotlib happens to be installed.
+Decision (with Niklas): a ~10% footprint is negligible against keeping every deployment identical. `colors.py` keeps importing matplotlib, and matplotlib stays a declared dependency, because we use it directly. The general rule is recorded in the viewer-build spec: one dependency set for every deployment.
 
 ### D11. Regression strategy: the cockpit contract
 
@@ -303,7 +305,7 @@ The PyPI `vtk` wheel declares `matplotlib>=2.0.0` itself (found 2026-10-20 in ta
 Three phases. Each one is shippable, and each can become its own change when tasks are written.
 
 1. **Foundation.** Package layout, `pyproject`, `dodo.py`, D3 (no stub), D1 (`CaseSource` and ids), `/api/config`, and the start screen in `server` mode. The cockpit is verified unchanged. The Dockerfile lands, and the follow-up in cfd-backend is to build from it.
-2. **Local desktop.** D4 local mode and hardening, D5 folder browser and recent folders, D6 Windows bundle and one-page install docs, and D10 if agreed.
+2. **Local desktop.** D4 local mode and hardening, D5 folder browser and recent folders, and D6 Windows bundle and one-page install docs.
 3. **Hosted uploads.** D7 upload flow, D8 workers, limits, retention and login.
 
 Rollback is per phase. The shims (D9), `--mode server` as the default and the contract layers (D11) keep the cfd-backend container unaffected at every step. A bad merge is undone by retagging the recorded `cfd-viz:beta` digest and reverting on `main`.
@@ -315,7 +317,7 @@ Answered 2026-10-20:
 - **Signing:** a certificate exists and will be used (D6).
 - **Hosted:** as simple as possible, secondary, and likely deployed in `equa-deployment` behind its Keycloak edge (D8).
 - **Sizes:** up to about 20 M cells and 2–4 GB, no hard limit, serial or parallel by available data (D7).
-- **matplotlib:** drop it (D10).
+- **matplotlib:** first agreed to drop it, then withdrawn once VTK turned out to depend on it. It stays (D10).
 - **Distribution:** EQUA's customer download area, uploaded by hand (D6).
 
 - **Console window:** a visible console is acceptable in v1 (D6).

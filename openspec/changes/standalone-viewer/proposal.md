@@ -15,7 +15,7 @@
 
 | Phase | Change | Contents |
 | --- | --- | --- |
-| 1 | **this change** (`standalone-viewer`) | package layout and tooling, case sources and ids, read-only cases, matplotlib out, `/api/config`, `/health`, the start screen, the Dockerfile |
+| 1 | **this change** (`standalone-viewer`) | package layout and tooling, case sources and ids, read-only cases, `/api/config`, `/health`, the start screen, the Dockerfile |
 | 2 | `local-desktop-viewer` (later) | local mode and its hardening, the folder browser, the Windows bundle, install docs and hardware requirements (design D4–D6) |
 | 3 | `hosted-case-upload` (later) | uploads, session workers, retention (design D7–D8) |
 
@@ -78,5 +78,5 @@ None yet; the viewer has no specs. The `/api/*` contract gains a case id and new
 - **Server**: `server/scene.py`, `server/app.py`, `main.py` and `foamviz/case.py` change; `foamviz/pipeline.py` does not.
 - **Client**: a start screen, an upload flow and an "add folder" dialog; the viewer itself is unchanged.
 - **cfd-backend**: its Containerfile can build from this repo's `Dockerfile` or image instead of cloning; the iframe URL is unchanged. Changing cfd-backend is a follow-up there, not part of this change.
-- **Dependencies**: PyInstaller and Inno Setup (build only). `matplotlib` is removed; its colour maps are kept as committed tables (agreed 2026-10-20).
+- **Dependencies**: PyInstaller and Inno Setup (build only). matplotlib stays, since VTK depends on it anyway (design D10, drop withdrawn).
 - **Security**: local mode listens on loopback only, with a per-launch token; hosted mode receives customer files, so it relies on the edge login and deletes them after a time-to-live. See design.
