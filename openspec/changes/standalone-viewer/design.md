@@ -226,7 +226,9 @@ Dockerfile        three stages like thermarest's: node web build → uv builder 
 
 ### D10. Drop matplotlib (agreed 2026-10-20)
 
-`colors.py` uses matplotlib only to sample colour maps into 256-entry tables. Writing those tables once to a small committed data file keeps the colours byte-identical. The `/api/lut` bytes and the VTK transfer function both come from the same tables, and it removes matplotlib and its dependencies (pillow, fonttools, kiwisolver and others) from the bundle and the image.
+`colors.py` uses matplotlib only to sample colour maps into 256-entry tables. Writing those tables once to a small committed data file keeps the colours byte-identical. The `/api/lut` bytes and the VTK transfer function both come from the same tables, and it stops the viewer loading matplotlib at all.
+
+The PyPI `vtk` wheel declares `matplotlib>=2.0.0` itself (found 2026-10-20 in task 2.5), so matplotlib stays *installed* in pip/uv environments and in the cfd-viz image. The real saving is in the Windows bundle (D6): since nothing imports it, PyInstaller can exclude matplotlib and its dependencies (pillow, fonttools, kiwisolver, contourpy and others).
 
 `tests/test_pipeline.py` gains a check that the committed tables match matplotlib, when matplotlib happens to be installed.
 

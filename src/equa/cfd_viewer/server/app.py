@@ -18,20 +18,44 @@ shared by several users at once.
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 
 from aiohttp import web
 
-from foamviz import colors
+from ..foamviz import colors
 
 from .scene import SceneSource
 
 log = logging.getLogger("cfdviewer")
 
-ROOT = Path(__file__).resolve().parent.parent
-# The Vite build output. Absent in development, where `npm run dev` serves the
-# client on its own port and proxies /api here (see web/vite.config.js).
-DIST = ROOT / "web" / "dist"
+PACKAGE = Path(__file__).resolve().parent.parent
+# src/equa/cfd_viewer -> the checkout root, when running from a source tree.
+CHECKOUT = PACKAGE.parent.parent.parent
+
+
+def client_dir():
+    """Where the built client is, first match wins:
+
+    1. ``WEB_DIST_DIR``, as the equa service images set it;
+    2. the client packaged into the wheel (``equa/cfd_viewer/web``);
+    3. ``web/dist`` in a source checkout -- what cfd-backend's cfd-viz image
+       serves, since it builds the client in place in a clone of this repo.
+
+    None of them may exist in development, where `npm run dev` serves the
+    client on its own port and proxies /api here (see web/vite.config.js); the
+    index route then shows a hint page instead.
+    """
+    candidates = [PACKAGE / "web", CHECKOUT / "web" / "dist"]
+    if os.environ.get("WEB_DIST_DIR"):
+        candidates.insert(0, Path(os.environ["WEB_DIST_DIR"]))
+    for path in candidates:
+        if (path / "index.html").is_file():
+            return path
+    return candidates[-1]
+
+
+DIST = client_dir()
 
 _DEV_HINT = """<!doctype html><meta charset="utf-8">
 <title>cfd-viewer</title>

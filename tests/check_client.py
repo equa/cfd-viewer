@@ -17,6 +17,7 @@ treat them as a floor and a smoke test, not as what real hardware will do.
 import argparse
 import io
 import json
+import os
 import subprocess
 import sys
 import time
@@ -204,10 +205,16 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
+    # The package entry point, from the checkout's src/ when not installed.
+    # (The contract tests drive main.py instead: that is the command line
+    # cfd-backend's image runs.)
+    env = {**os.environ,
+           "PYTHONPATH": os.pathsep.join(filter(None, [str(ROOT / "src"),
+                                                       os.environ.get("PYTHONPATH")]))}
     server = subprocess.Popen(
-        [sys.executable, str(ROOT / "main.py"),
+        [sys.executable, "-m", "equa.cfd_viewer",
          "--data", args.data, "--port", str(PORT)],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
     )
     try:
         cases = wait_for_server(PORT, server)

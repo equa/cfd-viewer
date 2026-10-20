@@ -20,10 +20,10 @@ import zlib
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
-from server import wire  # noqa: E402
-from server.scene import SceneSource  # noqa: E402
+from equa.cfd_viewer.server import wire  # noqa: E402
+from equa.cfd_viewer.server.scene import SceneSource  # noqa: E402
 
 # Every part, so one run shows the whole cost distribution.
 PARTS = "boundary,slice,iso,stream,glyph,geometry"

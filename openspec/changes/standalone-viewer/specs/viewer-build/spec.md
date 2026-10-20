@@ -83,18 +83,24 @@ Until cfd-backend builds from this repository's own `Dockerfile`, a checkout of 
 
 ### Requirement: No matplotlib at runtime
 
-The runtime dependencies SHALL be `vtk`, `aiohttp` and `numpy` only. The colour-map presets SHALL come from tables committed in the package. Every colour the viewer derives from them SHALL be identical to what matplotlib produced: the `/api/lut` bytes, the VTK transfer functions (smooth and banded) and the CSS legend gradients.
+The package SHALL declare only `vtk`, `aiohttp` and `numpy` as runtime dependencies, and SHALL NOT import matplotlib. The colour-map presets SHALL come from tables committed in the package.
+
+The PyPI `vtk` wheel itself declares `matplotlib>=2.0.0`, so a pip or uv install still pulls matplotlib in. What this requirement buys is that nothing loads it, which lets the Windows bundle (phase 2) leave it out. Every colour the viewer derives from them SHALL be identical to what matplotlib produced: the `/api/lut` bytes, the VTK transfer functions (smooth and banded) and the CSS legend gradients.
 
 #### Scenario: Identical colours
 
 - **WHEN** the colour test runs with matplotlib installed as a development dependency
 - **THEN** `/api/lut` bytes, banded transfer-function nodes and legend gradients match matplotlib's for every preset
 
-#### Scenario: Runs without matplotlib
+#### Scenario: Runs without loading matplotlib
 
-- **WHEN** the viewer is installed without development dependencies
-- **THEN** matplotlib is not installed
-- **AND** every preset still serves its colour table
+- **WHEN** the server has served `/api/lut` for every preset, a banded scene and the legend gradients
+- **THEN** `matplotlib` is not in `sys.modules`
+
+#### Scenario: Runs with matplotlib absent
+
+- **WHEN** matplotlib is made unimportable (as in a bundle that excludes it)
+- **THEN** the pipeline suite and every preset still work
 
 ### Requirement: One command checks everything
 

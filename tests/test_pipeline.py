@@ -16,10 +16,10 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
-from foamviz.case import FoamCase, derive_scalars, find_cases  # noqa: E402
-from foamviz.pipeline import COLOR_ARRAY, FoamPipeline  # noqa: E402
+from equa.cfd_viewer.foamviz.case import FoamCase, derive_scalars, find_cases  # noqa: E402
+from equa.cfd_viewer.foamviz.pipeline import COLOR_ARRAY, FoamPipeline  # noqa: E402
 
 CASE = ROOT / "data" / "hotRoom"
 

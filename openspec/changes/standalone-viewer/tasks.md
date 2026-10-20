@@ -45,23 +45,32 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 
 ## 2. Package layout, keeping the cockpit contract
 
-- [ ] 2.1 Move the code into the package (D9).
+- [x] 2.1 Move the code into the package (D9).
   - `git mv` `foamviz/` and `server/` to `src/equa/cfd_viewer/{foamviz,server}/`, and switch their imports to package-relative ones.
   - Move `main.py`'s argument handling into `src/equa/cfd_viewer/__main__.py`.
   - Verify `python -m equa.cfd_viewer --data data` serves hotRoom from a checkout.
-- [ ] 2.2 Add the top-level compatibility package `foamviz/` (`__init__.py`, `case.py`, `pipeline.py`, `colors.py`). It puts `src/` on the path and re-exports the moved modules (D9). Verify the cfd-backend `viz.sh` checks 2 and 3 pass from the checkout root: `python -c "from foamviz.pipeline import FoamPipeline; ..."`.
-- [ ] 2.3 Add `pyproject.toml` and `uv.lock`. Verify `uv sync` works on a fresh `.venv` under Python 3.12 and 3.14, and that `uv run cfd-viewer --help` runs.
+  - Result: done. `server/` now imports `..foamviz`, and `__main__.py` carries the old `main.py` options unchanged.
+- [x] 2.2 Add the top-level compatibility package `foamviz/` (`__init__.py`, `case.py`, `pipeline.py`, `colors.py`). It puts `src/` on the path and re-exports the moved modules (D9). Verify the cfd-backend `viz.sh` checks 2 and 3 pass from the checkout root: `python -c "from foamviz.pipeline import FoamPipeline; ..."`.
+  - Result: cfd-backend `viz.sh` checks 2–4 pass from the checkout root. The alias registers the real submodules, so `foamviz.pipeline.FoamPipeline is equa.cfd_viewer.foamviz.pipeline.FoamPipeline`.
+- [x] 2.3 Add `pyproject.toml` and `uv.lock`. Verify `uv sync` works on a fresh `.venv` under Python 3.12 and 3.14, and that `uv run cfd-viewer --help` runs.
   - Build with hatchling and hatch-vcs, with a fallback version.
   - `requires-python = ">=3.12"`.
   - Runtime dependencies: `vtk>=9.4`, `aiohttp>=3.9`, `numpy>=1.26`, plus matplotlib until group 4.
   - A dev group with pytest, ruff, playwright, pillow and matplotlib.
   - The console script `cfd-viewer`.
-- [ ] 2.4 Reduce `main.py` to a shim that calls the package's `main()` with the same options. Verify `python main.py --help` exits 0, and that `python main.py --server --data data --host 0.0.0.0 --port 5003` serves as before.
-- [ ] 2.5 Generate `requirements.txt` from the lock file (`uv export --no-dev --no-hashes`). Verify `pip install -r requirements.txt` into a fresh Python 3.14 venv gives a runtime in which `python main.py --server --data data` serves hotRoom.
-- [ ] 2.6 Find the client directory in this order: `WEB_DIST_DIR`, then the packaged `equa/cfd_viewer/web/`, then the repo's `web/dist` (the path the cfd-viz image uses), then the hint page. Include `web/dist` in the wheel as `equa/cfd_viewer/web/`. Verify:
+  - Result: `uv lock` resolves 32 packages. `uv sync` works on 3.12.3 and on 3.14.8, both with VTK 9.7.1. The version comes from git: `0.0.1.dev90+g…` while untagged. The ruff config (`E,F,I,UP`, line length 100) is in `pyproject.toml`; with it, ruff reports 7 findings, the 5 from 1.2 plus 2 import-grouping findings from the relative imports. Group 8 fixes them.
+- [x] 2.4 Reduce `main.py` to a shim that calls the package's `main()` with the same options. Verify `python main.py --help` exits 0, and that `python main.py --server --data data --host 0.0.0.0 --port 5003` serves as before.
+  - Result: `main.py` is a shim over `equa.cfd_viewer.__main__`. It keeps the default `--data <checkout>/data`.
+- [x] 2.5 Generate `requirements.txt` from the lock file (`uv export --no-dev --no-hashes`). Verify `pip install -r requirements.txt` into a fresh Python 3.14 venv gives a runtime in which `python main.py --server --data data` serves hotRoom.
+  - Result: verified with plain `pip` on a fresh 3.14.8 venv. The exact cfd-viz command line (`python main.py --server --data "$CFD_HOME" --host 0.0.0.0 --port "$VIZ_PORT"`) on a UUID-named hotRoom serves `/api/cases`, `/api/scene` and the client from `web/dist`.
+  - Finding: `vtk`'s own wheel declares `matplotlib>=2.0.0`, so matplotlib stays installed even after group 4 drops it from our dependencies. Group 4, the `viewer-build` spec and design D10 are reworded to match: the viewer stops *importing* matplotlib, and the Windows bundle can exclude it.
+  - The old hand-written GL/VTK notes in `requirements.txt` move to CLAUDE.md in 11.3; the file is generated now.
+- [x] 2.6 Find the client directory in this order: `WEB_DIST_DIR`, then the packaged `equa/cfd_viewer/web/`, then the repo's `web/dist` (the path the cfd-viz image uses), then the hint page. Include `web/dist` in the wheel as `equa/cfd_viewer/web/`. Verify:
   - an installed wheel in a temporary venv outside the repo serves `/` with the client;
   - a checkout with only `web/dist` still serves it.
-- [ ] 2.7 Point `tests/test_pipeline.py`, `tests/check_client.py` and `tests/bench.py` at the package. Verify both suites report the task 1.1 counts, and that `test_contract.py` passes.
+  - Result: added `hatch_build.py`, a build hook that puts `web/dist` into the wheel as `equa/cfd_viewer/web` and refuses a wheel build without it (`CFD_VIEWER_NO_CLIENT=1` overrides). Editable installs are exempt. The wheel, installed in a venv outside the repo, serves its packaged client. The checkout's `web/dist` path serves too (2.5). The top-level `foamviz` alias is not in the wheel.
+- [x] 2.7 Point `tests/test_pipeline.py`, `tests/check_client.py` and `tests/bench.py` at the package. Verify both suites report the task 1.1 counts, and that `test_contract.py` passes.
+  - Result: `test_pipeline.py` and `bench.py` import `equa.cfd_viewer`. `check_client.py` starts `python -m equa.cfd_viewer`. The contract test deliberately keeps starting `main.py`, the cockpit's command line. Results on the new layout: **64/64**, **104/104**, contract **56/56**.
 
 ## 3. Read cases in place (D3)
 
@@ -80,7 +89,10 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 - [ ] 4.2 Rewrite `colors.py` to sample the tables the way matplotlib does (`int(x * 256)`, clipped to 255) for smooth, banded and legend output. Verify:
   - a new `tests/test_colors.py`, skipped when matplotlib is absent, matches matplotlib for every preset and for band counts 2–16: the `/api/lut` bytes, the banded transfer-function nodes and the `css_gradient` output;
   - the `/api/lut` hashes in the contract test are unchanged.
-- [ ] 4.3 Drop matplotlib from the runtime dependencies, and regenerate `uv.lock` and `requirements.txt`. Verify `uv sync --no-dev` leaves matplotlib uninstalled and `test_pipeline.py` passes there, and that the task 2.5 check on 3.14 passes.
+- [ ] 4.3 Drop matplotlib from our runtime dependencies, keep it in the dev group for `test_colors.py`, and regenerate `uv.lock` and `requirements.txt`. matplotlib still arrives through `vtk`'s own dependency, so it can't be uninstalled. Verify:
+  - `matplotlib` is not in `sys.modules` after a server has served every LUT, a banded scene and the legend gradients;
+  - `test_pipeline.py` passes with matplotlib made unimportable (a `sys.modules["matplotlib"] = None` guard in a small wrapper);
+  - the task 2.5 check on 3.14 passes.
 
 ## 5. Case sources (D1)
 

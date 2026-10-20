@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "equa-cfd-viewer"
+dynamic = ["version"]
+description = "Browser post-processing for OpenFOAM cases: a Python/VTK extraction server behind a React + three.js client."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    # The stock wheels carry their own EGL/OSMesa render windows and dlopen
+    # them; the server never renders, so it needs no GL library (CLAUDE.md,
+    # "VTK packaging").
+    "vtk>=9.4",
+    "aiohttp>=3.9",
+    "numpy>=1.26",
+    # Only for colour-map sampling; replaced by committed tables (design D10).
+    "matplotlib>=3.8",
+]
+
+[project.scripts]
+cfd-viewer = "equa.cfd_viewer.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6.0",
+    # tests/check_client.py drives Chromium and reads screenshots.
+    "playwright>=1.45",
+    "pillow>=10",
+]
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/equa"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+# hatch_build.py: puts the built client (web/dist) into the wheel as
+# equa/cfd_viewer/web, and refuses to build a release wheel without it.
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
