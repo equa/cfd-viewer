@@ -38,8 +38,10 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 - [x] 1.5 Add `tests/test_contract.py`. It replays the snapshot's queries and compares field by field and hash by hash, and an explicit allow-list holds the added fields and the 404 cases. Verify it passes on `main`, and fails when one `/api/meta` field is renamed by a temporary edit.
   - Result: 56/56 on `main`, directly and under pytest. Temporarily renaming `meta.cells` to `nCells` failed the three `/api/meta` exchanges with `.cells: missing`, and the edit was reverted.
   - The allow-list starts as `ALLOWED_CHANGES` in `tests/contract.py`: `/api/meta` with an empty or unknown case may become 404.
-- [ ] 1.6 Ask Niklas for the current `ghcr.io/equa/cfd-viz:beta` digest (from the host: `podman image inspect` or `skopeo inspect`), and record it in this task line as the rollback point.
-- [ ] 1.7 Create the branch `feat/standalone-foundation` from `main`. Verify `git branch --show-current`.
+- [x] 1.6 Ask Niklas for the current `ghcr.io/equa/cfd-viz:beta` digest (from the host: `podman image inspect` or `skopeo inspect`), and record it in this task line as the rollback point.
+  - Result (2026-10-20, `skopeo inspect`): `ghcr.io/equa/cfd-viz:beta` is `sha256:b0fd1cf8aabfc7c84f4835041905d2bc598a28611a165a756c2db65bed22e2e0`. Roll back by retagging this digest as `:beta`.
+- [x] 1.7 Create the branch `feat/standalone-foundation` from `main`. Verify `git branch --show-current`.
+  - Result: the branch was created from `50d2ddc`.
 
 ## 2. Package layout, keeping the cockpit contract
 
