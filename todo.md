@@ -42,6 +42,10 @@ now the only guard on it, so lean on that instead.
 
 ### Performance
 
+Now: when leaving viz to go back to cockpit, nothing is cached. Need to be able
+to go back and forth in case cockpit/boundary/vizualisation without loosing the
+scene.
+
 ## Widgets
 
 - Mouse wheel disabled? I think I want mouse wheel on numeric inputs.
@@ -177,6 +181,16 @@ vanish). Covered by a check that uses the shell as it ships.
     triangle single-valued). Costs 3x the vertex data, which is why it only
     happens when asked. Scoped to the shell and the slice, as in the Trame app.
 
+
+## Opacity by value
+
+All actors already have an opacity slider. Opacity by color presently reside in
+the global color mapping options. I like the opacity by color to move to per
+actor and appear as a toggle alternative to the opacity slider. Also, presently
+the boundary opacity follows the color selection opacity, even if the boundary
+is not colored by field - this makes no sense. So when not colored by field,
+an actor would only obey the opacity slider, not opacity by field.
+
 ## Boundary
 
 
@@ -217,6 +231,7 @@ what was decided when.
 - Export = dump that subset to JSON (download). Load = read JSON → set the vars
   → `update_scene()`. Rides the existing change-handler path → low risk, no
   camera-sync involvement.
+
 
 ### A. Camera slots 1–4  (the tricky half)
 - **Recall** is trivial & proven: set the server camera params + `view_push_camera`
