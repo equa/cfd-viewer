@@ -67,19 +67,24 @@ def find_cases(root):
     return found
 
 
-def ensure_foam_stub(case_dir):
-    """VTK's reader is driven by a ``*.foam`` marker file; create one if absent.
+def foam_marker(case_dir):
+    """The ``*.foam`` path VTK's reader is pointed at -- never created here.
 
-    The file is empty by design -- it only tells the reader which directory is
-    the case root, exactly as ParaView's ``paraFoam -builtin`` does.
+    The reader takes the case root from the *directory* of the file name it is
+    given and never opens the file itself, so the marker does not have to
+    exist (checked 2026-10-20 on VTK 9.7.1, serial and decomposed, on a
+    read-only case). An existing marker is used when there is one, as ParaView
+    users leave them behind; otherwise the path is just a name.
+
+    This used to ``touch()`` a ``case.foam`` into the case, which made every
+    case directory have to be writable: no read-only shares, no read-only
+    container mounts (openspec standalone-viewer, design D3).
     """
     case_dir = Path(case_dir)
     existing = sorted(case_dir.glob("*.foam"))
     if existing:
         return existing[0]
-    stub = case_dir / "case.foam"
-    stub.touch()
-    return stub
+    return case_dir / f"{case_dir.name}.foam"
 
 
 class FoamCase:
@@ -88,7 +93,7 @@ class FoamCase:
     def __init__(self, case_dir):
         self.case_dir = Path(case_dir).resolve()
         self.name = self.case_dir.name
-        self.foam_file = ensure_foam_stub(self.case_dir)
+        self.foam_file = foam_marker(self.case_dir)
 
         self.decomposed = False  # set by _make_reader() from the case layout
         self.reader = self._open_reader()

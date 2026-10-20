@@ -157,8 +157,16 @@ need updating — the checks are deliberately concrete.
 - **Time stepping**: pull with `reader.UpdateTimeStep(t)` and hand downstream
   filters the result via `SetInputData`. A connected pipeline re-negotiates the
   time request on every `Update()` and silently falls back to `t=0`.
-- `vtkOpenFOAMReader` needs an empty `*.foam` marker file in the case dir
-  (`ensure_foam_stub` creates it). It advertises `patch/*` and `group/*` arrays;
+- **`vtkOpenFOAMReader` does NOT need the `*.foam` marker file to exist**
+  (corrected 2026-10-20; this note used to say it did). It takes the case root
+  from the *directory* of the file name it is given and never opens the file,
+  so `foam_marker()` passes an existing `*.foam` if there is one and otherwise
+  just a name, `<case>/<case>.foam`, that is never created. Checked on VTK
+  9.7.1, serial and decomposed (`vtkPOpenFOAMReader`), on `chmod -R a-w`
+  copies of hotRoom; `tests/test_pipeline.py` "read-only cases" guards it and
+  fails with `PermissionError` if the old `touch()` comes back. The old
+  `ensure_foam_stub` touched `case.foam` into every case, which is why the
+  cfd-viz volume had to be mounted read-write. It advertises `patch/*` and `group/*` arrays;
   groups duplicate their member patches, so only `patch/*` is exposed. It also
   advertises fields such as `T.orig` that never appear in the output — read the
   field list from the actual output arrays, not from the reader.

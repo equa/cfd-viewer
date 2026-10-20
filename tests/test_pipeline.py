@@ -10,7 +10,10 @@ filter raises nothing and renders as a perfectly plausible blank image, so the
 only useful question is whether geometry actually came out the other end.
 """
 
+import shutil
+import stat
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -329,10 +332,82 @@ def main():
           pipe.surface_input.GetOutput().GetNumberOfPoints() > 0,
           f"{pipe.surface_input.GetOutput().GetNumberOfPoints()} pts")
 
+    print("\nread-only cases (nothing is written into a case)")
+    read_only_checks()
+
     print(f"\n{checks - len(failures)}/{checks} checks passed")
     if failures:
         print("failed:", ", ".join(failures))
     return 1 if failures else 0
+
+
+def _tree_state(root):
+    """Every path under *root* with its size and mtime: what "unchanged" means."""
+    return {str(p.relative_to(root)): (p.stat().st_size, p.stat().st_mtime_ns)
+            for p in sorted(root.rglob("*"))}
+
+
+def _copy_case(dest, decomposed):
+    """A copy of the demo case with no ``*.foam`` marker, serial or decomposed.
+
+    The decomposed copy is a one-processor decomposition built by hand -- no
+    decomposePar needed: the root keeps only ``0/``, and ``processor0`` holds
+    the whole mesh plus the latest time, so the newest time exists only in the
+    processor directory, which is exactly what makes ``_is_decomposed`` pick
+    vtkPOpenFOAMReader.
+    """
+    latest = max((d for d in CASE.iterdir() if d.is_dir() and d.name.replace(".", "").isdigit()),
+                 key=lambda d: float(d.name))
+    shutil.copytree(CASE / "system", dest / "system")
+    shutil.copytree(CASE / "constant", dest / "constant")
+    shutil.copytree(CASE / "0", dest / "0")
+    if decomposed:
+        proc = dest / "processor0"
+        shutil.copytree(CASE / "constant" / "polyMesh", proc / "constant" / "polyMesh")
+        shutil.copytree(CASE / "0", proc / "0")
+        shutil.copytree(latest, proc / latest.name)
+    else:
+        shutil.copytree(latest, dest / latest.name)
+
+
+def _set_writable(root, writable):
+    for p in [root, *root.rglob("*")]:
+        mode = p.stat().st_mode
+        p.chmod(mode | stat.S_IWUSR if writable
+                else mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+
+
+def read_only_checks():
+    """Open read-only copies of the demo case, serial and decomposed.
+
+    The reader used to need a ``case.foam`` touched into the case directory,
+    so a read-only case (a network share, a ``:ro`` container mount) could not
+    be opened at all (openspec standalone-viewer, design D3).
+    """
+    with tempfile.TemporaryDirectory(prefix="cfdv-ro-") as tmp:
+        for label, decomposed in (("serial", False), ("decomposed", True)):
+            root = Path(tmp) / label
+            _copy_case(root, decomposed)
+            _set_writable(root, False)
+            before = _tree_state(root)
+            try:
+                ro = FoamCase(root)
+                ro.load(ro.times[-1])
+                opened, detail = True, f"{ro.n_cells()} cells, {len(ro.boundary)} patches"
+            except Exception as exc:  # a read-only case must not need any write
+                ro, opened, detail = None, False, f"{type(exc).__name__}: {exc}"
+            check(f"{label} read-only case opens", opened, detail)
+            if ro is not None:
+                check(f"{label} read-only case picks the right reader",
+                      ro.decomposed is decomposed, f"decomposed={ro.decomposed}")
+                check(f"{label} read-only case has geometry",
+                      ro.n_cells() == 32000 and len(ro.boundary) == 3
+                      and all(b.GetNumberOfCells() > 0 for b in ro.boundary.values()),
+                      detail)
+            check(f"{label} read-only case is left untouched",
+                  _tree_state(root) == before,
+                  ", ".join(sorted(set(_tree_state(root)) ^ set(before))) or "")
+            _set_writable(root, True)  # so the temporary directory can be removed
 
 
 if __name__ == "__main__":

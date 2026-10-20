@@ -6,7 +6,7 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 
 - Commits follow Conventional Commits from task 1.3 on, and are staged by name.
 - All work from group 2 on happens on the branch `feat/standalone-foundation`. It reaches `main` only through group 11, because cfd-backend builds from whatever is on `main` (design D11).
-- After every group from 2 to 9, `doit ci` must pass: lint, both suites, the golden contract test and, once group 9 adds it, the cockpit contract check.
+- After every group from 2 to 9, `doit ci` must pass (until group 8 adds it, run the suites directly; the pipeline baseline is 72 since 3.2): lint, both suites, the golden contract test and, once group 9 adds it, the cockpit contract check.
 
 ## 1. Baseline and safety net (before anything moves)
 
@@ -74,14 +74,20 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
 
 ## 3. Read cases in place (D3)
 
-- [ ] 3.1 Replace `ensure_foam_stub` with a lookup that uses an existing `*.foam` file, or else a `<case>/<name>.foam` path that is never created. Verify:
+- [x] 3.1 Replace `ensure_foam_stub` with a lookup that uses an existing `*.foam` file, or else a `<case>/<name>.foam` path that is never created. Verify:
   - `test_pipeline.py` still passes on hotRoom with its `case.foam` deleted, and no file appears;
   - the contract test passes.
-- [ ] 3.2 Add read-only checks to `test_pipeline.py`. Verify the checks pass, and that the decomposed one fails when the stub logic is reverted.
+  - Result: `ensure_foam_stub` is replaced by `foam_marker()`, which uses an existing `*.foam` or else the never-created name `<case>/<case>.foam`. With hotRoom's `case.foam` moved aside, the pipeline suite and the contract test (56/56) passed and no `*.foam` appeared. The marker was then put back.
+- [x] 3.2 Add read-only checks to `test_pipeline.py`. Verify the checks pass, and that the decomposed one fails when the stub logic is reverted.
   - Use a `chmod -R a-w` copy of hotRoom, serial, and a decomposed copy (`decomposePar`, or a synthetic `processor*` layout built from the demo).
   - Both open and produce boundary geometry.
   - The directory listing and modification times are unchanged afterwards.
-- [ ] 3.3 Correct the CLAUDE.md "VTK-Python traps" note that says the reader needs a `.foam` file. Verify the note cites the 2026-10-20 test.
+  - Result: 8 new checks, so the pipeline baseline is now **72**. Serial and decomposed read-only copies open, pick the right reader (`vtkPOpenFOAMReader` for the decomposed one), give 32 000 cells and 3 non-empty patches, and leave every size and mtime unchanged.
+  - The decomposed copy is a hand-built one-processor decomposition, since this container has no OpenFOAM.
+  - With the old `touch()` restored temporarily, both "opens" checks fail with `PermissionError` (66/68).
+  - Browser suite 104/104.
+- [x] 3.3 Correct the CLAUDE.md "VTK-Python traps" note that says the reader needs a `.foam` file. Verify the note cites the 2026-10-20 test.
+  - Result: the CLAUDE.md note is rewritten. It says the marker need not exist, how that was checked, and which test guards it.
 
 ## 4. (Withdrawn: colour tables without matplotlib)
 
