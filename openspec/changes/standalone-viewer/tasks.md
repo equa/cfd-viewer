@@ -24,7 +24,7 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
     - `ruff format --check` would reformat **9 of 12** files.
   - Group 8 adopts equa-ci's set.
 - [ ] 1.3 Commit `openspec/` (this change) and the pending `todo.md` edit as their own commits on `main`. Verify `git status` is clean apart from `.claude/`.
-- [ ] 1.4 Record the golden API snapshots on `main` (D11 layer 1).
+- [x] 1.4 Record the golden API snapshots on `main` (D11 layer 1).
   - Add `tools/record_contract.py`. It starts the server on hotRoom and writes `tests/contract/hotroom.json`, covering:
     - `/api/cases` and `/api/meta`;
     - `/api/times`;
@@ -33,7 +33,11 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
     - `/api/scene` for a fixed query set: each part alone, all parts together, two time steps, each plane axis, three isosurfaces, glyphs on the plane and on the isosurface, crinkle, clip-at-plane, true cell values. For each it keeps the header minus `serverMs`, and a sha256 per buffer section.
   - Commit the recorder and the snapshot.
   - Verify that recording twice on `main` gives an identical file.
-- [ ] 1.5 Add `tests/test_contract.py`. It replays the snapshot's queries and compares field by field and hash by hash, and an explicit allow-list holds the added fields and the 404 cases. Verify it passes on `main`, and fails when one `/api/meta` field is renamed by a temporary edit.
+  - Result: recorded 56 exchanges (23 scenes, 21 JSON, 9 colour tables, 3 error cases) into `tests/contract/hotroom.json`, with the shared helper `tests/contract.py`. Two recordings were byte-identical, including the randomly seeded streamlines and glyphs (the pipeline's seeding is deterministic for a fixed query order).
+  - The snapshot holds for VTK 9.7.1. A VTK upgrade may legitimately move geometry bytes; re-record only as a reviewed change.
+- [x] 1.5 Add `tests/test_contract.py`. It replays the snapshot's queries and compares field by field and hash by hash, and an explicit allow-list holds the added fields and the 404 cases. Verify it passes on `main`, and fails when one `/api/meta` field is renamed by a temporary edit.
+  - Result: 56/56 on `main`, directly and under pytest. Temporarily renaming `meta.cells` to `nCells` failed the three `/api/meta` exchanges with `.cells: missing`, and the edit was reverted.
+  - The allow-list starts as `ALLOWED_CHANGES` in `tests/contract.py`: `/api/meta` with an empty or unknown case may become 404.
 - [ ] 1.6 Ask Niklas for the current `ghcr.io/equa/cfd-viz:beta` digest (from the host: `podman image inspect` or `skopeo inspect`), and record it in this task line as the rollback point.
 - [ ] 1.7 Create the branch `feat/standalone-foundation` from `main`. Verify `git branch --show-current`.
 

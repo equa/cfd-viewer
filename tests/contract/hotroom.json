@@ -1,0 +1,3442 @@
+{
+ "case": "hotRoom",
+ "exchanges": [
+  {
+   "json": {
+    "cases": [
+     "hotRoom"
+    ]
+   },
+   "kind": "json",
+   "path": "/api/cases",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "axisRange": {
+     "x": [
+      0.0,
+      10.0
+     ],
+     "y": [
+      0.0,
+      5.0
+     ],
+     "z": [
+      0.0,
+      10.0
+     ]
+    },
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "cases": [
+     "hotRoom"
+    ],
+    "cells": 32000,
+    "centre": [
+     5.0,
+     2.5,
+     5.0
+    ],
+    "colorField": "U",
+    "decomposed": false,
+    "fields": {
+     "T": 1,
+     "U": 3,
+     "k": 1,
+     "nut": 1,
+     "p_rgh": 1
+    },
+    "hasGeometry": true,
+    "partInputs": {
+     "boundary": [
+      "patches",
+      "field",
+      "component",
+      "cell_data",
+      "surface_clip",
+      {
+       "keys": [
+        "plane_axis",
+        "plane_coord"
+       ],
+       "when": {
+        "surface_clip": "1"
+       }
+      }
+     ],
+     "geometry": [
+      "geometry_mode"
+     ],
+     "glyph": [
+      "vector_field",
+      "glyph_source",
+      "glyph_count",
+      "glyph_scale",
+      "glyph_scale_by",
+      "field",
+      "component",
+      {
+       "keys": [
+        "plane_axis",
+        "plane_coord"
+       ],
+       "when": {
+        "glyph_source": "slice"
+       }
+      },
+      {
+       "keys": [
+        "contour_field",
+        "contour_count",
+        "contour_value",
+        "contour_min",
+        "contour_max"
+       ],
+       "when": {
+        "glyph_source": "isosurface"
+       }
+      }
+     ],
+     "iso": [
+      "field",
+      "component",
+      "contour_field",
+      "contour_count",
+      "contour_value",
+      "contour_min",
+      "contour_max"
+     ],
+     "slice": [
+      "field",
+      "component",
+      "cell_data",
+      "slice_edges",
+      "plane_axis",
+      "plane_coord"
+     ],
+     "stream": [
+      "vector_field",
+      "stream_seeds",
+      "stream_length",
+      "plane_axis",
+      "plane_coord",
+      "field",
+      "component"
+     ]
+    },
+    "patches": [
+     "floor",
+     "ceiling",
+     "fixedWalls"
+    ],
+    "points": 35301,
+    "presets": [
+     "coolwarm",
+     "viridis",
+     "plasma",
+     "inferno",
+     "turbo",
+     "jet",
+     "RdBu_r",
+     "Spectral_r",
+     "gray"
+    ],
+    "scalarFields": [
+     "T",
+     "k",
+     "nut",
+     "p_rgh"
+    ],
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "units": {
+     "T": "[\u00b0C]",
+     "U": "[m/s]",
+     "alphat": "[kg/m\u00b7s]",
+     "epsilon": "[m\u00b2/s\u00b3]",
+     "k": "[m\u00b2/s\u00b2]",
+     "nut": "[m\u00b2/s]",
+     "p": "[m\u00b2/s\u00b2]",
+     "p_rgh": "[m\u00b2/s\u00b2]",
+     "rho": "[kg/m\u00b3]"
+    },
+    "vectorField": "U",
+    "vectorFields": [
+     "U"
+    ]
+   },
+   "kind": "json",
+   "path": "/api/meta?case=hotRoom",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "axisRange": {
+     "x": [
+      0.0,
+      10.0
+     ],
+     "y": [
+      0.0,
+      5.0
+     ],
+     "z": [
+      0.0,
+      10.0
+     ]
+    },
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "cases": [
+     "hotRoom"
+    ],
+    "cells": 32000,
+    "centre": [
+     5.0,
+     2.5,
+     5.0
+    ],
+    "colorField": "U",
+    "decomposed": false,
+    "fields": {
+     "T": 1,
+     "U": 3,
+     "k": 1,
+     "nut": 1,
+     "p_rgh": 1
+    },
+    "hasGeometry": true,
+    "partInputs": {
+     "boundary": [
+      "patches",
+      "field",
+      "component",
+      "cell_data",
+      "surface_clip",
+      {
+       "keys": [
+        "plane_axis",
+        "plane_coord"
+       ],
+       "when": {
+        "surface_clip": "1"
+       }
+      }
+     ],
+     "geometry": [
+      "geometry_mode"
+     ],
+     "glyph": [
+      "vector_field",
+      "glyph_source",
+      "glyph_count",
+      "glyph_scale",
+      "glyph_scale_by",
+      "field",
+      "component",
+      {
+       "keys": [
+        "plane_axis",
+        "plane_coord"
+       ],
+       "when": {
+        "glyph_source": "slice"
+       }
+      },
+      {
+       "keys": [
+        "contour_field",
+        "contour_count",
+        "contour_value",
+        "contour_min",
+        "contour_max"
+       ],
+       "when": {
+        "glyph_source": "isosurface"
+       }
+      }
+     ],
+     "iso": [
+      "field",
+      "component",
+      "contour_field",
+      "contour_count",
+      "contour_value",
+      "contour_min",
+      "contour_max"
+     ],
+     "slice": [
+      "field",
+      "component",
+      "cell_data",
+      "slice_edges",
+      "plane_axis",
+      "plane_coord"
+     ],
+     "stream": [
+      "vector_field",
+      "stream_seeds",
+      "stream_length",
+      "plane_axis",
+      "plane_coord",
+      "field",
+      "component"
+     ]
+    },
+    "patches": [
+     "floor",
+     "ceiling",
+     "fixedWalls"
+    ],
+    "points": 35301,
+    "presets": [
+     "coolwarm",
+     "viridis",
+     "plasma",
+     "inferno",
+     "turbo",
+     "jet",
+     "RdBu_r",
+     "Spectral_r",
+     "gray"
+    ],
+    "scalarFields": [
+     "T",
+     "k",
+     "nut",
+     "p_rgh"
+    ],
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "units": {
+     "T": "[\u00b0C]",
+     "U": "[m/s]",
+     "alphat": "[kg/m\u00b7s]",
+     "epsilon": "[m\u00b2/s\u00b3]",
+     "k": "[m\u00b2/s\u00b2]",
+     "nut": "[m\u00b2/s]",
+     "p": "[m\u00b2/s\u00b2]",
+     "p_rgh": "[m\u00b2/s\u00b2]",
+     "rho": "[kg/m\u00b3]"
+    },
+    "vectorField": "U",
+    "vectorFields": [
+     "U"
+    ]
+   },
+   "kind": "json",
+   "path": "/api/meta",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "axisRange": {
+     "x": [
+      0.0,
+      10.0
+     ],
+     "y": [
+      0.0,
+      5.0
+     ],
+     "z": [
+      0.0,
+      10.0
+     ]
+    },
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "cases": [
+     "hotRoom"
+    ],
+    "cells": 32000,
+    "centre": [
+     5.0,
+     2.5,
+     5.0
+    ],
+    "colorField": "U",
+    "decomposed": false,
+    "fields": {
+     "T": 1,
+     "U": 3,
+     "k": 1,
+     "nut": 1,
+     "p_rgh": 1
+    },
+    "hasGeometry": true,
+    "partInputs": {
+     "boundary": [
+      "patches",
+      "field",
+      "component",
+      "cell_data",
+      "surface_clip",
+      {
+       "keys": [
+        "plane_axis",
+        "plane_coord"
+       ],
+       "when": {
+        "surface_clip": "1"
+       }
+      }
+     ],
+     "geometry": [
+      "geometry_mode"
+     ],
+     "glyph": [
+      "vector_field",
+      "glyph_source",
+      "glyph_count",
+      "glyph_scale",
+      "glyph_scale_by",
+      "field",
+      "component",
+      {
+       "keys": [
+        "plane_axis",
+        "plane_coord"
+       ],
+       "when": {
+        "glyph_source": "slice"
+       }
+      },
+      {
+       "keys": [
+        "contour_field",
+        "contour_count",
+        "contour_value",
+        "contour_min",
+        "contour_max"
+       ],
+       "when": {
+        "glyph_source": "isosurface"
+       }
+      }
+     ],
+     "iso": [
+      "field",
+      "component",
+      "contour_field",
+      "contour_count",
+      "contour_value",
+      "contour_min",
+      "contour_max"
+     ],
+     "slice": [
+      "field",
+      "component",
+      "cell_data",
+      "slice_edges",
+      "plane_axis",
+      "plane_coord"
+     ],
+     "stream": [
+      "vector_field",
+      "stream_seeds",
+      "stream_length",
+      "plane_axis",
+      "plane_coord",
+      "field",
+      "component"
+     ]
+    },
+    "patches": [
+     "floor",
+     "ceiling",
+     "fixedWalls"
+    ],
+    "points": 35301,
+    "presets": [
+     "coolwarm",
+     "viridis",
+     "plasma",
+     "inferno",
+     "turbo",
+     "jet",
+     "RdBu_r",
+     "Spectral_r",
+     "gray"
+    ],
+    "scalarFields": [
+     "T",
+     "k",
+     "nut",
+     "p_rgh"
+    ],
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "units": {
+     "T": "[\u00b0C]",
+     "U": "[m/s]",
+     "alphat": "[kg/m\u00b7s]",
+     "epsilon": "[m\u00b2/s\u00b3]",
+     "k": "[m\u00b2/s\u00b2]",
+     "nut": "[m\u00b2/s]",
+     "p": "[m\u00b2/s\u00b2]",
+     "p_rgh": "[m\u00b2/s\u00b2]",
+     "rho": "[kg/m\u00b3]"
+    },
+    "vectorField": "U",
+    "vectorFields": [
+     "U"
+    ]
+   },
+   "kind": "json",
+   "path": "/api/meta?case=nope",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ]
+   },
+   "kind": "json",
+   "path": "/api/times?case=hotRoom",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     26.850006103515625,
+     326.8500061035156
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=T&component=magnitude&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     26.850006103515625,
+     27.30441650390625
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=T&component=magnitude&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     0.0,
+     0.23053373396396637
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=magnitude&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     0.0,
+     0.05484043374657618
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=magnitude&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.07083951681852341,
+     0.07086771726608276
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=x&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.022809921130537987,
+     0.02277945529669519
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=x&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.05139157176017761,
+     0.23053373396396637
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=y&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.027642290368676187,
+     0.03407852590084073
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=y&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.0708397850394249,
+     0.07086791843175888
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=z&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.022809029035270212,
+     0.022780059874057727
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=U&component=z&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     1.3849704600943369e-06,
+     0.001732311793603003
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=k&component=magnitude&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     2.079735395454918e-06,
+     0.0007343816850334406
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=k&component=magnitude&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     0.0,
+     0.0024108965881168842
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=nut&component=magnitude&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     0.0,
+     0.0010173542983829935
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=nut&component=magnitude&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.03694809228181839,
+     0.07875064015388489
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=p_rgh&component=magnitude&robust=0",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "json": {
+    "range": [
+     -0.009022909309715032,
+     0.05585632845759392
+    ]
+   },
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=p_rgh&component=magnitude&robust=1",
+   "status": 200,
+   "type": "application/json"
+  },
+  {
+   "kind": "json",
+   "path": "/api/range?case=hotRoom&field=nope",
+   "status": 400,
+   "text": "no field 'nope' in hotRoom",
+   "type": "text/plain"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=coolwarm",
+   "sha256": "161fad279ef7b15f29821a492afe1365f2e253aeb6069ab6d562032d84b5ec6f",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=viridis",
+   "sha256": "96a1f6f37d4041f953def955ffb8b9ea2110a9b4e3c9b701182d48f7a9774c58",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=plasma",
+   "sha256": "3c079586af5e937166b831cf38703adbeb1198aa6bb3f176495e231423a3c14c",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=inferno",
+   "sha256": "8092f65256023cefa85fe1136f4f398a2a9f35e9fdf414176b33cce639c44318",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=turbo",
+   "sha256": "8f5d5edf6af4af0550fd7189cf2626a96a084c245b8aefc59835ba5ab66c3f11",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=jet",
+   "sha256": "c1b7b97444ebebfc30a590ce3eada7cffefb868960c6c39fd4ed1ff7a40712e9",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=RdBu_r",
+   "sha256": "dc2f97fae8e1ee24890571a21a1a0e91ec14553c97c57edb0ee33c6413803625",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=Spectral_r",
+   "sha256": "f641ca89be9889926f69aa54e491aabf3f9cfdb5a61e116cb33cc13e9ca0a26a",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=gray",
+   "sha256": "c15598e2bf5c6ff32034b4c7b3ce668b7993d7b986349e2b676be4f87c2502c3",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "bytes",
+   "path": "/api/lut?name=nope",
+   "status": 400,
+   "text": "no preset 'nope'",
+   "type": "text/plain"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
+    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
+    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
+    "boundary/scalar": "53d6097c113587283ab54d34d8e3938dea82e21cfe73d7a149d0f9e294038a4b"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 26888,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12800,
+       "vertices": 6722
+      },
+      "index": {
+       "length": 153600,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "boundary"
+    ],
+    "returned": [
+     "boundary"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=boundary",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
+    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
+    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
+    "slice/scalar": "d260e1cc918dccc03d55d850556a063cd103565abefcd58f60716e07806ce026"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "slice"
+    ],
+    "returned": [
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=slice",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "iso/@index": "9441fb6db20cf97e5838f24bdba1ce84acc50ecc34a388f1546fa8b9161ab596",
+    "iso/normal": "a83e24ef3ffc896d46b3447bfa7e4acf33bcd5b46c00c6d3627077d26406796a",
+    "iso/position": "90b9ef17c12b94b2e2c38883a687daa6b1b75b9e6279f5c16112315cc78637d9",
+    "iso/scalar": "8f6bd82a83ccac576edf9a6ae9d09b0b7fb0107e83d6ebfd18accd28cb54d265"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 2604,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 2604,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 868,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 408,
+       "vertices": 217
+      },
+      "index": {
+       "length": 4896,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "iso"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "iso"
+    ],
+    "returned": [
+     "iso"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=iso",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "stream/@index": "61ee9537c13e7686e85470888361d36440f641db719ae76f769d3474b119af09",
+    "stream/@ranges": "590a9793419019b558a70722d17d597e92d874dca6da36f0bb84c3999ba1f6bf",
+    "stream/position": "709a768b2b309401a731d01b7062b6a8e9cea0417dafe93695f83872b155c51a",
+    "stream/scalar": "24980de4734d063bb09100010df9af8cccb8397d47f7b4edb21db482576f44bb",
+    "stream/travel": "610aca2f0f6d760192e5ce4ac0b3c08034fc6ee2f4cc8ad378cd98ef7d160257"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 318744,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 106248,
+        "type": "f32"
+       },
+       "travel": {
+        "components": 1,
+        "length": 106248,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "polylines": 350,
+       "primitives": 26162,
+       "vertices": 26562
+      },
+      "index": {
+       "length": 209296,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "stream",
+      "ranges": {
+       "components": 2,
+       "length": 2800,
+       "type": "u32"
+      }
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "stream"
+    ],
+    "returned": [
+     "stream"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": 973.5185719702833,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=stream",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "glyph/@index": "d0b40320fff91b2f0a70d5f3c38109816abd91a2d0bc826271df7a74fccf7c38",
+    "glyph/normal": "71e828a3c74471e1e03971a0ad8e6e263bbe7351779de7c8a90bf17830461f00",
+    "glyph/position": "0d224a073a7f787a8718096bd30a23c0cb00053032ec5d76ff7579c241f8b5a2",
+    "glyph/scalar": "6268e8a12150f724b38a55f7d765c57b2062af8130109bd23a52147d28629c59"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 318420,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 318420,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 106140,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 28710,
+       "vertices": 26535
+      },
+      "index": {
+       "length": 344520,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "glyph"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "glyph"
+    ],
+    "returned": [
+     "glyph"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=glyph",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "geometry/@index": "4a8fec464a19709a9d20ec978e47960a7d7f40e73959cfab58d4d1dd63ad1e8d",
+    "geometry/position": "889c5ba32e89c9c5688d3a911190f44268101831c897054c7774b8f5eb7ce6ff"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 96,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12,
+       "vertices": 8
+      },
+      "index": {
+       "length": 96,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "geometry"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "geometry"
+    ],
+    "returned": [
+     "geometry"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=geometry",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
+    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
+    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
+    "boundary/scalar": "53d6097c113587283ab54d34d8e3938dea82e21cfe73d7a149d0f9e294038a4b",
+    "geometry/@index": "4a8fec464a19709a9d20ec978e47960a7d7f40e73959cfab58d4d1dd63ad1e8d",
+    "geometry/position": "889c5ba32e89c9c5688d3a911190f44268101831c897054c7774b8f5eb7ce6ff",
+    "glyph/@index": "d0b40320fff91b2f0a70d5f3c38109816abd91a2d0bc826271df7a74fccf7c38",
+    "glyph/normal": "71e828a3c74471e1e03971a0ad8e6e263bbe7351779de7c8a90bf17830461f00",
+    "glyph/position": "0d224a073a7f787a8718096bd30a23c0cb00053032ec5d76ff7579c241f8b5a2",
+    "glyph/scalar": "6268e8a12150f724b38a55f7d765c57b2062af8130109bd23a52147d28629c59",
+    "iso/@index": "9441fb6db20cf97e5838f24bdba1ce84acc50ecc34a388f1546fa8b9161ab596",
+    "iso/normal": "a83e24ef3ffc896d46b3447bfa7e4acf33bcd5b46c00c6d3627077d26406796a",
+    "iso/position": "90b9ef17c12b94b2e2c38883a687daa6b1b75b9e6279f5c16112315cc78637d9",
+    "iso/scalar": "8f6bd82a83ccac576edf9a6ae9d09b0b7fb0107e83d6ebfd18accd28cb54d265",
+    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
+    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
+    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
+    "slice/scalar": "d260e1cc918dccc03d55d850556a063cd103565abefcd58f60716e07806ce026",
+    "stream/@index": "895eb053dbcf7dd908d95d86bdd6a8f5fd90423803f0c674a614a23e90c74e1f",
+    "stream/@ranges": "d3636ef9d1f49e550a93f793c13659f713185b866647e2af92191748c5118d15",
+    "stream/position": "e970c45f998688da04defae04e86b47e5084f82cb122e464dfed6b318b3e798a",
+    "stream/scalar": "e1b2cb45d8478e85797309796af9d2130224a7310a57dcf3a4814013f659731c",
+    "stream/travel": "f57d998d9845a1999ca3a9e7835b8f1b4df0bb47f7fe0f2fe2d149fe71b88e67"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 26888,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12800,
+       "vertices": 6722
+      },
+      "index": {
+       "length": 153600,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     },
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     },
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 2604,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 2604,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 868,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 408,
+       "vertices": 217
+      },
+      "index": {
+       "length": 4896,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "iso"
+     },
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 296556,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 98852,
+        "type": "f32"
+       },
+       "travel": {
+        "components": 1,
+        "length": 98852,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "polylines": 343,
+       "primitives": 24313,
+       "vertices": 24713
+      },
+      "index": {
+       "length": 194504,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "stream",
+      "ranges": {
+       "components": 2,
+       "length": 2744,
+       "type": "u32"
+      }
+     },
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 318420,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 318420,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 106140,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 28710,
+       "vertices": 26535
+      },
+      "index": {
+       "length": 344520,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "glyph"
+     },
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 96,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12,
+       "vertices": 8
+      },
+      "index": {
+       "length": 96,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "geometry"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "boundary",
+     "slice",
+     "iso",
+     "stream",
+     "glyph",
+     "geometry"
+    ],
+    "returned": [
+     "boundary",
+     "slice",
+     "iso",
+     "stream",
+     "glyph",
+     "geometry"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": 940.6844381328228,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=boundary%2Cslice%2Ciso%2Cstream%2Cglyph%2Cgeometry",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
+    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
+    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
+    "boundary/scalar": "53d6097c113587283ab54d34d8e3938dea82e21cfe73d7a149d0f9e294038a4b",
+    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
+    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
+    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
+    "slice/scalar": "d45287510305f83144e37ba50bbc0f95dfdcb2e4dac5749f02bbc6b11661e585"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.0
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 26888,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12800,
+       "vertices": 6722
+      },
+      "index": {
+       "length": 153600,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     },
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     -0.5,
+     0.5
+    ],
+    "requested": [
+     "boundary",
+     "slice"
+    ],
+    "returned": [
+     "boundary",
+     "slice"
+    ],
+    "time": 0.0,
+    "timeIndex": 0,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=boundary%2Cslice&time_index=0",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
+    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
+    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
+    "boundary/scalar": "850272755f861f598df1ee57b39c2a7c4b7496045f88b55e6c2e2dd679cab912",
+    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
+    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
+    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
+    "slice/scalar": "72a2b7853f9cef24793e2a9a8d4d5c6ee1599ec5b88cf9dfaff7c91fd34d90d2"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "T",
+    "contourLocked": false,
+    "contourValues": [
+     176.85000610351562
+    ],
+    "field": "T",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 80664,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 26888,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12800,
+       "vertices": 6722
+      },
+      "index": {
+       "length": 153600,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     },
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     26.850006103515625,
+     326.8500061035156
+    ],
+    "requested": [
+     "boundary",
+     "slice"
+    ],
+    "returned": [
+     "boundary",
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[\u00b0C]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=T&component=magnitude&parts=boundary%2Cslice",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "slice/@index": "b751822d7250262cf4c65e20e709da63614b51103f47c6a648cc3215976c856c",
+    "slice/normal": "0acae85475099e7c9664b474a3e143f8f241f0a07058bfe0f671f1658a7b1a41",
+    "slice/position": "b21777f4db4a5bfebf471d9a7d65da93bd9f7549aefc4cb8ef64dd3f74aacdc3",
+    "slice/scalar": "cd1196d8730d711b2285e73ed5920b628c677f014f09f99e2ae132c8d6cc01d0"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "x",
+    "planeCoord": 2.5,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "slice"
+    ],
+    "returned": [
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=slice&plane_axis=x&plane_coord=2.5",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "slice/@index": "bd0b0145b74258eebbed9c42609f8d1613f5db0e4312c77702312762e832ee82",
+    "slice/normal": "14e89e0f9268e4c5488726992e8225de91a81084f3b6d52d400d8652155f3fa7",
+    "slice/position": "932c39ac583189ef0ae6509c7c39a6eb8019d05b210b6e08418a23b2dd3dedd7",
+    "slice/scalar": "acab45a35727bb60f430dc2b40373e9d25ac1897693f8f25f1acebde095f4e0d",
+    "stream/@index": "7d1ef8043c9f7533e60f945f08f89f509eb75c69098bff0a71bbd9c2b53ed7e8",
+    "stream/@ranges": "ae169c6bfc4899b9e3dbfe5c39d73c5accdfc6817871ab16e707f87a208d68de",
+    "stream/position": "2936ee8ac7d5f6f481d62b6021ea6e4ec30a24ce85a71fb6a7a5aab394c353b1",
+    "stream/scalar": "c5251ae48e8c3cefa95f8becdc025b8ca6b4a52366d232f5539f7b0b8cc01e51",
+    "stream/travel": "8120b68f13d89c78f1a517e07aa98e8e6ed398c6a9c1547f3689ff059785b7c8"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 20172,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 20172,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 6724,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 3200,
+       "vertices": 1681
+      },
+      "index": {
+       "length": 38400,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     },
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 299892,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 99964,
+        "type": "f32"
+       },
+       "travel": {
+        "components": 1,
+        "length": 99964,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "polylines": 358,
+       "primitives": 24591,
+       "vertices": 24991
+      },
+      "index": {
+       "length": 196728,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "stream",
+      "ranges": {
+       "components": 2,
+       "length": 2864,
+       "type": "u32"
+      }
+     }
+    ],
+    "planeAxis": "y",
+    "planeCoord": 2.5,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "slice",
+     "stream"
+    ],
+    "returned": [
+     "slice",
+     "stream"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": 712.1892624832369,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=slice%2Cstream&plane_axis=y",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "iso/@index": "ef866d1a73ab99b075ee1e8a4db4a81bc9f246df9edd89ba07e05e0363b4b608",
+    "iso/normal": "5cee81ee617bfcf70468b392520b59163718846d0f4c047f5ba7a61a30f21288",
+    "iso/position": "542f28cb3a392a4a829e50e626098c1ce3e88932f190ca6755482d24df13beae",
+    "iso/scalar": "98cdab12aa1d3ed13d34d060678ee7075d75b5fc176cf356d33e703d53dc83a7"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "T",
+    "contourLocked": false,
+    "contourValues": [
+     101.85000610351562,
+     176.85000610351562,
+     251.85000610351562
+    ],
+    "field": "T",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 2580,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 2580,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 860,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 156,
+       "vertices": 215
+      },
+      "index": {
+       "length": 1872,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "iso"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     26.850006103515625,
+     326.8500061035156
+    ],
+    "requested": [
+     "iso"
+    ],
+    "returned": [
+     "iso"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[\u00b0C]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=T&component=magnitude&parts=iso&contour_count=3",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "glyph/@index": "16844bab0ce42d7bec7b325763018b782e5ca99a2e1a57e372c36a9b6bf15995",
+    "glyph/normal": "bd87d3a8442812df8372974074544957208b47a94a40793095ade78e7befafc1",
+    "glyph/position": "51d1c7d480a1c3db4f430fc354a6aad79a4f48beb1483be61c9fc446dafac9fd",
+    "glyph/scalar": "b512db5b7fff81d41b25492df9c7fe99f772c611ed0a7f8189a479c0699b0350"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 169092,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 169092,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 56364,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 15246,
+       "vertices": 14091
+      },
+      "index": {
+       "length": 182952,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "glyph"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "glyph"
+    ],
+    "returned": [
+     "glyph"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=glyph&glyph_source=slice&glyph_count=200",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "glyph/@index": "fe7d3c76fd1b982dd81a9f023977697b3e3cb71f48e5209fedc24b1e593b500f",
+    "glyph/normal": "4568e856811974f72c61fb7553f9285c8cd97fdbf7c45499b55e4315959d9b92",
+    "glyph/position": "d550597156c9213e345c00f313f5a08bba61a4b125526b1ad67d74122351a383",
+    "glyph/scalar": "dfd361a309c78155bf921fe9c70ad72875ca43bc13a23c1e203fe6c207d3398b"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 158844,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 158844,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 52948,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 14322,
+       "vertices": 13237
+      },
+      "index": {
+       "length": 171864,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "glyph"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "glyph"
+    ],
+    "returned": [
+     "glyph"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=glyph&glyph_source=isosurface",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "slice/@index": "c3be25a3f173f0879897d23f40e6b41bd970cd7d685ceda3854862cf2686e542",
+    "slice/normal": "ebbaa73ba7dc85023ac66881133f1d016ecbf43288f9a9794f4679ce3abfb9a5",
+    "slice/position": "a7b11fa52cbbba9d17fb8b4cca2d9f99aab2943c8470d68f06b00a1d529547b9",
+    "slice/scalar": "d003a15d2ed1d04cc4466ba9df248ad0572f413772d5142f9106a74835622bcd"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 20664,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 20664,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 6888,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 3440,
+       "vertices": 1722
+      },
+      "index": {
+       "length": 41280,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "slice"
+    ],
+    "returned": [
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=slice&slice_edges=1",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "79c6fa776083d972a4061a3dbf9f167d47e17ee3fb0f66e0aa21301400985e88",
+    "boundary/normal": "9cf41e44851d5135d4e0c0670f4b309a6bbd3c0a20553e6b3550c25331356efd",
+    "boundary/position": "67247c908c57ddcbaf0f900bcbee45abc8862318b21da29e923b3b32f209e71f",
+    "boundary/scalar": "df8350fa189b581a81a3cf49af3f27cc862181b4aaec8c9b02afd5363a3f403c"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 16092,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 16092,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 5364,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 2560,
+       "vertices": 1341
+      },
+      "index": {
+       "length": 30720,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 1.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "boundary"
+    ],
+    "returned": [
+     "boundary"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=boundary&surface_clip=1&plane_axis=z&plane_coord=1",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "b919be5824ac99f7f1c93e9c93d33f6ced92ebf193ddc64ea5b94be89c3e52e0",
+    "boundary/normal": "60ace7ca015f2db78e36395f5b73afe919da47a627a59432b4cf3e643b614232",
+    "boundary/position": "5cf6bde9e873608132bd8b41597997facbdf2a837490c5532c257c1aef96fb17",
+    "boundary/scalar": "0c5cc90b079d0d9c1ded1376357d23a9782a704a83e01731f50ccd162e246492",
+    "slice/@index": "1c06697361930e24335b31b79a6923c9799111666e921ee5903a29e7db09c8de",
+    "slice/normal": "9a6f206708bd4a7f404beb0942dfd6687adf40429fc8a9a4a8cfddaf7aabeab1",
+    "slice/position": "1b2dbebec9ebfbacfc5fba163c78ab63ee5ec8e75f24121cdf812b8d9f17462c",
+    "slice/scalar": "c766c3318759c94065ba5fca09f378bde935e2187488a856085e4e9af38b8ab8"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 460800,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 460800,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 153600,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 12800,
+       "vertices": 38400
+      },
+      "index": {
+       "length": 153600,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     },
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 57600,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 57600,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 19200,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 4800
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "boundary",
+     "slice"
+    ],
+    "returned": [
+     "boundary",
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=boundary%2Cslice&cell_data=1",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
+    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
+    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
+    "slice/scalar": "5676302883541e69e8201274cf3828a49baae6ec97ccdbed3403f7a66eaad382"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "x",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     1.4100223779678345e-05
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     -0.07083951681852341,
+     0.07086771726608276
+    ],
+    "requested": [
+     "slice"
+    ],
+    "returned": [
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=x&parts=slice",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "iso/@index": "20ce4062538c7f84a1b88761a8c71d9fc8132356bbda2178f00a8e31d5a36a9d",
+    "iso/normal": "2f2d99ca0699e6a40aa038be43d9b231b00637fec97aab5c768d0d8ee722863a",
+    "iso/position": "b938f3fc6eaaa5bccbe076bb53c5b258844f2b62769648222a1421078592bf82",
+    "iso/scalar": "441a7a73bbf0f483a1176fd5edb9d47a9cc7b8a381f380c993db493990baf87e"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "T",
+    "contourLocked": true,
+    "contourValues": [
+     176.85000610351562
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 1404,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 1404,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 468,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 60,
+       "vertices": 117
+      },
+      "index": {
+       "length": 720,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "iso"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "iso"
+    ],
+    "returned": [
+     "iso"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=iso&contour_field=T",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "geometry/@index": "8d9e324c90947230abdc201d85e4dd1c456e4514567b77dc9b6aac1ea0d5c264",
+    "geometry/position": "889c5ba32e89c9c5688d3a911190f44268101831c897054c7774b8f5eb7ce6ff"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 96,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 18,
+       "vertices": 8
+      },
+      "index": {
+       "length": 144,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "geometry"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "geometry"
+    ],
+    "returned": [
+     "geometry"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=geometry&geometry_mode=wireframe",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
+    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
+    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
+    "slice/scalar": "d260e1cc918dccc03d55d850556a063cd103565abefcd58f60716e07806ce026"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.02742021687328809
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 10332,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 3444,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 1600,
+       "vertices": 861
+      },
+      "index": {
+       "length": 19200,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "slice"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.05484043374657618
+    ],
+    "requested": [
+     "slice"
+    ],
+    "returned": [
+     "slice"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=slice&robust=1",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "boundary/@index": "4d88f58f84239aea941d27fc9d7f01b9ab24f75c3e85cd2c693edd9bd9ab6c22",
+    "boundary/normal": "14e89e0f9268e4c5488726992e8225de91a81084f3b6d52d400d8652155f3fa7",
+    "boundary/position": "af871029db98e40cb0a6b94cf1556c27f1ee2105c5759e4a5ed2c1eb0dc02e01",
+    "boundary/scalar": "009e8f58ee92f2cc0b4860ba10de2896072799c163f486ed96bc99ea3f5daa66"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "normal": {
+        "components": 3,
+        "length": 20172,
+        "type": "f32"
+       },
+       "position": {
+        "components": 3,
+        "length": 20172,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 6724,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "primitives": 3200,
+       "vertices": 1681
+      },
+      "index": {
+       "length": 38400,
+       "type": "u32"
+      },
+      "mode": "triangles",
+      "name": "boundary"
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "boundary"
+    ],
+    "returned": [
+     "boundary"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": null,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=boundary&patches=floor",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "buffers": {
+    "stream/@index": "abb32db45424f9e9dd9acb4af58c5842e82390d0930bf006b9ba230944b7981f",
+    "stream/@ranges": "18b930a821d6001faba22c752d0947a2d0fce0436d4cb1dc63ee84a5583ac4ea",
+    "stream/position": "3442b70dd082e2446d4c3c01850666b10d8029476d605f1aedff347a3baac483",
+    "stream/scalar": "0eae1c284666c1cbb373d4d702cb5cc4b764d4025724ad1f563824fd04edf0c9",
+    "stream/travel": "71103152194d04237874c60fc2811ac8c6ea7e16ae0f4bc8881d20a49c953bda"
+   },
+   "header": {
+    "bounds": [
+     0.0,
+     10.0,
+     0.0,
+     5.0,
+     0.0,
+     10.0
+    ],
+    "case": "hotRoom",
+    "component": "magnitude",
+    "contourField": "U",
+    "contourLocked": false,
+    "contourValues": [
+     0.11526686698198318
+    ],
+    "field": "U",
+    "parts": [
+     {
+      "attributes": {
+       "position": {
+        "components": 3,
+        "length": 45804,
+        "type": "f32"
+       },
+       "scalar": {
+        "components": 1,
+        "length": 15268,
+        "type": "f32"
+       },
+       "travel": {
+        "components": 1,
+        "length": 15268,
+        "type": "f32"
+       }
+      },
+      "counts": {
+       "polylines": 90,
+       "primitives": 3717,
+       "vertices": 3817
+      },
+      "index": {
+       "length": 29736,
+       "type": "u32"
+      },
+      "mode": "lines",
+      "name": "stream",
+      "ranges": {
+       "components": 2,
+       "length": 720,
+       "type": "u32"
+      }
+     }
+    ],
+    "planeAxis": "z",
+    "planeCoord": 5.0,
+    "range": [
+     0.0,
+     0.23053373396396637
+    ],
+    "requested": [
+     "stream"
+    ],
+    "returned": [
+     "stream"
+    ],
+    "time": 1730.0,
+    "timeIndex": 18,
+    "times": [
+     0.0,
+     100.0,
+     200.0,
+     300.0,
+     400.0,
+     500.0,
+     600.0,
+     700.0,
+     800.0,
+     900.0,
+     1000.0,
+     1100.0,
+     1200.0,
+     1300.0,
+     1400.0,
+     1500.0,
+     1600.0,
+     1700.0,
+     1730.0
+    ],
+    "travelDivisor": 708.589334927484,
+    "unit": "[m/s]"
+   },
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=U&component=magnitude&parts=stream&stream_seeds=50&stream_length=0.5",
+   "status": 200,
+   "type": "application/octet-stream"
+  },
+  {
+   "kind": "scene",
+   "path": "/api/scene?case=hotRoom&field=nope&component=magnitude&parts=slice",
+   "status": 400,
+   "text": "no field 'nope' in hotRoom",
+   "type": "text/plain"
+  }
+ ]
+}
