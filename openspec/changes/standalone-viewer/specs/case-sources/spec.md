@@ -8,7 +8,7 @@ How the viewer finds, identifies, describes and opens OpenFOAM cases. In phase 1
 
 ### Requirement: Cases are discovered under one or more roots
 
-The server SHALL accept one or more case roots (`--data`, repeatable). A directory SHALL be a case when it contains `system/controlDict`. Discovery SHALL search each root and its subdirectories to a configurable depth (`--scan-depth`). In `server` mode the default SHALL be 1, meaning the root and its immediate children, exactly as before this change. Later modes set their own default. It SHALL NOT descend into a directory once that directory is a case, and SHALL skip hidden directories, `processor*` directories and numeric time directories. A root that is itself a case SHALL be listed as one case.
+The server SHALL accept one or more case roots (`--data`, repeatable). A directory SHALL be a case when it contains `system/controlDict`. Discovery SHALL search each root and its subdirectories to a configurable depth (`--scan-depth`). In `server` mode the default SHALL be 1, meaning the root and its immediate children, exactly as before this change. Later modes set their own default. Below a root, it SHALL NOT descend into a directory once that directory is a case, and SHALL skip hidden directories, `processor*` directories and numeric time directories. A root SHALL always be scanned, and SHALL itself be listed when it is a case, as `find_cases` did before this change.
 
 #### Scenario: A nested case is found
 
@@ -53,7 +53,7 @@ Every listed case SHALL have an id derived from its root and its path relative t
 
 ### Requirement: Names keep working for the cockpit
 
-`?case=` SHALL also accept a case's directory name when exactly one listed case has that name. A name that matches several cases, or matches no case, SHALL be answered with 404.
+`?case=` SHALL also accept a case's directory name when exactly one listed case has that name. A name that matches several cases, or matches no case, SHALL be answered with 404, and so SHALL a missing or empty `?case=`.
 
 The old fallback, which opened the first case in place of an unknown one, is removed on purpose (agreed 2026-10-20). It is the one change in behaviour the cockpit can observe, and it only shows when the cockpit asks for a case that does not exist.
 

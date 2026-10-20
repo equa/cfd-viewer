@@ -26,6 +26,7 @@ from aiohttp import web
 from ..foamviz import colors
 
 from .scene import SceneSource
+from .sources import AmbiguousCase, CaseNotFound
 
 log = logging.getLogger("cfdviewer")
 
@@ -70,8 +71,9 @@ this process:</p>
 </body>"""
 
 
-def make_app(data_root):
-    source = SceneSource(data_root)
+def make_app(source):
+    """The aiohttp app over a case source (``sources.DirectorySource``)."""
+    scene_source = SceneSource(source)
     # The filter graph is shared mutable state; one extraction at a time.
     lock = asyncio.Lock()
 
@@ -81,29 +83,38 @@ def make_app(data_root):
             return await asyncio.to_thread(fn, *args)
 
     async def open_case(request):
-        """Resolve ?case= (falling back to the first case) and open it."""
-        name = request.query.get("case") or ""
-        names = source.case_names()
-        if not names:
-            raise web.HTTPNotFound(text="no OpenFOAM case under the data root")
-        if name not in names:
-            name = names[0]
+        """Open the case ?case= denotes: an id, or a name exactly one case has.
+
+        Anything else is a 404 with the reason. There is deliberately no
+        fallback to the first case any more: showing a different case than the
+        one asked for is worse than saying so (openspec standalone-viewer).
+        """
+        key = request.query.get("case") or ""
+        if not key:
+            raise web.HTTPNotFound(text="no case given: pass ?case=<id or name>")
         try:
-            await in_thread(source.open, name)
-        except KeyError:
-            raise web.HTTPNotFound(text=f"no case {name!r}")
+            await in_thread(scene_source.open, key)
+        except AmbiguousCase as exc:
+            raise web.HTTPNotFound(
+                text=f"case name {key!r} is ambiguous; use one of the ids "
+                     f"{', '.join(exc.args[1])}")
+        except CaseNotFound:
+            raise web.HTTPNotFound(text=f"no case {key!r}")
 
     async def cases(_request):
-        return web.json_response({"cases": source.case_names()})
+        """``cases`` (names) as it always was, plus ``entries`` with the rest."""
+        refs = await asyncio.to_thread(source.list)
+        return web.json_response({"cases": [r.name for r in refs],
+                                  "entries": [r.to_json() for r in refs]})
 
     async def meta(request):
         await open_case(request)
-        return web.json_response(await in_thread(source.meta))
+        return web.json_response(await in_thread(scene_source.meta))
 
     async def times(request):
         """Re-scan the case for time steps written since it was opened."""
         await open_case(request)
-        return web.json_response({"times": await in_thread(source.refresh_times)})
+        return web.json_response({"times": await in_thread(scene_source.refresh_times)})
 
     async def field_range(request):
         """The data range for one field/component. Cheap by design -- see
@@ -111,7 +122,7 @@ def make_app(data_root):
         await open_case(request)
         try:
             values = await in_thread(
-                source.field_range,
+                scene_source.field_range,
                 request.query.get("field"),
                 request.query.get("component"),
                 request.query.get("robust") not in (None, "", "0", "false"),
@@ -123,7 +134,7 @@ def make_app(data_root):
     async def scene(request):
         await open_case(request)
         try:
-            blob = await in_thread(source.scene, request.query)
+            blob = await in_thread(scene_source.scene, request.query)
         except ValueError as exc:
             raise web.HTTPBadRequest(text=str(exc))
         response = web.Response(body=blob, content_type="application/octet-stream")
@@ -170,10 +181,10 @@ def make_app(data_root):
     if (DIST / "assets").is_dir():
         # Vite fingerprints these, so they can be cached forever.
         app.router.add_static("/assets/", DIST / "assets")
-    app["source"] = source
+    app["source"] = scene_source
     return app
 
 
-def serve(data_root, host="0.0.0.0", port=5003):
-    log.info("cfd-viewer serving %s on http://%s:%d/", data_root, host, port)
-    web.run_app(make_app(data_root), host=host, port=port, print=None)
+def serve(source, host="0.0.0.0", port=5003):
+    log.info("cfd-viewer serving %s on http://%s:%d/", source.describe(), host, port)
+    web.run_app(make_app(source), host=host, port=port, print=None)

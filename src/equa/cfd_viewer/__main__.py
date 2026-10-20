@@ -13,7 +13,7 @@ the frozen ``trame`` branch.
 import argparse
 import logging
 
-from .foamviz.case import find_cases
+from .server.sources import DirectorySource
 
 log = logging.getLogger("cfdviewer")
 
@@ -23,8 +23,17 @@ def main(argv=None):
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         "--data",
-        default="data",
-        help="directory holding OpenFOAM cases (or a single case directory)",
+        action="append",
+        help="directory holding OpenFOAM cases, or a single case directory; "
+             "repeat for several roots (default: ./data)",
+    )
+    parser.add_argument(
+        "--scan-depth",
+        type=int,
+        default=1,
+        metavar="N",
+        help="directory levels below each root to look for cases (default 1: "
+             "the root and its immediate children, as the cockpit expects)",
     )
     parser.add_argument("--port", type=int, default=5003)
     parser.add_argument("--host", default="0.0.0.0")
@@ -45,10 +54,13 @@ def main(argv=None):
     logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
     logging.getLogger("aiohttp.server").setLevel(logging.WARNING)
 
-    cases = find_cases(args.data)
+    if args.scan_depth < 0:
+        parser.error("--scan-depth must be 0 or more")
+    source = DirectorySource(args.data or ["data"], depth=args.scan_depth)
+    cases = source.list()
     if not cases:
         msg = (
-            f"no OpenFOAM case found under {args.data!r} "
+            f"no OpenFOAM case found under {source.describe()!r} "
             "(a case is a directory containing system/controlDict)"
         )
         # Interactive use: a mistyped --data is worth failing on. Service mode
@@ -59,11 +71,11 @@ def main(argv=None):
         log.warning("%s; serving empty, will pick up cases on demand", msg)
     else:
         log.info("%d case(s) under %s: %s",
-                 len(cases), args.data, ", ".join(c.name for c in cases))
+                 len(cases), source.describe(), ", ".join(c.name for c in cases))
 
     from .server.app import serve
 
-    serve(args.data, host=args.host, port=args.port)
+    serve(source, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

@@ -22,14 +22,13 @@ written-down form of that boundary.
 
 import logging
 import time
-from pathlib import Path
 
 import numpy as np
 import vtk
 from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from ..foamviz import colors
-from ..foamviz.case import FIELD_UNITS, FoamCase, find_cases
+from ..foamviz.case import FIELD_UNITS, FoamCase
 from ..foamviz.pipeline import COLOR_ARRAY, FoamPipeline
 
 from . import wire
@@ -132,34 +131,47 @@ class SceneSource:
     :mod:`server.app`).
     """
 
-    def __init__(self, data_root):
-        self.data_root = Path(data_root)
+    def __init__(self, source):
+        self.source = source  # a CaseSource, e.g. sources.DirectorySource
         self.pipeline = FoamPipeline()
         self.case = None
+        self.ref = None  # the sources.CaseRef of the open case
 
     # -- case handling ----------------------------------------------------
 
     def case_names(self):
-        return [p.name for p in find_cases(self.data_root)]
+        return self.source.names()
 
-    def open(self, name):
-        """Open *name*, or keep the current case if it is already the one asked
-        for. Returns the case; raises KeyError if there is no such case."""
-        if self.case is not None and self.case.name == name:
+    def is_open(self, key):
+        """Whether *key* (an id or a name) denotes the case already open.
+
+        Checked before resolving, so the requests that follow a case's first
+        one -- every slider release is an /api/scene -- cost no directory walk.
+        A name only counts while the open case still exists, and it was
+        unambiguous when the case was opened."""
+        ref = self.ref
+        return (ref is not None and key in (ref.id, ref.name)
+                and ref.directory.is_dir())
+
+    def open(self, key):
+        """Open the case *key* denotes, or keep it if it is already open.
+
+        Returns the case. Raises sources.CaseNotFound or sources.AmbiguousCase
+        (both KeyError) when *key* does not denote exactly one case."""
+        if self.is_open(key):
             return self.case
-        paths = {p.name: p for p in find_cases(self.data_root)}
-        if name not in paths:
-            raise KeyError(name)
+        ref = self.source.resolve(key)
         # Same ordering as FoamViz.load_case: let the old case go before the new
         # one is read, or peak RSS is both cases at once (see CLAUDE.md
         # "Memory management").
-        self.case = None
+        self.case, self.ref = None, None
         self.pipeline.release_case()
-        self.case = FoamCase(paths[name])
+        self.case = FoamCase(ref.directory)
         self.case.load(self.case.times[-1])
         self.pipeline.set_case(self.case)
         self.pipeline.update_data()
-        log.info("opened %s: %d cells", name, self.case.n_cells())
+        self.ref = ref
+        log.info("opened %s: %d cells", ref.name, self.case.n_cells())
         return self.case
 
     def meta(self):
@@ -168,6 +180,10 @@ class SceneSource:
         b = list(c.bounds())
         return {
             "case": c.name,
+            # Added by the standalone-viewer change; the API only grows, so the
+            # two fields above keep their meaning (a name, the list of names).
+            "caseId": self.ref.id,
+            "caseLabel": self.ref.label,
             "cases": self.case_names(),
             "cells": c.n_cells(),
             "points": c.n_points(),

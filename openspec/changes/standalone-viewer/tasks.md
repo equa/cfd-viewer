@@ -95,22 +95,26 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
 
 ## 5. Case sources (D1)
 
-- [ ] 5.1 Add `server/sources.py` with `CaseRef` and `DirectorySource(roots, depth)`. It implements discovery, ids, labels, `cells` and `decomposed` as the case-sources spec defines them, and shares the decomposed rule with `FoamCase._is_decomposed`. Verify a new `tests/test_sources.py` covers every case-sources scenario on synthetic directory trees:
+- [x] 5.1 Add `server/sources.py` with `CaseRef` and `DirectorySource(roots, depth)`. It implements discovery, ids, labels, `cells` and `decomposed` as the case-sources spec defines them, and shares the decomposed rule with `FoamCase._is_decomposed`. Verify a new `tests/test_sources.py` covers every case-sources scenario on synthetic directory trees:
   - nested cases at depth 3, and server mode at depth 1 with a nested `old/<uuid2>`;
   - a root that is itself a case, and the depth bound;
   - two roots, and duplicate names;
   - the metadata label;
   - the owner `note`, plain and `.gz`;
   - missing metadata, and `N-CELLS: 0` ignored.
-- [ ] 5.2 Make `SceneSource` take a source instead of a root, and open cases by id. `open_case` in `server/app.py` resolves an id or a unique name, and otherwise answers 404 with a reason, with no fallback to the first case. Verify pytest cases for the "unknown case" and "ambiguous name" scenarios against the aiohttp test client, and that the contract test passes with exactly the allow-listed 404s.
-- [ ] 5.3 Make the API changes additive only:
+  - Result: `server/sources.py` adds `CaseRef`, `DirectorySource`, `CaseNotFound` and `AmbiguousCase`. The decomposed rule moves to a module-level `is_decomposed()` in `foamviz/case.py`, which `FoamCase` now calls too, so both use one definition. `tests/test_sources.py` covers every scenario: **24 tree tests plus 4 HTTP tests**. One of them checks that depth-1 discovery equals `find_cases` on the real `data/`.
+- [x] 5.2 Make `SceneSource` take a source instead of a root, and open cases by id. `open_case` in `server/app.py` resolves an id or a unique name, and otherwise answers 404 with a reason, with no fallback to the first case. Verify pytest cases for the "unknown case" and "ambiguous name" scenarios against the aiohttp test client, and that the contract test passes with exactly the allow-listed 404s.
+  - Result: `SceneSource(source)` opens cases by id or unique name. It skips the directory walk when the key denotes the case already open, so slider requests cost nothing extra. `open_case` answers 404 with the reason for a missing, unknown or ambiguous case (the ambiguous message lists the ids). `ALLOWED_CHANGES` is tightened: those two exchanges must now be 404. Contract 56/56.
+- [x] 5.3 Make the API changes additive only:
   - `GET /api/cases` keeps `cases` and adds `entries`;
   - `/api/meta` keeps `case` and adds `caseId` and `caseLabel`.
 
   Verify:
   - the contract test passes;
   - listing the 15.8 M-cell test case returns `cells` 15757775 and label `case-4` in under 1 s, without constructing a reader.
-- [ ] 5.4 Make `--data` repeatable, and add `--scan-depth` with a default of 1 in `server` mode. An empty root stays non-fatal. Verify by starting with two roots, and with an empty one.
+  - Result: `/api/cases` returns `cases` (names, unchanged) plus `entries`. `/api/meta` adds `caseId` and `caseLabel`, with `case` and `cases` unchanged. On the 15.8 M-cell test case, with the VTK reader classes replaced by ones that raise, the listing took **0.4 ms** and gave `cells` 15757775, label `case-4`; resolving by name took 0.2 ms. `resolve()` reads metadata only for the match.
+- [x] 5.4 Make `--data` repeatable, and add `--scan-depth` with a default of 1 in `server` mode. An empty root stays non-fatal. Verify by starting with two roots, and with an empty one.
+  - Result: `--data` is repeatable and `--scan-depth N` defaults to 1. Two roots list both cases. An empty root in `--server` mode serves `{"cases": [], "entries": []}`, and without `--server` it exits 2 with the old message. `--scan-depth -1` is refused. Suites: pytest 28, pipeline 72/72, browser 104/104, contract 56/56. Ruff is unchanged at 7.
 
 ## 6. Config and health endpoints
 

@@ -67,6 +67,34 @@ def find_cases(root):
     return found
 
 
+def is_decomposed(case_dir):
+    """True when the newest available time lives only in (or later in) the
+    processor* directories rather than reconstructed in the case root.
+
+    Module-level so that listing cases (``server/sources.py``) applies exactly
+    the rule the reader is chosen by, without constructing a reader.
+    """
+
+    def latest(dirs):
+        times = []
+        for d in dirs:
+            try:
+                times.append(float(d.name))
+            except ValueError:
+                pass  # constant, system, processor*, geometry, ...
+        return max(times) if times else None
+
+    case_dir = Path(case_dir)
+    proc0 = case_dir / "processor0"
+    if not proc0.is_dir():
+        return False
+    proc_latest = latest(p for p in proc0.iterdir() if p.is_dir())
+    if proc_latest is None:
+        return False
+    root_latest = latest(p for p in case_dir.iterdir() if p.is_dir())
+    return root_latest is None or proc_latest > root_latest
+
+
 def foam_marker(case_dir):
     """The ``*.foam`` path VTK's reader is pointed at -- never created here.
 
@@ -144,26 +172,7 @@ class FoamCase:
         return vtk.vtkOpenFOAMReader()
 
     def _is_decomposed(self):
-        """True when the newest available time lives only in (or later in) the
-        processor* directories rather than reconstructed in the case root."""
-
-        def latest(dirs):
-            times = []
-            for d in dirs:
-                try:
-                    times.append(float(d.name))
-                except ValueError:
-                    pass  # constant, system, processor*, geometry, ...
-            return max(times) if times else None
-
-        proc0 = self.case_dir / "processor0"
-        if not proc0.is_dir():
-            return False
-        proc_latest = latest(p for p in proc0.iterdir() if p.is_dir())
-        if proc_latest is None:
-            return False
-        root_latest = latest(p for p in self.case_dir.iterdir() if p.is_dir())
-        return root_latest is None or proc_latest > root_latest
+        return is_decomposed(self.case_dir)
 
     def refresh_times(self):
         """Re-scan the case for time directories written since it was opened.

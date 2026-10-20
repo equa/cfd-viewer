@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from equa.cfd_viewer.server import wire  # noqa: E402
 from equa.cfd_viewer.server.scene import SceneSource  # noqa: E402
+from equa.cfd_viewer.server.sources import DirectorySource  # noqa: E402
 
 # Every part, so one run shows the whole cost distribution.
 PARTS = "boundary,slice,iso,stream,glyph,geometry"
@@ -85,7 +86,7 @@ def report(source, name):
 
 def main():
     names = sys.argv[1:] or ["hotRoom", "s2"]
-    source = SceneSource(ROOT / "data")
+    source = SceneSource(DirectorySource([ROOT / "data"]))
     available = source.case_names()
     for name in names:
         if name not in available:

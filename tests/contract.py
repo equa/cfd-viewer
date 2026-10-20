@@ -157,8 +157,8 @@ def queries(meta):
     q = [
         ("/api/cases", "json"),
         (f"/api/meta?case={CASE}", "json"),
-        # Today an empty or unknown case falls back to the first case; after
-        # the standalone-viewer change both answer 404 (see ALLOWED_CHANGES).
+        # Recorded when an empty or unknown case fell back to the first case;
+        # both answer 404 since the standalone-viewer change (ALLOWED_CHANGES).
         ("/api/meta", "json"),
         ("/api/meta?case=nope", "json"),
         (f"/api/times?case={CASE}", "json"),
@@ -207,12 +207,12 @@ def queries(meta):
     return q
 
 
-# Exchanges whose answer the standalone-viewer change alters on purpose. Each
-# maps to the statuses accepted besides the recorded one. Tighten to the new
-# status alone once the change lands (tasks 5.2).
+# Exchanges whose answer the standalone-viewer change alters on purpose, and
+# the status each must now have. An empty or unknown ?case= used to open the
+# first case instead; it is a 404 since that change (tasks 5.2).
 ALLOWED_CHANGES = {
-    "/api/meta": {404},
-    "/api/meta?case=nope": {404},
+    "/api/meta": 404,
+    "/api/meta?case=nope": 404,
 }
 
 
@@ -244,9 +244,11 @@ def contained(recorded, actual, where=""):
 def compare(recorded, actual):
     """Differences between one recorded exchange and its replay."""
     path = recorded["path"]
+    if path in ALLOWED_CHANGES:
+        expected = ALLOWED_CHANGES[path]
+        return [] if actual["status"] == expected else [
+            f"status {actual['status']}, expected {expected} (a deliberate change)"]
     if actual["status"] != recorded["status"]:
-        if actual["status"] in ALLOWED_CHANGES.get(path, ()):
-            return []
         return [f"status {recorded['status']} -> {actual['status']}"]
     if recorded["status"] != 200:
         return []  # error texts may be reworded; the status is the contract
