@@ -1,0 +1,52 @@
+schema: spec-driven
+
+context: |
+  cfd-viewer: browser post-processing for OpenFOAM cases (IDA ICE CFD backend).
+  React + Mantine + three.js client (web/) over a Python/VTK extraction server
+  (foamviz/ reads OpenFOAM and drives filters, server/ packs geometry on the wire).
+  The server never renders. CLAUDE.md is the authoritative design record: read it,
+  especially the part model (PART_INPUTS signatures) and the client/server table.
+  Working agreements: ask before big changes (new dependency, rendering path,
+  schema change); reuse/generalise before adding; prefer a class to long argument
+  lists; prefer client-side (three.js) over a server call; be careful with API
+  changes to foamviz/ (case.py, pipeline.py, colors.py).
+  Tests: tests/test_pipeline.py (VTK pipeline), tests/check_client.py (Chromium;
+  counts /api/scene refetches per control). Keep both green.
+
+rules:
+  design:
+    - For any new control, state whether it is client or server, and which part's
+      signature it moves (or which cheap endpoint serves it)
+  tasks:
+    - Include updating CLAUDE.md and the relevant test suite
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
