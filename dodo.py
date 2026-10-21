@@ -17,6 +17,8 @@ What runs where:
 - ``test_ui``  the browser suite (Chromium, a few minutes)
 - ``package``  the wheel, client included, and a check of what it contains
 - ``requirements_check``  requirements.txt is exactly what the lock exports
+- ``cockpit_contract``  cfd-backend's cfd-viz build and runtime, mirrored on a
+               clone of HEAD (needs ../cfd-backend; commit first -- it clones)
 
 The pipeline suite renders, so ``test_py`` needs a GL backend (CLAUDE.md,
 "Environment"); the browser suite needs Playwright's Chromium.
@@ -40,7 +42,10 @@ WHEEL_MUST_HAVE = [
 EXPORT = ["uv", "export", "--quiet", "--no-dev", "--no-hashes", "--no-emit-project",
           "--format", "requirements-txt"]
 
-DOIT_CONFIG = {"default_tasks": ["ci"], "verbosity": 2}
+# JSON task state: dbm files are not portable across Python versions (3.13+
+# defaults to sqlite3), and the host and the dev container share this checkout.
+DOIT_CONFIG = {"default_tasks": ["ci"], "verbosity": 2,
+               "backend": "json", "dep_file": ".doit.json"}
 
 
 def _web_sources():
@@ -143,7 +148,13 @@ def task_requirements_check():
             "verbosity": 2}
 
 
+def task_cockpit_contract():
+    """Mirror cfd-backend's cfd-viz build and runtime on a clone of HEAD."""
+    return {"actions": [["uv", "run", "python", "tests/check_cockpit_contract.py"]],
+            "verbosity": 2}
+
+
 def task_ci():
     """Everything a change must pass."""
     return {"actions": None,
-            "task_dep": ["lint", "requirements_check", "test", "package"]}
+            "task_dep": ["lint", "requirements_check", "test", "package", "cockpit_contract"]}

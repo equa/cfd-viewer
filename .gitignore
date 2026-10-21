@@ -34,5 +34,6 @@ data/hotRoom/processor*/
 web/node_modules/
 web/dist/
 
-# doit's task state (dodo.py)
+# doit's task state (dodo.py); .doit.db* from before it moved to JSON
+.doit.json
 .doit.db*
