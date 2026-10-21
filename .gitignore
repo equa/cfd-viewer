@@ -33,3 +33,6 @@ data/hotRoom/processor*/
 # and a stale committed bundle silently shadowing a source change is a bad day.
 web/node_modules/
 web/dist/
+
+# doit's task state (dodo.py)
+.doit.db*

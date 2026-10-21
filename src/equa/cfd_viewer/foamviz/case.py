@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import vtk
-from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
+from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 # The reader reports patches with a "patch/" or "group/" prefix. Groups overlap
 # with the individual patches they contain, so we only ever expose real patches.

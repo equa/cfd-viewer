@@ -156,8 +156,9 @@ def main():
 
     pipe.update_geometry(True, "features", 1.0, 2.0)
     pipe.geometry_edges.Update()
-    check("round-trip restores feature edges", pipe.geometry_edges.GetOutput().GetNumberOfCells() == n_features,
-          f"{pipe.geometry_edges.GetOutput().GetNumberOfCells()} vs {n_features}")
+    n_round_trip = pipe.geometry_edges.GetOutput().GetNumberOfCells()
+    check("round-trip restores feature edges", n_round_trip == n_features,
+          f"{n_round_trip} vs {n_features}")
 
     pipe.update_geometry(False, "features", 1.0, 2.0)
     check("geometry off -> actor hidden", pipe.geometry_actor.GetVisibility() == 0)
@@ -269,7 +270,6 @@ def main():
           or pipe.render_window.GetOffScreenRendering() == 1,
           pipe.render_window.GetClassName())
 
-    import tempfile
     from PIL import Image
 
     with tempfile.TemporaryDirectory() as tmp:

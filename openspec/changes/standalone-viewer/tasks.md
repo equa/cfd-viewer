@@ -153,8 +153,8 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
 
 ## 8. Tooling
 
-- [ ] 8.1 Add `dodo.py` with these tasks:
-  - `lint_py` (ruff check and format check) and `lint`;
+- [x] 8.1 Add `dodo.py` with these tasks:
+  - `lint_py` (ruff check, as equa-ci's `lint_py`: it does not format-check) and `lint`;
   - `test_py` (pytest without the browser marker; includes the contract test) and `test_ui` (the browser suite);
   - `test`;
   - `web_build` (`npm ci && npm run build`);
@@ -163,8 +163,20 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
   - `ci`.
 
   Verify `uv run doit ci` passes, and that it fails when `web/dist` is left out of the wheel or `requirements.txt` is edited by hand.
-- [ ] 8.2 Fix the ruff findings recorded in 1.2, or scope the rule set and record the reasons. Verify `doit lint_py` is clean, and that the contract test still passes.
-- [ ] 8.3 Add `commitlint.config.js` and a pre-commit config with ruff and commitlint, matching the archetype. Verify a non-conventional commit message is rejected locally.
+  - Result: `dodo.py` defines `lint_py`, `lint`, `test_py`, `test_ui`, `test`, `web_install`, `web_build`, `package`, `requirements_check` and `ci`, all with equa-ci's names. `web_install` and `web_build` are skipped when their inputs haven't changed.
+  - `tests/test_suites.py` runs the two script suites as subprocesses; the browser suite carries the `browser` marker, registered in `pyproject.toml`.
+  - `doit` is added to the dev group.
+  - `uv run doit ci` passes in about 2.5 min: ruff clean, pytest 32 with 1 deselected, the wheel holds its client, and the browser suite passes.
+  - Failure checks: a wheel built with `CFD_VIEWER_NO_CLIENT=1` and no `web/dist` is rejected by `check_wheel` (`missing: equa/cfd_viewer/web/index.html`). A hand-edited `requirements.txt` fails `requirements_check`.
+  - `requirements_check` ignores uv's header comment, because the header records the command line.
+  - Kept as in equa-ci: `lint_py` does not run `ruff format`. Reformatting the whole codebase would churn every file for no behaviour change.
+- [x] 8.2 Fix the ruff findings recorded in 1.2, or scope the rule set and record the reasons. Verify `doit lint_py` is clean, and that the contract test still passes.
+  - Result: ruff is clean. Six findings were auto-fixed: import ordering, plus an unused `import vtk` in `scene.py`, confirmed unused. `test_pipeline.py`'s long line was split by hand, and its local `import tempfile` dropped (it is module-level since 3.2). Contract 56/56.
+- [x] 8.3 Add `commitlint.config.js` and a pre-commit config with ruff and commitlint, matching the archetype. Verify a non-conventional commit message is rejected locally.
+  - Result: `.pre-commit-config.yaml` and `commitlint.config.js` are copied unchanged from the equa-ci template (identical to thermarest's): ASCII-only messages, commitlint `config-conventional`, and ruff `--fix` on commit. `pre-commit` is added to the dev group.
+  - The hooks are **not** installed into the working repository's `.git/hooks`; installing them is the developer's step: `uv run pre-commit install --hook-type commit-msg --hook-type pre-commit`.
+  - Verified in a throwaway clone with the hooks installed: "Fixed some stuff" is rejected (`subject-empty`), a non-ASCII message is rejected, and "docs: note a thing" is accepted.
+  - Trap: `pre-commit run --commit-msg-filename` does **not** test commitlint, because the hook runs `commitlint --edit` with `pass_filenames: false` and so lints `.git/COMMIT_EDITMSG`.
 
 ## 9. Cockpit contract check (D11 layer 3)
 

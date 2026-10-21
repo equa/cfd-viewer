@@ -10,12 +10,11 @@ boundary dwarfs everything else, so a control that only moves the slice must not
 drag the boundary along with it.
 """
 
+import gzip
 import sys
 import time
-from pathlib import Path
-
-import gzip
 import zlib
+from pathlib import Path
 
 import numpy as np
 

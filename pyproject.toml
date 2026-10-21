@@ -31,6 +31,8 @@ dev = [
     # tests/check_client.py drives Chromium and reads screenshots.
     "playwright>=1.45",
     "pillow>=10",
+    "doit>=0.37.0",
+    "pre-commit>=4.7.0",
 ]
 
 [tool.hatch.version]
@@ -47,6 +49,9 @@ packages = ["src/equa"]
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests"]
 testpaths = ["tests"]
+markers = [
+    "browser: the Chromium suite (tests/check_client.py); doit test_ui runs it, test_py does not",
+]
 
 [tool.ruff]
 src = ["src"]

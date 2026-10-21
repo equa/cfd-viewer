@@ -24,13 +24,11 @@ import logging
 import time
 
 import numpy as np
-import vtk
 from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from ..foamviz import colors
 from ..foamviz.case import FIELD_UNITS, FoamCase
 from ..foamviz.pipeline import COLOR_ARRAY, FoamPipeline
-
 from . import wire
 
 log = logging.getLogger("cfdviewer.scene")

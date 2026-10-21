@@ -25,7 +25,6 @@ from aiohttp import web
 
 from .. import __version__
 from ..foamviz import colors
-
 from .scene import SceneSource
 from .sources import AmbiguousCase, CaseNotFound
 
