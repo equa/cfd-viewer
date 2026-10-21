@@ -180,7 +180,7 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
 
 ## 9. Cockpit contract check (D11 layer 3)
 
-- [ ] 9.1 Add `tests/check_cockpit_contract.py`. It mirrors cfd-backend's `cfd-viz` build and runtime in a temporary directory:
+- [x] 9.1 Add `tests/check_cockpit_contract.py`. It mirrors cfd-backend's `cfd-viz` build and runtime in a temporary directory:
   - `git clone` the current commit;
   - check the four required files;
   - run `npm ci && npm run build` in `web/`;
@@ -188,7 +188,10 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
   - run `../cfd-backend/tests/smoke/viz.sh` with the clone as `/opt/foamviz`'s stand-in. If that checkout is absent, warn loudly and mark the run incomplete; don't pass silently.
 
   Verify it passes on the branch, and fails when `requirements.txt` is uncommitted or the `foamviz/` compatibility package is removed.
-- [ ] 9.2 Extend the same check with the runtime half.
+  - Result: the build half of `tests/check_cockpit_contract.py` passes. It clones with `--no-local`, then runs `npm ci` and the build and drops `node_modules` and `.git` as the image does. It installs with pip on a standalone 3.14.8, then runs cfd-backend's `viz.sh` with its `cd /opt/foamviz` pointed at the clone; the check fails loudly if that line ever changes. Both halves run with no GL library on the path.
+  - Failure checks, from throwaway clones: without `requirements.txt` the four-file check fails. Without `foamviz/`, cfd-backend's `viz.sh` test 2 fails (its message blames a render window, because it hides the import error). With `--backend /nonexistent` the run exits 2, INCOMPLETE.
+  - Trap: `uv python find 3.14` returns the checkout's `.venv` when that is 3.14, even with `--no-project`, so the lookup runs from the temporary directory.
+- [x] 9.2 Extend the same check with the runtime half.
   - Start the exact CMD line (`python main.py --server --data "$CFD_HOME" --host 0.0.0.0 --port "$VIZ_PORT"`) on a `CFD_HOME` holding hotRoom under a UUID folder name.
   - Put an aiohttp proxy in front that strips `/viz/` the way nginx's `rewrite` does.
   - Drive Chromium through `/viz/?case=<uuid>&theme=light`, and check:
@@ -199,7 +202,14 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
     - a separate start on an empty `CFD_HOME` stays up and answers `/api/cases`.
 
   Verify every step passes.
-- [ ] 9.3 Add the `cockpit_contract` task to `dodo.py` and to `ci`. Verify `uv run doit ci` runs it.
+  - Result: the runtime half passes, 16/16 in total. The exact CMD (`sh -c 'exec python main.py --server --data "$CFD_HOME" ...'`) runs on a UUID-named copy of hotRoom, behind an aiohttp proxy that strips `/viz/` and passes gzip through byte for byte.
+  - In Chromium: the case renders (1192 colours) with no start screen, the light theme applies, every request stays under `/viz/` and none fails.
+  - A case copied in after start-up is listed. An empty `CFD_HOME` stays up and lists nothing.
+  - `--runtime-only --base-url ... [--case ...]` runs the browser and API checks against a running stack, for 11.2. Tried against a plain local server: 6/6.
+- [x] 9.3 Add the `cockpit_contract` task to `dodo.py` and to `ci`. Verify `uv run doit ci` runs it.
+  - Result: `doit cockpit_contract` is part of `ci`. `uv run doit ci` passes in about 2m45s.
+  - doit now keeps its state in `.doit.json` (JSON backend). The dbm `.doit.db` format differs between Python 3.12 and 3.13+, and the host and the container share this checkout. A stale `.doit.db` is ignored and can be deleted.
+  - Also found: the host and the container share `.venv`, and each side rebuilds it for its own interpreter. In the container, Claude uses `UV_PROJECT_ENVIRONMENT` in the scratchpad instead.
 
 ## 10. Image (this repository's own)
 
