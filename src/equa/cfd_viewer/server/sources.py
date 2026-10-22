@@ -66,6 +66,16 @@ _HEADER_BYTES = 4096
 _NCELLS = re.compile(rb"nCells:\s*(\d+)")
 
 
+_warned = set()
+
+
+def _warn_once(directory, exc):
+    if str(directory) not in _warned:
+        _warned.add(str(directory))
+        log.warning("cannot search %s for cases (%s); cases below it are not listed",
+                    directory, exc.strerror or exc)
+
+
 class CaseNotFound(KeyError):
     """No listed case has this id or name."""
 
@@ -90,7 +100,14 @@ class CaseRef:
 
 
 def is_case(directory):
-    return (directory / "system" / "controlDict").is_file()
+    # Path.is_file() RAISES PermissionError (rather than answering False) for a
+    # path inside a directory the server cannot read, at least on Python 3.12;
+    # one locked directory under CFD_HOME must not turn the listing into a 500.
+    try:
+        return (directory / "system" / "controlDict").is_file()
+    except OSError as exc:
+        _warn_once(directory, exc)
+        return False
 
 
 def case_id(root, relative):
@@ -117,9 +134,9 @@ def _header_cells(owner_dir):
     """
     for name, opener in (("owner", open), ("owner.gz", gzip.open)):
         path = owner_dir / name
-        if not path.is_file():
-            continue
         try:
+            if not path.is_file():
+                continue
             with opener(path, "rb") as f:
                 head = f.read(_HEADER_BYTES)
         except OSError:
@@ -183,8 +200,12 @@ class DirectorySource:
             for parent in level:
                 try:
                     children = sorted(p for p in parent.iterdir() if p.is_dir())
-                except OSError:
-                    continue  # unreadable directory: skip it, list the rest
+                except OSError as exc:
+                    # Skip it and list the rest -- but say so: a directory the
+                    # server's user cannot read looks exactly like "no cases"
+                    # otherwise. Once per directory, not on every rescan.
+                    _warn_once(parent, exc)
+                    continue
                 for child in children:
                     if _skip(child):
                         continue

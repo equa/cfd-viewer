@@ -121,6 +121,24 @@ def test_does_not_descend_into_a_case(tmp_path):
     assert names(DirectorySource([tmp_path], depth=3)) == ["outer"]
 
 
+def test_unreadable_directory_is_reported_not_silent(tmp_path, caplog):
+    """A directory the server cannot read is skipped, the rest still listed,
+    and a warning names it -- otherwise a permission problem on CFD_HOME looks
+    exactly like "no cases"."""
+    make_case(tmp_path / "e2614af7")
+    locked = tmp_path / "tests"
+    make_case(locked / "window-radiator-no-ahu_0")
+    locked.chmod(0)
+    try:
+        with caplog.at_level("WARNING", logger="cfdviewer.sources"):
+            assert names(DirectorySource([tmp_path])) == ["e2614af7"]
+            DirectorySource([tmp_path]).list()          # a rescan warns no more
+    finally:
+        locked.chmod(0o755)
+    warnings = [r.getMessage() for r in caplog.records if str(locked) in r.getMessage()]
+    assert len(warnings) == 1 and "cannot search" in warnings[0]
+
+
 def test_new_case_appears_without_restart(tmp_path):
     source = DirectorySource([tmp_path])
     assert source.list() == []
