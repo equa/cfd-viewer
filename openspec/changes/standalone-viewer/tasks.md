@@ -246,6 +246,11 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
   - run the stack with `VIZ_IMAGE=cfd-viz:candidate`, then run `check_cockpit_contract.py --runtime-only --base-url http://localhost:8080/viz/` against it.
 
   Record all results in this task line. Verify the smoke test passes, the browser check passes, and the cockpit's Visualize page opens a real case.
+  - **First run (2026-10-22), failed:** `--runtime-only` failed "the stack lists cases". `/viz/api/cases` was empty, and Visualize said "Case “…”: not found".
+    - Cause: all 8 cases on that `CFD_HOME` are cfd-backend test-suite cases in `CFD_HOME/tests/<name>`, which the one-level scan never sees. That gap predates this change; the old viewer could not see them either. cfd-backend's own finder (`cfd_cases.find`) is an `rglob`, so it lists them.
+    - Decision (with Niklas): mirror the backend's finder with a bound, rather than flatten the stack. Fixed in `052dac1`: `SERVER_SCAN_DEPTH` = 4, hidden directories searched. The spec, design D1, README and CLAUDE.md are updated.
+    - The cockpit check now stages a `tests/<name>` case and opens it through `/viz/` (21/21). `doit ci` passes.
+  - **Rerun needed:** push, rebuild `cfd-viz:candidate` from the branch, restart the stack, and rerun the steps above.
 - [x] 11.3 Update the docs:
   - README: installing from source with `uv`, the new options, the start screen and the `doit` tasks;
   - CLAUDE.md: the package layout and shims, case sources and ids, the additive-API rule, the client resolution order, the start-screen tree rule, the cockpit contract and its check, and the measured 15.8 M-cell numbers.
