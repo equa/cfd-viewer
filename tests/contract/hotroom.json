@@ -5,6 +5,16 @@
    "json": {
     "cases": [
      "hotRoom"
+    ],
+    "entries": [
+     {
+      "cells": 32000,
+      "decomposed": false,
+      "id": "5d65e55a3445",
+      "label": "hotRoom",
+      "name": "hotRoom",
+      "path": "hotRoom"
+     }
     ]
    },
    "kind": "json",
@@ -37,6 +47,8 @@
      10.0
     ],
     "case": "hotRoom",
+    "caseId": "5d65e55a3445",
+    "caseLabel": "hotRoom",
     "cases": [
      "hotRoom"
     ],
@@ -158,23 +170,7 @@
     ],
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "units": {
@@ -199,398 +195,24 @@
    "type": "application/json"
   },
   {
-   "json": {
-    "axisRange": {
-     "x": [
-      0.0,
-      10.0
-     ],
-     "y": [
-      0.0,
-      5.0
-     ],
-     "z": [
-      0.0,
-      10.0
-     ]
-    },
-    "bounds": [
-     0.0,
-     10.0,
-     0.0,
-     5.0,
-     0.0,
-     10.0
-    ],
-    "case": "hotRoom",
-    "cases": [
-     "hotRoom"
-    ],
-    "cells": 32000,
-    "centre": [
-     5.0,
-     2.5,
-     5.0
-    ],
-    "colorField": "U",
-    "decomposed": false,
-    "fields": {
-     "T": 1,
-     "U": 3,
-     "k": 1,
-     "nut": 1,
-     "p_rgh": 1
-    },
-    "hasGeometry": true,
-    "partInputs": {
-     "boundary": [
-      "patches",
-      "field",
-      "component",
-      "cell_data",
-      "surface_clip",
-      {
-       "keys": [
-        "plane_axis",
-        "plane_coord"
-       ],
-       "when": {
-        "surface_clip": "1"
-       }
-      }
-     ],
-     "geometry": [
-      "geometry_mode"
-     ],
-     "glyph": [
-      "vector_field",
-      "glyph_source",
-      "glyph_count",
-      "glyph_scale",
-      "glyph_scale_by",
-      "field",
-      "component",
-      {
-       "keys": [
-        "plane_axis",
-        "plane_coord"
-       ],
-       "when": {
-        "glyph_source": "slice"
-       }
-      },
-      {
-       "keys": [
-        "contour_field",
-        "contour_count",
-        "contour_value",
-        "contour_min",
-        "contour_max"
-       ],
-       "when": {
-        "glyph_source": "isosurface"
-       }
-      }
-     ],
-     "iso": [
-      "field",
-      "component",
-      "contour_field",
-      "contour_count",
-      "contour_value",
-      "contour_min",
-      "contour_max"
-     ],
-     "slice": [
-      "field",
-      "component",
-      "cell_data",
-      "slice_edges",
-      "plane_axis",
-      "plane_coord"
-     ],
-     "stream": [
-      "vector_field",
-      "stream_seeds",
-      "stream_length",
-      "plane_axis",
-      "plane_coord",
-      "field",
-      "component"
-     ]
-    },
-    "patches": [
-     "floor",
-     "ceiling",
-     "fixedWalls"
-    ],
-    "points": 35301,
-    "presets": [
-     "coolwarm",
-     "viridis",
-     "plasma",
-     "inferno",
-     "turbo",
-     "jet",
-     "RdBu_r",
-     "Spectral_r",
-     "gray"
-    ],
-    "scalarFields": [
-     "T",
-     "k",
-     "nut",
-     "p_rgh"
-    ],
-    "times": [
-     0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
-     1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
-     1730.0
-    ],
-    "units": {
-     "T": "[\u00b0C]",
-     "U": "[m/s]",
-     "alphat": "[kg/m\u00b7s]",
-     "epsilon": "[m\u00b2/s\u00b3]",
-     "k": "[m\u00b2/s\u00b2]",
-     "nut": "[m\u00b2/s]",
-     "p": "[m\u00b2/s\u00b2]",
-     "p_rgh": "[m\u00b2/s\u00b2]",
-     "rho": "[kg/m\u00b3]"
-    },
-    "vectorField": "U",
-    "vectorFields": [
-     "U"
-    ]
-   },
    "kind": "json",
    "path": "/api/meta",
-   "status": 200,
-   "type": "application/json"
+   "status": 404,
+   "text": "no case given: pass ?case=<id or name>",
+   "type": "text/plain"
   },
   {
-   "json": {
-    "axisRange": {
-     "x": [
-      0.0,
-      10.0
-     ],
-     "y": [
-      0.0,
-      5.0
-     ],
-     "z": [
-      0.0,
-      10.0
-     ]
-    },
-    "bounds": [
-     0.0,
-     10.0,
-     0.0,
-     5.0,
-     0.0,
-     10.0
-    ],
-    "case": "hotRoom",
-    "cases": [
-     "hotRoom"
-    ],
-    "cells": 32000,
-    "centre": [
-     5.0,
-     2.5,
-     5.0
-    ],
-    "colorField": "U",
-    "decomposed": false,
-    "fields": {
-     "T": 1,
-     "U": 3,
-     "k": 1,
-     "nut": 1,
-     "p_rgh": 1
-    },
-    "hasGeometry": true,
-    "partInputs": {
-     "boundary": [
-      "patches",
-      "field",
-      "component",
-      "cell_data",
-      "surface_clip",
-      {
-       "keys": [
-        "plane_axis",
-        "plane_coord"
-       ],
-       "when": {
-        "surface_clip": "1"
-       }
-      }
-     ],
-     "geometry": [
-      "geometry_mode"
-     ],
-     "glyph": [
-      "vector_field",
-      "glyph_source",
-      "glyph_count",
-      "glyph_scale",
-      "glyph_scale_by",
-      "field",
-      "component",
-      {
-       "keys": [
-        "plane_axis",
-        "plane_coord"
-       ],
-       "when": {
-        "glyph_source": "slice"
-       }
-      },
-      {
-       "keys": [
-        "contour_field",
-        "contour_count",
-        "contour_value",
-        "contour_min",
-        "contour_max"
-       ],
-       "when": {
-        "glyph_source": "isosurface"
-       }
-      }
-     ],
-     "iso": [
-      "field",
-      "component",
-      "contour_field",
-      "contour_count",
-      "contour_value",
-      "contour_min",
-      "contour_max"
-     ],
-     "slice": [
-      "field",
-      "component",
-      "cell_data",
-      "slice_edges",
-      "plane_axis",
-      "plane_coord"
-     ],
-     "stream": [
-      "vector_field",
-      "stream_seeds",
-      "stream_length",
-      "plane_axis",
-      "plane_coord",
-      "field",
-      "component"
-     ]
-    },
-    "patches": [
-     "floor",
-     "ceiling",
-     "fixedWalls"
-    ],
-    "points": 35301,
-    "presets": [
-     "coolwarm",
-     "viridis",
-     "plasma",
-     "inferno",
-     "turbo",
-     "jet",
-     "RdBu_r",
-     "Spectral_r",
-     "gray"
-    ],
-    "scalarFields": [
-     "T",
-     "k",
-     "nut",
-     "p_rgh"
-    ],
-    "times": [
-     0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
-     1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
-     1730.0
-    ],
-    "units": {
-     "T": "[\u00b0C]",
-     "U": "[m/s]",
-     "alphat": "[kg/m\u00b7s]",
-     "epsilon": "[m\u00b2/s\u00b3]",
-     "k": "[m\u00b2/s\u00b2]",
-     "nut": "[m\u00b2/s]",
-     "p": "[m\u00b2/s\u00b2]",
-     "p_rgh": "[m\u00b2/s\u00b2]",
-     "rho": "[kg/m\u00b3]"
-    },
-    "vectorField": "U",
-    "vectorFields": [
-     "U"
-    ]
-   },
    "kind": "json",
    "path": "/api/meta?case=nope",
-   "status": 200,
-   "type": "application/json"
+   "status": 404,
+   "text": "no case 'nope'",
+   "type": "text/plain"
   },
   {
    "json": {
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ]
    },
@@ -936,26 +558,10 @@
      "boundary"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -1034,26 +640,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -1132,26 +722,10 @@
      "iso"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -1237,26 +811,10 @@
      "stream"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": 973.5185719702833,
@@ -1335,26 +893,10 @@
      "glyph"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -1421,26 +963,10 @@
      "geometry"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -1689,26 +1215,10 @@
      "geometry"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": 940.6844381328228,
@@ -1825,23 +1335,7 @@
     "timeIndex": 0,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -1955,26 +1449,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2053,26 +1531,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2193,26 +1655,10 @@
      "stream"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": 712.1892624832369,
@@ -2293,26 +1739,10 @@
      "iso"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2391,26 +1821,10 @@
      "glyph"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2489,26 +1903,10 @@
      "glyph"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2587,26 +1985,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2685,26 +2067,10 @@
      "boundary"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2818,26 +2184,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -2916,26 +2266,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -3014,26 +2348,10 @@
      "iso"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -3100,26 +2418,10 @@
      "geometry"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -3198,26 +2500,10 @@
      "slice"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -3296,26 +2582,10 @@
      "boundary"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": null,
@@ -3401,26 +2671,10 @@
      "stream"
     ],
     "time": 1730.0,
-    "timeIndex": 18,
+    "timeIndex": 2,
     "times": [
      0.0,
-     100.0,
-     200.0,
-     300.0,
-     400.0,
-     500.0,
-     600.0,
-     700.0,
-     800.0,
-     900.0,
      1000.0,
-     1100.0,
-     1200.0,
-     1300.0,
-     1400.0,
-     1500.0,
-     1600.0,
-     1700.0,
      1730.0
     ],
     "travelDivisor": 708.589334927484,
@@ -3438,5 +2692,11 @@
    "text": "no field 'nope' in hotRoom",
    "type": "text/plain"
   }
- ]
+ ],
+ "fingerprint": {
+  "case": "2ca5de958bfafcd0",
+  "matplotlib": "3.11.2",
+  "numpy": "2.5.4",
+  "vtk": "9.7.1"
+ }
 }

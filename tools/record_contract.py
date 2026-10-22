@@ -4,10 +4,11 @@
     python tools/record_contract.py            # writes tests/contract/hotroom.json
     python tools/record_contract.py --out X    # somewhere else, e.g. to diff two runs
 
-Record on the commit whose behaviour is the reference -- for the
-standalone-viewer change that is ``main`` before any code moved. Re-recording
-later would bless whatever the code does now, which defeats the point; do it
-only for a deliberate, reviewed change to the contract.
+Re-record when the *inputs* change -- the demo case is regenerated or
+trimmed, VTK is upgraded -- and the replay reports "values not compared".
+That re-records values on known-good code. The *shape* is the contract
+proper: a recording that drops or retypes a field the old one had is an API
+change, so review the snapshot's diff before committing it.
 """
 
 import argparse
@@ -32,7 +33,9 @@ def main():
                      for path, kind in contract.queries(meta)]
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps({"case": contract.CASE, "exchanges": exchanges},
+    args.out.write_text(json.dumps({"case": contract.CASE,
+                                    "fingerprint": contract.fingerprint(),
+                                    "exchanges": exchanges},
                                    indent=1, sort_keys=True) + "\n")
     print(f"{len(exchanges)} exchanges -> {args.out}")
 

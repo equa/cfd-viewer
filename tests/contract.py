@@ -6,10 +6,22 @@ the demo case and writes what came back to ``tests/contract/hotroom.json``;
 ``tests/test_contract.py`` replays the same sequence against the current code
 and compares.
 
-The comparison is "the API only grows": every recorded field must still be
-there with an equal value, new fields are fine. Scene payloads are compared as
-their header (minus timings and byte offsets, which move whenever a buffer is
-added) plus a sha256 per named buffer, so geometry has to be byte-identical.
+Two levels of comparison, because the API and the demo data are different
+things:
+
+- **shape, always.** Every recorded field must still be there with the same
+  JSON type (recursively; lists by element type, so their length is free),
+  every status must match, new fields are fine. This is the contract the
+  cockpit depends on, and it holds whatever the demo case contains.
+- **values, only on identical inputs.** The snapshot carries a *fingerprint*
+  of what produced it: a hash of the demo case's files and the VTK, numpy and
+  matplotlib versions. When the fingerprint matches, every value must be equal
+  and every geometry buffer and colour table byte-identical -- what proved the
+  package move changed no extraction. When it does not (the demo case was
+  regenerated or trimmed, VTK was upgraded), values are not compared, the
+  replay says so, and ``tools/record_contract.py`` re-records them. Data changes
+  are not API changes, so they must not fail this test (decided with Niklas,
+  2026-10-22, after hotRoom went from 19 time steps to 3).
 
 The server is started as ``python main.py --data <root> --port <port>``,
 the command line that exists both before and after the package move, and on a
@@ -43,6 +55,31 @@ SNAPSHOT = ROOT / "tests" / "contract" / "hotroom.json"
 # Scene header keys that legitimately differ between runs or move when a buffer
 # is added; everything else in the header is compared.
 VOLATILE = {"serverMs", "offset", "payloadBytes"}
+
+# Values that differ between runs by design, so even an exact comparison checks
+# only their shape: case ids hash the root's path, and the replay's root is a
+# fresh temporary directory each time (their stability on a fixed root is
+# tests/test_sources.py's job).
+RUN_DEPENDENT = {"id", "caseId"}
+
+
+# Not inputs: written by the solver or the viewer, and free to differ.
+_NOT_INPUTS = ("log.", "run.log")
+
+
+def fingerprint():
+    """What the recorded values depend on: the demo case's files and the
+    versions of the libraries that compute them."""
+    from importlib.metadata import version
+
+    digest = hashlib.sha256()
+    for path in sorted(CASE_DIR.resolve().rglob("*")):
+        if not path.is_file() or path.suffix == ".foam" or path.name.startswith(_NOT_INPUTS):
+            continue
+        digest.update(path.relative_to(CASE_DIR.resolve()).as_posix().encode() + b"\0")
+        digest.update(path.read_bytes())
+    return {"case": digest.hexdigest()[:16],
+            **{lib: version(lib) for lib in ("vtk", "numpy", "matplotlib")}}
 
 
 def free_port():
@@ -217,7 +254,7 @@ ALLOWED_CHANGES = {
 
 
 def contained(recorded, actual, where=""):
-    """Differences where *actual* fails to contain *recorded* (extra keys ok)."""
+    """Value differences where *actual* fails to contain *recorded* (extra keys ok)."""
     if isinstance(recorded, dict):
         if not isinstance(actual, dict):
             return [f"{where}: expected an object, got {type(actual).__name__}"]
@@ -225,6 +262,8 @@ def contained(recorded, actual, where=""):
         for key, value in recorded.items():
             if key not in actual:
                 out.append(f"{where}.{key}: missing")
+            elif key in RUN_DEPENDENT:
+                out.extend(shaped(value, actual[key], f"{where}.{key}"))
             else:
                 out.extend(contained(value, actual[key], f"{where}.{key}"))
         return out
@@ -241,8 +280,63 @@ def contained(recorded, actual, where=""):
     return []
 
 
-def compare(recorded, actual):
-    """Differences between one recorded exchange and its replay."""
+def _kind(value):
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number"
+    if isinstance(value, str):
+        return "string"
+    return "array" if isinstance(value, list) else "object"
+
+
+def shaped(recorded, actual, where=""):
+    """Shape differences: a recorded field missing, or of another JSON type.
+
+    Values are free. Lists compare element by element where both have one --
+    so a list of 19 time steps and one of 3 have the same shape, and a
+    mixed list such as a part's inputs (names, then conditional objects) keeps
+    its positional types. ``null`` is compatible with anything, both ways: it is
+    how the server says "not known for this case" (a cell count, a divisor).
+    """
+    kr, ka = _kind(recorded), _kind(actual)
+    if "null" in (kr, ka):
+        return []
+    if kr != ka:
+        return [f"{where}: expected {kr}, got {ka}"]
+    if kr == "object":
+        out = []
+        for key, value in recorded.items():
+            if key not in actual:
+                out.append(f"{where}.{key}: missing")
+            else:
+                out.extend(shaped(value, actual[key], f"{where}.{key}"))
+        return out
+    if kr == "array":
+        out = []
+        for i, (r, a) in enumerate(zip(recorded, actual)):
+            out.extend(shaped(r, a, f"{where}[{i}]"))
+        return out
+    return []
+
+
+def _buffer_names(buffers):
+    """{part: {attribute, ...}} from ``part/attribute`` buffer keys."""
+    out = {}
+    for key in buffers:
+        part, attr = key.split("/", 1)
+        out.setdefault(part, set()).add(attr)
+    return out
+
+
+def compare(recorded, actual, exact):
+    """Differences between one recorded exchange and its replay.
+
+    *exact*: the inputs match the recording's fingerprint, so values and bytes
+    are compared too; otherwise only shape and status.
+    """
     path = recorded["path"]
     if path in ALLOWED_CHANGES:
         expected = ALLOWED_CHANGES[path]
@@ -253,14 +347,24 @@ def compare(recorded, actual):
     if recorded["status"] != 200:
         return []  # error texts may be reworded; the status is the contract
     if recorded["kind"] == "json":
-        return contained(recorded["json"], actual["json"])
+        return (contained if exact else shaped)(recorded["json"], actual["json"])
     if recorded["kind"] == "scene":
-        diffs = contained(recorded["header"], actual["header"], "header")
-        for name, sha in recorded["buffers"].items():
-            if actual["buffers"].get(name) != sha:
-                diffs.append(f"buffer {name}: "
-                             + ("missing" if name not in actual["buffers"] else "bytes differ"))
+        if exact:
+            diffs = contained(recorded["header"], actual["header"], "header")
+            for name, sha in recorded["buffers"].items():
+                if actual["buffers"].get(name) != sha:
+                    diffs.append(f"buffer {name}: " + (
+                        "missing" if name not in actual["buffers"] else "bytes differ"))
+            return diffs
+        diffs = shaped(recorded["header"], actual["header"], "header")
+        # A part may come back empty on other data; one that comes back must
+        # still carry every buffer it carried.
+        have = _buffer_names(actual["buffers"])
+        for part, attrs in _buffer_names(recorded["buffers"]).items():
+            if part in have and not attrs <= have[part]:
+                diffs.append(f"part {part}: buffers missing: "
+                             + ", ".join(sorted(attrs - have[part])))
         return diffs
-    if actual.get("sha256") != recorded["sha256"]:
+    if exact and actual.get("sha256") != recorded["sha256"]:
         return ["body bytes differ"]
     return []
