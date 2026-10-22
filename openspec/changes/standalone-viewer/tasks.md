@@ -23,7 +23,8 @@ These tasks cover phase 1 only (proposal, "Scope of this change"); phases 2 and 
     - equa-ci's own set (`E,F,I,UP`, line length 100) gives **5**: 3 I001, 1 E501, 1 F401, 4 of them auto-fixable.
     - `ruff format --check` would reformat **9 of 12** files.
   - Group 8 adopts equa-ci's set.
-- [ ] 1.3 Commit `openspec/` (this change) and the pending `todo.md` edit as their own commits on `main`. Verify `git status` is clean apart from `.claude/`.
+- [x] 1.3 Commit `openspec/` (this change) and the pending `todo.md` edit as their own commits on `main`. Verify `git status` is clean apart from `.claude/`.
+  - Result: `caf3e8e` (openspec) and `e8e3858` (todo.md), on `main` before the branch. The tick was missed at the time and added at close-out.
 - [x] 1.4 Record the golden API snapshots on `main` (D11 layer 1).
   - Add `tools/record_contract.py`. It starts the server on hotRoom and writes `tests/contract/hotroom.json`, covering:
     - `/api/cases` and `/api/meta`;
