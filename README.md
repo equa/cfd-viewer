@@ -200,8 +200,9 @@ back to a time step or slice position you have already visited is free.
 
 `data/hotRoom` is OpenFOAM 13's `fluid/hotRoomBoussinesqSteady` tutorial,
 refined to 40×20×40 (32 000 cells) — a 10 × 5 × 10 m room with a 1 m² patch of
-floor held at 600 K. It converged in 1730 iterations and wrote 19 time
-directories, so the time player has something to animate.
+floor held at 600 K. It converged in 1730 iterations; the copy here keeps the
+time steps `0`, `1000` and `1730` (its `Allrun` writes 19), enough for the time
+player to step through.
 `constant/triSurface/building.obj` is a small added fixture (a box at the room
 bounds) that exercises the Geometry tool.
 
@@ -213,6 +214,10 @@ the solution (not the OBJ):
 source /opt/cfd/OpenFOAM-13/etc/bashrc
 cd data/hotRoom && ./Allclean && ./Allrun
 ```
+
+`data/cavity` is the lid-driven cavity (400 cells), versioned as a definition
+only. It is there so the start screen always has more than one case; run its
+`Allrun` (`blockMesh`, `foamRun`) to view it too.
 
 ## Screenshots
 
@@ -258,8 +263,9 @@ cfd-backend's `cfd-viz` image is built from a **clone of this repository's
 three shims (`main.py`, the top-level `foamviz/` alias and a generated
 `requirements.txt`) and checked on every `doit ci` by
 `tests/check_cockpit_contract.py`. Its HTTP behaviour is a contract too:
-`tests/test_contract.py` replays responses recorded before the package move,
-and the API may only grow. [docs/cfd-backend-switch.md](docs/cfd-backend-switch.md)
+`tests/test_contract.py` replays recorded responses: the API may only grow
+(fields, types and statuses are always checked), and while the demo data and
+library versions match the recording, values and geometry bytes must match too. [docs/cfd-backend-switch.md](docs/cfd-backend-switch.md)
 is the way out of the layout half.
 
 ### Design decisions worth knowing
