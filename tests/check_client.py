@@ -225,7 +225,10 @@ def start_screen_checks(browser, cases, args, out):
               parse_qs(urlparse(page.url).query).get("case", [""])[0] == picked
               and page.locator(ctl("start-screen")).count() == 0, page.url)
     else:
-        print("  (only one case under --data; the several-cases checks need more)")
+        # Not a skip: the repo ships two demo cases (hotRoom and cavity) so that
+        # these checks always run; fewer means --data is pointed somewhere else.
+        check("--data holds at least two cases (the start screen needs a list)", False,
+              f"{len(cases)} case(s); data/ ships hotRoom and cavity")
 
     heavy.clear()
     page.goto(f"{base}/?case={args.case}&theme=light", wait_until="domcontentloaded")
