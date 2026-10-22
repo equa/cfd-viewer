@@ -57,9 +57,13 @@ The repository's own `Dockerfile` builds the server with the client inside it,
 from the lock file, on the same base and uid as cfd-backend's `cfd-viz`:
 
 ```bash
-podman build --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
-podman run --rm -p 5003:5003 -v ./data/hotRoom:/data/hotRoom:ro cfd-viewer:dev
+podman build --format docker --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
+podman run --rm -p 5003:5003 -v ./data/hotRoom:/data/hotRoom:ro,Z cfd-viewer:dev
 ```
+
+`--format docker` keeps the image's `HEALTHCHECK`: Podman's default OCI format
+has no health checks and drops it with a warning. `,Z` is for SELinux hosts such
+as Fedora; it relabels the mounted directory.
 
 Cases are read in place and never written to, so `/data` can be read-only.
 cfd-backend still builds `cfd-viz` its own way, from a clone of this repository;

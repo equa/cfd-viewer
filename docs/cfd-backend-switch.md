@@ -33,7 +33,7 @@ This repository's `Dockerfile` builds the same thing from the lock file: a
 the client packaged inside the wheel. It adds `/health` and a `HEALTHCHECK`.
 
 ```sh
-podman build --build-arg SERVICE_VERSION=<version> -t cfd-viewer:<version> \
+podman build --format docker --build-arg SERVICE_VERSION=<version> -t cfd-viewer:<version> \
     https://github.com/equa/cfd-viewer.git#main
 ```
 

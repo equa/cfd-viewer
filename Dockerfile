@@ -11,8 +11,12 @@
 # uid, no GL libraries -- so that the switch changes how the image is built,
 # not what runs in it.
 #
-#   podman build --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
-#   podman run --rm -p 5003:5003 -v ./data/hotRoom:/data/hotRoom:ro cfd-viewer:dev
+#   podman build --format docker --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
+#   podman run --rm -p 5003:5003 -v ./data/hotRoom:/data/hotRoom:ro,Z cfd-viewer:dev
+#
+# --format docker: the OCI image format has no HEALTHCHECK, and podman drops it
+# (with a warning) unless told to write a Docker-format image. buildx in CI
+# writes Docker format anyway.
 
 ARG PYTHON_IMAGE=python:3.14-slim-trixie
 ARG NODE_IMAGE=node:24-slim
