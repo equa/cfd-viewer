@@ -239,8 +239,8 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
 
 ## 11. Gate and merge (D11 layers 4 and 5)
 
-- [ ] 11.1 Ask Niklas to approve pushing `feat/standalone-foundation` to `origin`. Verify the branch exists on GitHub.
-- [ ] 11.2 Niklas, on the host:
+- [x] 11.1 Ask Niklas to approve pushing `feat/standalone-foundation` to `origin`. Verify the branch exists on GitHub.
+- [x] 11.2 Niklas, on the host:
   - build cfd-backend's unchanged `Containerfile`: `podman build --target cfd-viz --build-arg VIZ_BRANCH=feat/standalone-foundation -t cfd-viz:candidate .`;
   - run `podman run --rm cfd-viz:candidate bash /tests/smoke/viz.sh`;
   - run the stack with `VIZ_IMAGE=cfd-viz:candidate`, then run `check_cockpit_contract.py --runtime-only --base-url http://localhost:8080/viz/` against it.
@@ -250,7 +250,12 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
     - Cause: all 8 cases on that `CFD_HOME` are cfd-backend test-suite cases in `CFD_HOME/tests/<name>`, which the one-level scan never sees. That gap predates this change; the old viewer could not see them either. cfd-backend's own finder (`cfd_cases.find`) is an `rglob`, so it lists them.
     - Decision (with Niklas): mirror the backend's finder with a bound, rather than flatten the stack. Fixed in `052dac1`: `SERVER_SCAN_DEPTH` = 4, hidden directories searched. The spec, design D1, README and CLAUDE.md are updated.
     - The cockpit check now stages a `tests/<name>` case and opens it through `/viz/` (21/21). `doit ci` passes.
-  - **Rerun needed:** push, rebuild `cfd-viz:candidate` from the branch, restart the stack, and rerun the steps above.
+  - **Second run (2026-10-22), passed.** Two false starts on the way, both on the host side: the container still ran the old image (it has to be recreated with `--force-recreate`, not only rebuilt), and the fix had not reached GitHub (the clone took `87f07ff`). After the push, with `364b8dc` on GitHub, a `--no-cache` rebuild and a recreate:
+    - cfd-backend's own smoke test passes in the image (Niklas).
+    - `/viz/api/cases` lists all 9 cases the backend lists: `ecd286f9-…` (8.1 M cells) and 8 under `tests/`, 7 of them decomposed, labels from `metadata.json`.
+    - `check_cockpit_contract.py --runtime-only --base-url http://10.88.192.203:8080/viz/` passes 6/6 for a flat case and for two `tests/` cases, both decomposed (1930, 1222 and 811 colours).
+    - The cockpit's Visualize page opens cases, and the case dropdown switches between all of them (Niklas).
+  - Follow-up `473ae36`: an unreadable directory under `CFD_HOME` was skipped silently, and `Path.is_file()` inside it **raised** `PermissionError` (Python 3.12), which would have turned `/api/cases` into a 500. It is now skipped with one warning naming it. The new test `test_unreadable_directory_is_reported_not_silent` covers it. `doit ci` passes.
 - [x] 11.3 Update the docs:
   - README: installing from source with `uv`, the new options, the start screen and the `doit` tasks;
   - CLAUDE.md: the package layout and shims, case sources and ids, the additive-API rule, the client resolution order, the start-screen tree rule, the cockpit contract and its check, and the measured 15.8 M-cell numbers.
