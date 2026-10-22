@@ -8,10 +8,11 @@ what cost time to discover.
 
 This repo is a **React + three.js client over a Python/VTK extraction server**.
 `foamviz/` reads OpenFOAM and drives the filters, `server/` packs geometry onto
-the wire, `web/` draws it.
+the wire (both under `src/equa/cfd_viewer/` since 2026-10-21), `web/` draws it.
 
 ```
-python main.py --data ./data --port 5003
+uv run cfd-viewer --data ./data          # or, the old way: python main.py --data ./data
+uv run doit ci                           # the gate: lint, tests, wheel, cockpit contract
 ```
 
 The original **FoamViz (Trame + vtk.js) front end lives on the frozen `trame`
@@ -43,6 +44,83 @@ What that means in practice:
 - The `trame` branch is **frozen**, not maintained. If a pipeline fix ever
   matters there, cherry-pick it deliberately.
 
+## The standalone-viewer change, phase 1 (2026-10-20 .. 22)
+
+`openspec/changes/standalone-viewer/` is the design record (proposal, design
+D1-D11, specs, and `tasks.md` with the measured result of every task). Phase 1
+turned the cockpit-only viewer into a package that can also stand alone;
+phases 2 (Windows desktop bundle) and 3 (hosted uploads) are separate changes
+still to come. What phase 1 left in the code, and what not to undo:
+
+- **Package layout.** `src/equa/cfd_viewer/{foamviz,server}`, installable as
+  `equa-cfd-viewer` (`pyproject.toml`, `uv.lock`, console script `cfd-viewer`).
+  `hatch_build.py` puts `web/dist` into the wheel as `equa/cfd_viewer/web` and
+  refuses a wheel without it. The client is served from, first match:
+  `WEB_DIST_DIR`, the packaged copy, the checkout's `web/dist`.
+- **The cockpit contract -- read before moving files.** cfd-backend's `cfd-viz`
+  image is built from a clone of this repo's **`main`** (`git clone --branch
+  main`), checks for `web/package.json`, `web/package-lock.json`,
+  `requirements.txt` and `main.py`, runs `pip install -r requirements.txt` on
+  Python 3.14 and `python main.py --server --data "$CFD_HOME" ...`, and its
+  smoke test `tests/smoke/viz.sh` does `from foamviz.pipeline import
+  FoamPipeline` from the checkout root. Hence three shims: `main.py`, the
+  top-level `foamviz/` alias (registers the real submodules, so classes are
+  identical), and `requirements.txt` exported from the lock
+  (`requirements_check` keeps it in sync). `tests/check_cockpit_contract.py`
+  (`doit cockpit_contract`) repeats that build and runtime on a clone of HEAD,
+  runs cfd-backend's own `viz.sh`, and drives `/viz/?case=<uuid>&theme=light`
+  through a proxy that strips `/viz/` like the cockpit's nginx. Every commit
+  that reaches `main` ships with the next cfd-backend build. The way out is
+  `docs/cfd-backend-switch.md`; the shims go only after that.
+- **The HTTP API only grows.** `tests/test_contract.py` replays 56 exchanges
+  recorded on `main` before anything moved (`tests/contract/hotroom.json`) and
+  fails on any lost or changed field, changed status, or changed geometry or
+  LUT byte. New data goes in new fields (`entries`, `caseId`, `caseLabel`). The
+  two allowed changes are listed in `contract.ALLOWED_CHANGES`. Re-record
+  (`tools/record_contract.py`) only as a reviewed change -- e.g. after a VTK
+  upgrade that legitimately moves geometry bytes; the snapshot holds for 9.7.1.
+- **Case sources** (`server/sources.py`). `DirectorySource(roots, depth)`
+  replaces `find_cases` in the server (`find_cases` stays, and depth 1 is
+  tested to equal it). Ids are 12 hex chars of sha1(root, relative path);
+  `?case=` takes an id or a name exactly one case has, else **404 with the
+  reason** -- the old silent fallback to the first case is gone (agreed with
+  Niklas). `server` mode keeps `--scan-depth 1`: a deeper scan of `CFD_HOME`
+  could surface nested cases whose names collide with the cockpit's. Labels
+  come from `metadata.json` `NAME`; cell counts from the `nCells:` note in
+  `polyMesh/owner`'s header (summed over `processor*`), then
+  `case_info.ncells`. **`N-CELLS` in metadata.json is stale (observed 0) --
+  never use it.** Listing constructs no reader (0.4 ms for 15.8 M cells), and a
+  request for the already-open case skips the directory walk.
+- **Cases are read in place** -- no `.foam` marker is written (see the trap
+  below). Read-only shares and `:ro` mounts work.
+- **Run modes.** `--mode server` is the only mode and the default (`--server`
+  is an alias), so an empty `--data` no longer exits. `/health` and
+  `/api/config` (mode, version, `canAddFolders`, `canUpload`) are cheap and
+  open nothing.
+- **The start screen** (`web/src/ui/StartScreen.jsx`) shows when there is no
+  `?case=` and not exactly one case, or after a 404. It **overlays** `.app`
+  rather than replacing anything, because the React tree must not change shape
+  once the Viewer exists (see "Traps in this client"). It costs no
+  `/api/meta`/`range`/`scene` request (checked). After the first `/api/meta`,
+  `request.case` holds the **id**, so every later call is unambiguous; a pick
+  writes `?case=<id>` with `history.replaceState`.
+- **matplotlib stays** (design D10, a drop was proposed and withdrawn): the
+  `vtk` wheel itself requires it, and the rule is one locked dependency set for
+  every deployment.
+- **Tooling** follows equa-ci by name, implemented locally: `dodo.py`
+  (`lint_py` = ruff check only, no format check, as in equa-ci; `test_py`,
+  `test_ui`, `package`, `requirements_check`, `cockpit_contract`, `ci`), the
+  template's `.pre-commit-config.yaml` and `commitlint.config.js`, and a
+  `Dockerfile` on cfd-viz's base and uid. doit keeps its state in `.doit.json`
+  (JSON backend): dbm files differ between Python 3.12 and 3.13+.
+- **Host and dev container share this checkout**, `.venv` included, and each
+  side rebuilds `.venv` for its own interpreter -- in the container, point
+  `UV_PROJECT_ENVIRONMENT` elsewhere. The installed git hooks carry the host's
+  absolute interpreter path; in the container commit with `uv run git commit`
+  so the fallback finds `pre-commit` on `PATH`. And `pre-commit run
+  --commit-msg-filename` does NOT test commitlint (the hook lints
+  `.git/COMMIT_EDITMSG`); test it with a real commit in a throwaway clone.
+
 ## Working agreements (Niklas, merged from todo.md 2026-09-09)
 
 Standing instructions for how to work in this repo, not one-off requests.
@@ -73,8 +151,9 @@ The project lives at `/workspace/cfd-viewer` and is under version control
 (`origin/main` on GitHub). What actually needs to travel is about **1 MB**:
 
 ```
-CLAUDE.md README.md requirements.txt .gitignore main.py
-foamviz/ server/ web/ tests/ docs/
+CLAUDE.md README.md pyproject.toml uv.lock requirements.txt hatch_build.py
+dodo.py Dockerfile .dockerignore .gitignore .pre-commit-config.yaml
+commitlint.config.js main.py foamviz/ src/ web/ tests/ tools/ docs/ openspec/
 data/hotRoom/{Allrun,Allclean,system,constant,0}     # the case definition only
 ```
 
@@ -83,8 +162,7 @@ Everything else rebuilds:
 - `web/node_modules/` — `cd web && npm install`
 - `web/dist/` — `cd web && npm run build` (the Python server serves it from there;
   without it, `/` shows a short "no client build" page instead)
-- the Python env — see "Environment" below; in this container it is already at
-  `/opt/venv` and on `PATH`
+- the Python env -- `uv sync` (see "Environment" below)
 - `data/hotRoom/` (74 MB) — regenerate, see "Demo data". Or point `--data` at a
   real case; nothing depends on the demo except the tests.
 
@@ -104,11 +182,17 @@ need updating — the checks are deliberately concrete.
   (`/home/node` is a persistent volume, `/workspace` is not) — self-contained
   OSMesa, kept as a fallback; no longer the one to use.
 - Python 3.12, Ubuntu 24.04 container. **No root at runtime** (image built with root).
+- **A container without system GL (2026-10-20):** the pipeline suite segfaults
+  at its first render check. A user-space fix that worked: Mesa from
+  conda-forge (no OSMesa there since Mesa 25; VTK falls back to EGL with
+  `EGL_PLATFORM=surfaceless`), and for Chromium unset a host-leaked
+  `WAYLAND_DISPLAY` (it breaks SwiftShader) and set `FONTCONFIG_FILE`.
+  Details in `openspec/changes/standalone-viewer/tasks.md`, task 1.1.
 - `render_window.GetClassName()` should report `vtkOSOpenGLRenderWindow`.
 
 ### VTK packaging — checked 2026-08-11, don't re-derive
 
-- `requirements.txt` asks for plain **`vtk>=9.4`**. Since 9.4 the stock PyPI
+- `pyproject.toml` (and the `requirements.txt` exported from it) asks for plain **`vtk>=9.4`**. Since 9.4 the stock PyPI
   wheels contain EGL *and* OSMesa render windows and fall back X11 → EGL →
   OSMesa at runtime. They **dlopen** libEGL/libOSMesa instead of bundling, so
   anything that RENDERS needs `apt-get install libosmesa6`. A container that
@@ -632,13 +716,19 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 
 ## Testing
 
-Three suites, all runnable directly under `/opt/venv` (no `LD_LIBRARY_PATH`):
+`uv run doit ci` runs everything below (about 3 min); each also runs directly.
 
-| | what it covers | last run |
+| | what it covers | last run (2026-10-21) |
 |---|---|---|
-| `tests/test_pipeline.py` | the shared VTK pipeline, no browser, ~30 s | **63/63** |
-| `tests/check_client.py` | the three.js client in real Chromium | **93/93** |
+| `tests/test_pipeline.py` | the VTK pipeline incl. read-only serial/decomposed cases, no browser | **72/72** |
+| `tests/check_client.py` | the three.js client in real Chromium, incl. the start screen | **115/115** |
+| `tests/test_contract.py` | 56 recorded HTTP exchanges replayed (the API only grows) | **56/56** |
+| `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest 31 |
+| `tests/check_cockpit_contract.py` | cfd-backend's cfd-viz build + runtime, mirrored | **16/16** |
 | `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
+
+`tests/test_suites.py` runs the two script suites under pytest (the browser
+one marked `browser`, which `doit test_py` deselects).
 
 - `test_pipeline.py` asserts **output counts** for every filter, because an
   empty VTK filter raises nothing and renders as a perfectly plausible blank
@@ -799,7 +889,11 @@ the same size as the ones about to be allocated, so leaving them in the arena is
 what keeps time stepping cheap.
 
 **Sizing rule of thumb: the server's RSS settles near the largest single case
-opened, not the sum.** Leaving the viewer frees nothing on the server — one
+opened, not the sum.** Measured 2026-10-20 on a 15.8 M-cell IDA ICE case
+(binary, serial, 10 fields, 4.7 GB on disk): 13 s to open, **7.3 GB peak,
+6.6 GB settled**, boundary 111 MB raw / 25 MB gzipped -- about 0.45 GB per
+million cells. Most of the field share is every non-skipped field being read
+and interpolated to points; loading only the fields a scene uses is the lever. Leaving the viewer frees nothing on the server — one
 process holds one open case with no teardown on disconnect — but the browser
 side now owns its own geometry, so closing the tab does reclaim that half.
 
@@ -811,7 +905,9 @@ side now owns its own geometry, so closing the tab does reclaim that half.
   which proxies `/viz/*` to it. It reads cases straight off the shared
   `CFD_HOME` volume — no OpenFOAM install needed, `vtkOpenFOAMReader` parses the
   case files directly. The React cockpit embeds it **full-page** as
-  `<iframe src="/viz/?case=<id>">`.
+  `<iframe src="/viz/?case=<id>">` -- `<id>` there is the backend's UUID
+  directory name, which the viewer resolves as a name (its own ids are
+  different; both work).
 - **Process model:** one shared process. Per-session launching is the later
   productisation; see the open questions below.
 - **Deep links:** `?case=<name>` and `?theme=light|dark`, read from the URL by
@@ -819,8 +915,9 @@ side now owns its own geometry, so closing the tab does reclaim that half.
   `/viz/` prefix works because the build is relative — `base: ''` plus relative
   API paths — so one build serves at `/` and under `/viz/`.
 - **Empty `CFD_HOME` must not be fatal.** `--server` makes it non-fatal and the
-  server picks cases up as they appear; without it the process exits and the
-  container **restart-loops**. This bit Niklas once on Podman/WSL with a
+  server picks cases up as they appear (since 2026-10-21 `server` is the
+  default mode, so this holds without the flag too); before that, without it
+  the process exited and the container **restart-loops**. This bit Niklas once on Podman/WSL with a
   mis-mounted volume — nothing to do with WSL, GL, or the harmless EGL/X11 probe
   warnings. `pipeline._bootstrap_empty()` is the other half: it seeds the
   `case.internal`-fed filters (cutter/crinkle/contour/tracer + glyph_probe
@@ -836,7 +933,11 @@ side now owns its own geometry, so closing the tab does reclaim that half.
   only *sources* `docker-entrypoint.d/*.envsh` with `+x`, silently ignoring the
   rest. Hence `--chmod=755` on `scripts/nginx-resolver.envsh`.
 - Niklas runs rootless, nginx on host port 8080. The `cfd-viz` image clones this
-  repo at build time, so **push before rebuilding**.
+  repo at build time, so **push before rebuilding** -- and see "The cockpit
+  contract" above: what reaches `main` ships.
+- **The `cfd-home` volume could be mounted `:ro` now** -- the viewer writes
+  nothing into cases since 2026-10-20. cfd-backend's compose still mounts it rw
+  with a comment about the marker file; changing that is cfd-backend's call.
 
 ### Remaining open questions
 
@@ -854,7 +955,11 @@ API on :5001) and `project_iceopenfoam` (EQUA's OpenFOAM-13 extension libs).
    "one camera" half of this problem is simply gone. What remains is that two
    users still share one open case: real concurrency needs a process per
    session, which needs no special machinery here — just more processes.
-3. **Case discovery.** `find_cases()` scans for `system/controlDict`. The
+3. **Case discovery -- partly done (2026-10-21).** Listing now reads
+   `metadata.json` `NAME` as the label and the cell count from the mesh header
+   (`server/sources.py`), but still discovers by scanning for
+   `system/controlDict`, not by `metadata.json`. `N-CELLS` turned out stale
+   (0) on a real case; `case_info.ncells` was right. The
    backend addresses cases by UUID directory with a `metadata.json`
    (`CASE-ID`, `N-CELLS`, `TURB-MODEL`, `ZONE-NAMES`, `END-ITER`, `CFD-OK`…)
    and a `building.opf` (`GLOBAL`/`MESH`/`SOLVER`/`GEOMETRY` sections). A real

@@ -14,7 +14,7 @@ no `foamToVTK`, no ParaView install.
 VTK does every CFD filter on the server; the browser draws the result. The
 server extracts geometry per **part** — boundary, slice, isosurface,
 streamlines, arrows, geometry — and ships plain triangles, line segments and
-scalars (`foamviz/` + `server/`). The client turns those into `BufferGeometry`
+scalars (`src/equa/cfd_viewer/`: `foamviz/` + `server/`). The client turns those into `BufferGeometry`
 and colours them in a shader (`web/`), so it knows no CFD at all.
 
 That division is the point. Colour map, range, banding, opacity, per-part
@@ -27,25 +27,44 @@ state, so they cost **no round trip**; only what has to be re-*extracted* does.
 
 ## Running it
 
-```bash
-pip install -r requirements.txt
+The server is the Python package `equa-cfd-viewer`, managed with
+[uv](https://docs.astral.sh/uv/):
 
-# the client, once
-cd web && npm install && npm run build && cd ..
+```bash
+uv sync                                          # Python env from uv.lock
+
+# the client, once (and after changes to web/)
+cd web && npm ci && npm run build && cd ..
 
 # the server (serves web/dist at /)
-python main.py --data ./data --port 5003
+uv run cfd-viewer --data ./data
 ```
 
-Then open <http://localhost:5003/>.
+Then open <http://localhost:5003/>. With no `?case=` in the address, the viewer
+opens on a **start screen** listing every case it found (label, path, cell
+count, decomposed or not), with a filter; one case only opens directly.
 
 For UI work, run Vite's dev server instead — it hot-reloads and proxies `/api`
 to the Python process:
 
 ```bash
-python main.py --data ./data --port 5003     # terminal 1
+uv run cfd-viewer --data ./data              # terminal 1
 cd web && npm run dev                        # terminal 2 -> http://localhost:5173/
 ```
+
+The options:
+
+| Option | Meaning |
+|---|---|
+| `--data DIR` | A directory of cases, or one case. Repeat for several roots. Default `./data` |
+| `--scan-depth N` | Directory levels below each root to look for cases. Default 1: the root and its children |
+| `--host`, `--port` | Default `0.0.0.0`, `5003` |
+| `--mode server` | The only mode so far, and the default: an empty `--data` is not fatal, cases are picked up as they appear. `--server` is an alias |
+
+`python main.py ...` with `pip install -r requirements.txt` still works the old
+way; that is how cfd-backend's `cfd-viz` image runs it (see
+[the cockpit contract](#the-cockpit-contract)). Endpoints for tooling:
+`/health`, and `/api/config` (mode, version).
 
 `--data DIR` points at either a single case directory or a directory of them; a
 case is anything containing `system/controlDict`. The bundled demo lives in
@@ -72,11 +91,17 @@ this image, and what can be removed here once it has.
 
 ### Deep-linking a case, and the theme
 
-`?case=<name>` opens a specific case directly, e.g.
-<http://localhost:5003/?case=hotRoom>, where `<name>` is the case directory
-name. `?theme=light|dark` sets the colour scheme (default dark). Both are what
-let a host application embed the viewer for one case in an `<iframe>` and have
-it match the surrounding app.
+`?case=<id or name>` opens a specific case directly, e.g.
+<http://localhost:5003/?case=hotRoom>. Every case has a stable 12-character
+**id** (from its root and path, shown in the case switcher); its directory
+**name** works too as long as exactly one case has it. An unknown or ambiguous
+`?case=` is a 404, and the page falls back to the start screen with a notice,
+never to a different case. `?theme=light|dark` sets the colour scheme (default
+dark). Both are what let a host application embed the viewer for one case in
+an `<iframe>` and have it match the surrounding app.
+
+Cases are read **in place and never written to** (no `.foam` marker is created),
+so case directories can be read-only: a network share, or a `:ro` mount.
 
 ### Which VTK
 
@@ -103,14 +128,15 @@ for CPython 3.6–3.12 on Linux x86_64 and Windows — which is the usual reason
 `pip install vtk-osmesa` fails. Reach for it only where you cannot install
 `libosmesa6`.
 
-Note that the three.js client **never renders on the server**; it only extracts,
-and nothing in `server/` calls `Render()`. So OSMesa is very likely unnecessary
-for a deployment serving only that client. It is *not* dropped yet, and the
-reason is worth stating: both front ends share one `FoamPipeline`, which
-**constructs** a `vtkRenderWindow` at import, and whether that construction
-survives with no GL backend present at all is untested. The `cfd-viz` image
-still installs `libosmesa6` for that reason — verify construction before taking
-the (real) image-size win.
+**The server needs no GL library at all.** It never renders, it only extracts,
+and since 2026-09-22 `FoamPipeline` builds its render window lazily, so
+constructing it needs no GL backend either. Neither image (cfd-backend's
+`cfd-viz`, nor this repository's) installs `libosmesa6`, and cfd-backend's
+smoke test checks that construction stays GL-free. The libraries above matter
+only for what genuinely renders: `screenshot()`, `write_vtkjs()`, `pick_cor()`,
+and the rendering checks of `tests/test_pipeline.py`. Run with
+`vtkRenderWindow` patched to raise, that suite passes 48 checks and first fails
+at `pick_cor`, which really does render.
 
 ## What it does
 
@@ -197,23 +223,44 @@ cd data/hotRoom && ./Allclean && ./Allrun
 ## Layout
 
 ```
-main.py                CLI entry point
-
-foamviz/case.py        vtkOpenFOAMReader wrapper: times, fields, patches, snapshots
-foamviz/pipeline.py    the VTK filter graph: cutter, contour, tracer, glyphs, colouring
-foamviz/colors.py      colour map presets, shared by the shader LUT and the legend
-
-server/scene.py        per-part extraction; PART_INPUTS declares what makes a part stale
-server/wire.py         vtkPolyData -> typed arrays ("FVS1" binary format)
-server/app.py          aiohttp routes; extraction runs off the event loop
+src/equa/cfd_viewer/
+  __main__.py          the CLI: `cfd-viewer`, `python -m equa.cfd_viewer`
+  foamviz/case.py      vtkOpenFOAMReader wrapper: times, fields, patches, snapshots
+  foamviz/pipeline.py  the VTK filter graph: cutter, contour, tracer, glyphs, colouring
+  foamviz/colors.py    colour map presets, shared by the shader LUT and the legend
+  server/sources.py    where cases come from: discovery, ids, labels, cell counts
+  server/scene.py      per-part extraction; PART_INPUTS declares what makes a part stale
+  server/wire.py       vtkPolyData -> typed arrays ("FVS1" binary format)
+  server/app.py        aiohttp routes; extraction runs off the event loop
 
 web/src/viewer/        three.js: the Viewer class and the shaders (no React in here)
 web/src/scene/         the state model and per-part fetching + cache (no three.js in here)
-web/src/ui/            React + Mantine: top bar, side pane, tools, bottom bar, overlays
+web/src/ui/            React + Mantine: start screen, top bar, side pane, tools, overlays
 
+main.py, foamviz/,     shims kept for cfd-backend's cfd-viz build (see below)
+requirements.txt
+pyproject.toml, uv.lock, hatch_build.py   the package; the hook puts web/dist in the wheel
+dodo.py                doit tasks, named as in equa-ci
+Dockerfile             this repository's own image
+openspec/              specs and changes (the standalone-viewer change lives here)
 tests/                 see below
-docs/                  screenshots, and the three.js spike report with its measurements
+docs/                  screenshots, the three.js spike report, the cfd-backend switch note
 ```
+
+### The cockpit contract
+
+cfd-backend's `cfd-viz` image is built from a **clone of this repository's
+`main`**: it needs `web/package.json`, `web/package-lock.json`,
+`requirements.txt` and `main.py` at the root, installs with
+`pip install -r requirements.txt` on Python 3.14, runs
+`python main.py --server --data "$CFD_HOME" ...`, and its smoke test imports
+`foamviz.pipeline` from the checkout root. So that layout is a contract, kept by
+three shims (`main.py`, the top-level `foamviz/` alias and a generated
+`requirements.txt`) and checked on every `doit ci` by
+`tests/check_cockpit_contract.py`. Its HTTP behaviour is a contract too:
+`tests/test_contract.py` replays responses recorded before the package move,
+and the API may only grow. [docs/cfd-backend-switch.md](docs/cfd-backend-switch.md)
+is the way out of the layout half.
 
 ### Design decisions worth knowing
 
@@ -244,10 +291,30 @@ custom accessor. `server/wire.py` ships raw typed arrays that map 1:1 onto
 ## Tests
 
 ```bash
-python tests/test_pipeline.py      # 63 checks, ~30 s, no browser — the shared pipeline
-python tests/check_client.py       # 104 checks — the client in real Chromium
-python tests/bench.py hotRoom s2   # server-side extraction sizes and timings
+uv run doit ci                     # everything a change must pass, ~3 min
+uv run doit list                   # the separate tasks: lint_py, test_py, test_ui, package, ...
 ```
+
+`doit ci` runs ruff, pytest, the browser suite, the client build, a check that
+the wheel carries the client, a check that `requirements.txt` matches the lock,
+and the cockpit contract. The suites also run directly:
+
+```bash
+uv run python tests/test_pipeline.py            # 72 checks, no browser: the VTK pipeline
+uv run python tests/check_client.py             # 115 checks: the client in real Chromium
+uv run python tests/test_contract.py            # 56 recorded HTTP exchanges, replayed
+uv run python tests/check_cockpit_contract.py   # cfd-backend's cfd-viz build, mirrored
+uv run pytest tests/test_sources.py tests/test_endpoints.py
+uv run python tests/bench.py hotRoom s2         # server-side extraction sizes and timings
+```
+
+The pipeline suite renders, so it needs a GL backend (see "Which VTK"); the
+browser suite needs Playwright's Chromium (`uv run playwright install chromium`);
+the cockpit check needs a cfd-backend checkout next to this one, and reports an
+incomplete run without it.
+
+Commit messages follow Conventional Commits. The checks run as git hooks once
+installed: `uv run pre-commit install --hook-type commit-msg --hook-type pre-commit`.
 
 `test_pipeline.py` checks the reader and every representation by **output
 size**, not by exit status: an empty VTK filter raises nothing and renders as a
@@ -287,7 +354,10 @@ the canvas, so a page screenshot of an *empty* scene comes back colourful.
   derived arrays computed on load — a natural extension of the same baked-array
   mechanism used for colouring.
 
-Scale is *not* on this list: tested to 12 M cells. Note that an IDA ICE "zone"
+Scale is *not* on this list: tested to 12 M cells, and measured on a 15.8 M-cell
+IDA ICE case: 13 s to open, a 25 MB gzipped boundary, and **7.3 GB peak RAM**
+(6.6 GB settled). The server's memory settles near the largest case opened, so
+plan for about 0.45 GB per million cells. Note that an IDA ICE "zone"
 is a room selected for analysis, not an OpenFOAM `cellZone` — cases are treated
 as single-region, single-zone. Decomposed (`processor*`) cases are read via
 `vtkPOpenFOAMReader` and are supported.

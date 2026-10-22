@@ -246,10 +246,14 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
   - run the stack with `VIZ_IMAGE=cfd-viz:candidate`, then run `check_cockpit_contract.py --runtime-only --base-url http://localhost:8080/viz/` against it.
 
   Record all results in this task line. Verify the smoke test passes, the browser check passes, and the cockpit's Visualize page opens a real case.
-- [ ] 11.3 Update the docs:
+- [x] 11.3 Update the docs:
   - README: installing from source with `uv`, the new options, the start screen and the `doit` tasks;
   - CLAUDE.md: the package layout and shims, case sources and ids, the additive-API rule, the client resolution order, the start-screen tree rule, the cockpit contract and its check, and the measured 15.8 M-cell numbers.
 
   Verify every README command runs as written.
+  - Result: done before the push, so the branch tested in 11.2 is the one that merges.
+  - **README:** running with `uv` and `cfd-viewer`, the options table, the start screen, ids and names in `?case=`, read-only cases, "In a container", "Which VTK" corrected (the server needs no GL; the 48-checks-without-GL fact moved here from the old `requirements.txt`), the layout, "The cockpit contract", the tests and `doit ci`, the commit hooks, and the 15.8 M-cell measurements.
+  - **CLAUDE.md:** a new section, "The standalone-viewer change, phase 1": the layout and shims, the cockpit contract, the additive API, case sources and ids (`N-CELLS` is stale), read-only cases, run modes, the start-screen overlay rule, matplotlib kept, the tooling, and the shared host/container checkout. Also updated: "Resuming", "Environment" (a container without system GL), "Testing", "Backend integration" (default mode, the `:ro` volume, discovery question 3 partly done) and "Memory management".
+  - Checked as written in the container: `uv sync`, `npm ci && npm run build`, `uv run cfd-viewer --data ./data` (3 cases, `/health` ok), `uv run doit list`, `uv run pytest tests/test_sources.py tests/test_endpoints.py` (30 passed), `uv run python tests/test_contract.py` (56/56). The Podman commands were run by Niklas in 10.1.
 - [ ] 11.4 Rebase onto `main` and rerun `uv run doit ci`. Then fast-forward `main` to the branch and push. Both steps need Niklas's approval. Verify `main` holds the rebased commits.
 - [ ] 11.5 Watch the next cfd-backend release run (its `release.yml` "Smoke-test cfd-viz" step). Verify it is green, or roll back by retagging the digest recorded in 1.6 and reverting on `main`.
