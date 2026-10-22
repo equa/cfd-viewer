@@ -51,6 +51,21 @@ cd web && npm run dev                        # terminal 2 -> http://localhost:51
 case is anything containing `system/controlDict`. The bundled demo lives in
 `data/hotRoom`.
 
+### In a container
+
+The repository's own `Dockerfile` builds the server with the client inside it,
+from the lock file, on the same base and uid as cfd-backend's `cfd-viz`:
+
+```bash
+podman build --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
+podman run --rm -p 5003:5003 -v ./data/hotRoom:/data/hotRoom:ro cfd-viewer:dev
+```
+
+Cases are read in place and never written to, so `/data` can be read-only.
+cfd-backend still builds `cfd-viz` its own way, from a clone of this repository;
+[docs/cfd-backend-switch.md](docs/cfd-backend-switch.md) describes moving it to
+this image, and what can be removed here once it has.
+
 ### Deep-linking a case, and the theme
 
 `?case=<name>` opens a specific case directly, e.g.

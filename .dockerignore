@@ -1,0 +1,18 @@
+# The image is built from source: the package, its lock and metadata, the build
+# hook and the client's source. Nothing else -- no .git (the version arrives as a
+# build argument), no tests, no data/, no node_modules, no built client (the web
+# stage builds its own).
+#
+# Re-including a path from an excluded directory needs the directory
+# un-excluded first, hence the pairs rather than single lines.
+*
+!src
+!pyproject.toml
+!uv.lock
+!README.md
+!hatch_build.py
+!web
+web/node_modules
+web/dist
+**/__pycache__
+**/*.pyc

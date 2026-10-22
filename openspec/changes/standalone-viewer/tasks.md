@@ -217,7 +217,32 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
   - the image runs with `data/hotRoom` mounted read-only;
   - `/health` answers 200;
   - a boundary scene extracts.
-- [ ] 10.2 Write a note for cfd-backend, not a change there, on switching `cfd-viz` from cloning plus `pip install -r requirements.txt` to this `Dockerfile`, and on when the shims can then go (D9). Verify the note is in `docs/` and linked from the README.
+  - Written: `Dockerfile` with three stages.
+    - `web`: `node:24-slim`, `npm ci && npm run build`.
+    - `builder`: `python:3.14-slim-trixie` plus `uv` 0.13.1, running `uv sync --frozen --no-dev --no-editable`, with the build argument `SERVICE_VERSION` required and fed to hatch-vcs.
+    - `runtime`: the same Python base as cfd-viz, uid 2345 in group `users` as cfd-viz, no GL libraries, a `HEALTHCHECK` on `/health` via Python's urllib, and `CMD cfd-viewer --mode server --data /data --host 0.0.0.0 --port 5003`.
+  - `.dockerignore` lets through only `src`, `pyproject.toml`, `uv.lock`, `README.md`, `hatch_build.py` and `web` (without `node_modules` or `dist`).
+  - Emulated in the container, where there is no Podman. The builder: a context holding only the ignore file's paths (from `git archive HEAD`), `uv sync --frozen --no-dev --no-editable` with the Dockerfile's `UV_*` settings on Python 3.14.8. Result: version `0.0.0-dev`, client packaged, no dev dependencies.
+  - The runtime: the image's CMD from that venv in a clean environment (`env -i`, no GL), on a `chmod -R a-w` copy of hotRoom. Results: `/health` 200, the HEALTHCHECK command exits 0, a boundary scene extracts (343 kB), `/` serves the client, and nothing is written into `/data`.
+  - **Still open: the real build and run with rootless Podman on the host.**
+
+    ```sh
+    podman build --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
+    podman run -d --name cfdv -p 5003:5003 -v ./data/hotRoom:/data/hotRoom:ro,Z cfd-viewer:dev
+    sleep 20; podman inspect --format '{{.State.Health.Status}}' cfdv     # healthy
+    curl -s -o /dev/null -w '%{http_code}\n' localhost:5003/health          # 200
+    curl -s -o /dev/null -w '%{http_code} %{size_download}\n' 'localhost:5003/api/scene?case=hotRoom&parts=boundary&field=U'
+    podman exec cfdv id                                                    # uid=2345(cfd) gid=100(users)
+    podman rm -f cfdv
+    ```
+- [x] 10.2 Write a note for cfd-backend, not a change there, on switching `cfd-viz` from cloning plus `pip install -r requirements.txt` to this `Dockerfile`, and on when the shims can then go (D9). Verify the note is in `docs/` and linked from the README.
+  - Result: `docs/cfd-backend-switch.md` covers:
+    - what cfd-viz depends on today (the file layout, not only behaviour);
+    - the switch, as a `FROM` of a published image or a compose `build:` from the git URL;
+    - mounting the volume at `/data`, or passing `--data /home/cfd/run`, now **read-only**;
+    - the `viz.sh` replacements, line by line;
+    - what can go here afterwards: `main.py`, `foamviz/`, `requirements.txt` with `requirements_check`, the `web/dist` fallback, the cockpit check, and the spec requirement. The recorded HTTP contract stays.
+  - Linked from the README's new "In a container" section.
 
 ## 11. Gate and merge (D11 layers 4 and 5)
 
