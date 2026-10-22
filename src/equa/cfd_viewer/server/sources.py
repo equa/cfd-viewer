@@ -100,9 +100,11 @@ class CaseRef:
 
 
 def is_case(directory):
-    # Path.is_file() RAISES PermissionError (rather than answering False) for a
-    # path inside a directory the server cannot read, at least on Python 3.12;
-    # one locked directory under CFD_HOME must not turn the listing into a 500.
+    # On Python 3.12, Path.is_file() RAISES PermissionError for a path inside a
+    # directory the server cannot search (it ignores only ENOENT-like errors);
+    # 3.14 answers False, as os.path.isfile always has (both checked
+    # 2026-10-22). The package supports 3.12, so guard: one locked directory
+    # under CFD_HOME must not turn the listing into a 500 there.
     try:
         return (directory / "system" / "controlDict").is_file()
     except OSError as exc:

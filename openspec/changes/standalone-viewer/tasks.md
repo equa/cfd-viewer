@@ -255,7 +255,8 @@ Withdrawn 2026-10-20 with design D10. VTK depends on matplotlib, so it stays in 
     - `/viz/api/cases` lists all 9 cases the backend lists: `ecd286f9-…` (8.1 M cells) and 8 under `tests/`, 7 of them decomposed, labels from `metadata.json`.
     - `check_cockpit_contract.py --runtime-only --base-url http://10.88.192.203:8080/viz/` passes 6/6 for a flat case and for two `tests/` cases, both decomposed (1930, 1222 and 811 colours).
     - The cockpit's Visualize page opens cases, and the case dropdown switches between all of them (Niklas).
-  - Follow-up `473ae36`: an unreadable directory under `CFD_HOME` was skipped silently, and `Path.is_file()` inside it **raised** `PermissionError` (Python 3.12), which would have turned `/api/cases` into a 500. It is now skipped with one warning naming it. The new test `test_unreadable_directory_is_reported_not_silent` covers it. `doit ci` passes.
+  - Follow-up `473ae36`: an unreadable directory under `CFD_HOME` was skipped silently, so a permission problem looked like "no cases". It is now skipped with one warning naming it. The new test `test_unreadable_directory_is_reported_not_silent` covers it. `doit ci` passes.
+    - Correction (Niklas asked): the commit message says `Path.is_file()` inside such a directory raises and would make `/api/cases` a 500. That holds on **Python 3.12 only**: 3.12.3 raises `PermissionError`, while 3.14.8 returns `False`, like `os.path.isfile` on both (measured). cfd-viz runs 3.14, so it never had the 500. The guard stays for 3.12, which the package supports.
 - [x] 11.3 Update the docs:
   - README: installing from source with `uv`, the new options, the start screen and the `doit` tasks;
   - CLAUDE.md: the package layout and shims, case sources and ids, the additive-API rule, the client resolution order, the start-screen tree rule, the cockpit contract and its check, and the measured 15.8 M-cell numbers.
