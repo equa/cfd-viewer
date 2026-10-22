@@ -49,7 +49,12 @@ class CaseSource(Protocol):
 - **Case ids are opaque and stable**: a short hash of the resolved root plus the case's path relative to that root, so the same relative path under two roots gets two ids. Once discovery is recursive, two cases can share a basename, so the name alone stops being unique. `?case=` accepts an id. If no case has that id, it falls back to a unique name, which keeps `/viz/?case=<name>` working for the cockpit.
 - The silent fallback to the first case on an unknown `?case=` is removed. An unknown case returns 404, and the client then shows the start screen. Agreed 2026-10-20: it was a long-standing issue, and showing the wrong case is worse than saying so.
 - **The API only grows.** `/api/cases` keeps `cases: [names]` and adds `entries`. `/api/meta` keeps `case` as the name and adds `caseId` and `caseLabel`. Nothing that exists today changes name, type or meaning (D11).
-- **`server` mode keeps today's one-level scan** (`--scan-depth 1`). A deeper scan of `CFD_HOME` could find nested cases whose names collide with top-level ones, and a name the cockpit uses today would then answer 404. Deeper scans are for `local` mode.
+- **`server` mode finds cases where cfd-backend finds them**, bounded at 4 directory levels (`SERVER_SCAN_DEPTH`).
+  - *First decided:* keep today's one-level scan, for fear that nested cases would collide by name with the ones the cockpit links.
+  - *Revised 2026-10-22 at the gate (task 11.2).* On Niklas's stack, all 8 cases were test-suite cases in `CFD_HOME/tests/<name>`, so the one-level scan (old viewer and new alike) listed nothing.
+  - cfd-backend's `cfd_cases.find` is `rglob` over all of `CFD_HOME`, and its `/api/wd/ls/<name>` already relies on unique directory names, so a viewer that searches as deep adds no collision risk the backend doesn't already carry. Where names do collide, the viewer answers 404 with the ids instead of the backend's silent first match.
+  - The bound keeps a stray deep tree from slowing every request. Pruning at cases keeps the walk cheap.
+  - *Rejected:* flattening the stack (restaging tests into `CFD_HOME/<name>`). It would change cfd-backend to suit a viewer limit, and the next grouping (per project or per user) would break the viewer the same silent way.
 
 *Alternatives:* keep basenames and refuse duplicates (fragile across several roots), or use full paths as ids (they leak host paths into URLs and are awkward on Windows).
 

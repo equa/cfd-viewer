@@ -22,12 +22,27 @@ gone on purpose.
 
 Discovery depth
 ---------------
-``depth`` counts directory levels below a root: 1 is the root and its immediate
-children, exactly what ``find_cases`` always did and still the default, because
-a deeper scan of the cockpit's ``CFD_HOME`` could turn up nested cases whose
-names collide with the ones it links to. A root is always scanned, even when it
-is itself a case (``find_cases`` did the same); below it, a case directory is
-not descended into, nor are hidden, ``processor*`` or numeric time directories.
+Server mode finds cases the way cfd-backend does: its ``cfd_cases.find`` takes
+every directory below ``CFD_HOME`` that has ``system/controlDict``, at any
+depth (``rglob``), and the cockpit links a case by its directory name. So the
+viewer searches every level too, bounded by ``depth`` -- directory levels below
+a root, :data:`SERVER_SCAN_DEPTH` by default -- so a stray deep tree cannot
+slow every request. Test-suite cases, for one, live in ``CFD_HOME/tests/<name>``,
+which the old one-level scan never saw (found at the phase-1 gate, 2026-10-22).
+
+A root is always scanned, and listed when it is itself a case (``find_cases``
+did the same). Below it, a case directory is not descended into -- a case holds
+no cases, and pruning there is what keeps the walk cheap -- and neither are
+``processor*`` or numeric time directories. Hidden directories are searched,
+as the backend searches them.
+
+Names must be unique for the cockpit's links to work; the backend relies on
+that as well (``/api/wd/ls/<name>`` takes the first match). Where they are not,
+a name is ambiguous here and gets a 404 listing the ids, rather than the
+backend's silent first match.
+
+The backend also lists "bare" cases (``building.opf`` + ``geometry/building.obj``,
+not yet meshed); there is nothing to view in those, so they are left out.
 """
 
 import gzip
@@ -41,6 +56,10 @@ from pathlib import Path
 from ..foamviz.case import is_decomposed
 
 log = logging.getLogger("cfdviewer.sources")
+
+# Directory levels below a root searched in server mode. CFD_HOME/<case> and
+# CFD_HOME/tests/<case> need 1 and 2; 4 leaves room for deeper grouping.
+SERVER_SCAN_DEPTH = 4
 
 # Enough to hold an OpenFOAM FoamFile header, note line included.
 _HEADER_BYTES = 4096
@@ -133,7 +152,7 @@ def _cells(directory, metadata, decomposed):
 
 def _skip(directory):
     name = directory.name
-    if name.startswith(".") or name.startswith("processor"):
+    if name.startswith("processor"):
         return True
     try:
         float(name)  # a time directory
@@ -145,7 +164,7 @@ def _skip(directory):
 class DirectorySource:
     """Cases under one or more directory roots, rescanned on every call."""
 
-    def __init__(self, roots, depth=1):
+    def __init__(self, roots, depth=SERVER_SCAN_DEPTH):
         self.roots = [Path(r) for r in roots]
         self.depth = depth
 

@@ -61,6 +61,9 @@ REQUIRED = ["web/package.json", "web/package-lock.json", "requirements.txt", "ma
 # UUID-shaped directory names, as the backend names its cases.
 CASE_ID = "e2614af7-0000-4000-8000-00000000c0c1"
 LATE_ID = "e2614af7-0000-4000-8000-00000000c0c2"
+# cfd-backend's test suite stages its cases one level down, in CFD_HOME/tests/.
+# The one-level scan missed them; found at the phase-1 gate (2026-10-22).
+TEST_CASE = "tests/window-radiator-no-ahu_0"
 
 checks, failures = 0, []
 
@@ -289,6 +292,8 @@ def runtime_half(clone, python, work):
     print("\nruntime half (the image's CMD behind a /viz/ proxy)")
     cfd_home = work / "cfd-home"
     copy_case(cfd_home / CASE_ID)
+    copy_case(cfd_home / TEST_CASE)
+    test_name = TEST_CASE.rsplit("/", 1)[-1]
     port = free_port()
     server = start_cmd(clone, python, cfd_home, port)
     try:
@@ -297,8 +302,11 @@ def runtime_half(clone, python, work):
             return
         base = start_proxy(port)
         cases = get_json(base + "api/cases")["cases"]
-        check("cases are keyed by directory name", cases == [CASE_ID], str(cases))
+        check("cases are keyed by directory name, CFD_HOME/<uuid> and CFD_HOME/tests/<name>",
+              cases == [CASE_ID, test_name], str(cases))
         browser_checks(base, CASE_ID)
+        print("  (a test-suite case, one level down)")
+        browser_checks(base, test_name)
 
         copy_case(cfd_home / LATE_ID)
         cases = get_json(base + "api/cases")["cases"]

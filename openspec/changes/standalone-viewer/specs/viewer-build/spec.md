@@ -54,6 +54,7 @@ Until cfd-backend builds from this repository's own `Dockerfile`, a checkout of 
 - with the checkout root as working directory, `from foamviz.pipeline import FoamPipeline` works, and constructing it does not start rendering. A top-level `foamviz` compatibility package re-exports the moved modules;
 - `python main.py --help` exits 0, and `python main.py --server --data "$CFD_HOME" --host 0.0.0.0 --port "$VIZ_PORT"` serves, as an unprivileged user, behind a proxy that strips `/viz/`;
 - `/viz/?case=<directory name>&theme=light|dark` opens that case directly in that theme, and every request the page makes stays under `/viz/`;
+- every case cfd-backend's finder lists under `CFD_HOME` is found, including its test-suite cases in `CFD_HOME/tests/<name>`;
 - an empty `CFD_HOME` is not fatal, and a case written later is picked up without a restart.
 
 #### Scenario: The emulated cfd-viz build passes

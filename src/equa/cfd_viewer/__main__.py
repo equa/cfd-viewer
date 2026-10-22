@@ -13,7 +13,7 @@ the frozen ``trame`` branch.
 import argparse
 import logging
 
-from .server.sources import DirectorySource
+from .server.sources import SERVER_SCAN_DEPTH, DirectorySource
 
 log = logging.getLogger("cfdviewer")
 
@@ -30,10 +30,11 @@ def main(argv=None):
     parser.add_argument(
         "--scan-depth",
         type=int,
-        default=1,
+        default=SERVER_SCAN_DEPTH,
         metavar="N",
-        help="directory levels below each root to look for cases (default 1: "
-             "the root and its immediate children, as the cockpit expects)",
+        help="directory levels below each root to search for cases (default "
+             f"{SERVER_SCAN_DEPTH}; cases are found at any level up to it, as "
+             "cfd-backend finds them, and never inside another case)",
     )
     parser.add_argument("--port", type=int, default=5003)
     parser.add_argument("--host", default="0.0.0.0")

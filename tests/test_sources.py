@@ -68,10 +68,23 @@ def test_nested_case_found_with_depth(tmp_path):
     assert names(DirectorySource([tmp_path], depth=3)) == ["run1"]
 
 
-def test_server_mode_scans_one_level(tmp_path):
+def test_server_mode_finds_cases_where_the_backend_does(tmp_path):
+    """The cockpit's CFD_HOME as found at the phase-1 gate: ordinary cases at
+    CFD_HOME/<uuid>, test-suite cases at CFD_HOME/tests/<name>. cfd-backend's
+    finder (rglob) lists both, so the default scan must too."""
     make_case(tmp_path / "e2614af7")
-    make_case(tmp_path / "old" / "a1b2c3d4")
-    assert names(DirectorySource([tmp_path])) == ["e2614af7"]
+    make_case(tmp_path / "tests" / "window-radiator-no-ahu_0")
+    make_case(tmp_path / "tests" / "therm-beam-only_1")
+    assert sorted(names(DirectorySource([tmp_path]))) == [
+        "e2614af7", "therm-beam-only_1", "window-radiator-no-ahu_0"]
+    source = DirectorySource([tmp_path])
+    assert source.resolve("therm-beam-only_1").path == "tests/therm-beam-only_1"
+
+
+def test_default_bound(tmp_path):
+    make_case(tmp_path / "a" / "b" / "c" / "level4")
+    make_case(tmp_path / "a" / "b" / "c" / "d" / "level5")
+    assert names(DirectorySource([tmp_path])) == ["level4"]
 
 
 def test_root_that_is_a_case(tmp_path):
@@ -92,12 +105,14 @@ def test_several_roots(tmp_path):
     assert names(DirectorySource([tmp_path / "A", tmp_path / "B"])) == ["run1", "run2"]
 
 
-def test_skips_hidden_processor_and_time_directories(tmp_path):
-    make_case(tmp_path / ".trash" / "hidden")
+def test_skips_processor_and_time_directories_not_hidden(tmp_path):
+    """processor* and time directories are case internals; hidden ones are
+    searched, as cfd-backend's rglob searches them."""
+    make_case(tmp_path / ".staging" / "hidden")
     make_case(tmp_path / "processor0" / "inside")
     make_case(tmp_path / "1730" / "timedir")
     make_case(tmp_path / "visible")
-    assert names(DirectorySource([tmp_path], depth=3)) == ["visible"]
+    assert sorted(names(DirectorySource([tmp_path], depth=3))) == ["hidden", "visible"]
 
 
 def test_does_not_descend_into_a_case(tmp_path):
@@ -114,9 +129,9 @@ def test_new_case_appears_without_restart(tmp_path):
 
 
 def test_depth_one_matches_find_cases():
-    """Default discovery is exactly the old one-level scan, on the real data/."""
+    """Depth 1 is exactly the old one-level scan, on the real data/."""
     data = ROOT / "data"
-    assert DirectorySource([data]).names() == [p.name for p in find_cases(data)]
+    assert DirectorySource([data], depth=1).names() == [p.name for p in find_cases(data)]
 
 
 def test_missing_root_lists_nothing(tmp_path):

@@ -8,18 +8,23 @@ How the viewer finds, identifies, describes and opens OpenFOAM cases. In phase 1
 
 ### Requirement: Cases are discovered under one or more roots
 
-The server SHALL accept one or more case roots (`--data`, repeatable). A directory SHALL be a case when it contains `system/controlDict`. Discovery SHALL search each root and its subdirectories to a configurable depth (`--scan-depth`). In `server` mode the default SHALL be 1, meaning the root and its immediate children, exactly as before this change. Later modes set their own default. Below a root, it SHALL NOT descend into a directory once that directory is a case, and SHALL skip hidden directories, `processor*` directories and numeric time directories. A root SHALL always be scanned, and SHALL itself be listed when it is a case, as `find_cases` did before this change.
+The server SHALL accept one or more case roots (`--data`, repeatable). A directory SHALL be a case when it contains `system/controlDict`. Discovery SHALL search each root and its subdirectories down to a configurable depth (`--scan-depth`, in directory levels below the root). In `server` mode it SHALL find every case cfd-backend's own finder finds -- that finder takes any directory below `CFD_HOME` with `system/controlDict`, at any depth -- down to a bound of 4 levels, the default. Below a root, discovery SHALL NOT descend into a directory once that directory is a case, and SHALL skip `processor*` and numeric time directories. Hidden directories SHALL be searched, as the backend searches them. The backend's "bare" cases (no `system/controlDict`) are not listed: there is nothing in them to view. A root SHALL always be scanned, and SHALL itself be listed when it is a case, as `find_cases` did before this change.
 
 #### Scenario: A nested case is found
 
 - **WHEN** the root holds `projects/officeA/run1/system/controlDict` and the server runs with `--scan-depth 3`
 - **THEN** `GET /api/cases` lists `run1`
 
-#### Scenario: Server mode scans one level, as before
+#### Scenario: Server mode finds cases where cfd-backend does
 
-- **WHEN** the server runs in `server` mode without `--scan-depth`, and `CFD_HOME` holds `<uuid>/system/controlDict` and `old/<uuid2>/system/controlDict`
-- **THEN** `<uuid>` is listed
-- **AND** `<uuid2>` is not
+- **WHEN** the server runs in `server` mode without `--scan-depth`, and `CFD_HOME` holds `<uuid>/system/controlDict` and `tests/<name>/system/controlDict` (cfd-backend's test suite stages its cases there)
+- **THEN** both `<uuid>` and `<name>` are listed
+- **AND** `/viz/?case=<name>` opens the test case
+
+#### Scenario: The default bound
+
+- **WHEN** a case sits 5 directory levels below `CFD_HOME` and the server runs without `--scan-depth`
+- **THEN** it is not listed, while a case 4 levels down is
 
 #### Scenario: A root that is a case
 

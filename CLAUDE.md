@@ -84,8 +84,13 @@ still to come. What phase 1 left in the code, and what not to undo:
   tested to equal it). Ids are 12 hex chars of sha1(root, relative path);
   `?case=` takes an id or a name exactly one case has, else **404 with the
   reason** -- the old silent fallback to the first case is gone (agreed with
-  Niklas). `server` mode keeps `--scan-depth 1`: a deeper scan of `CFD_HOME`
-  could surface nested cases whose names collide with the cockpit's. Labels
+  Niklas). **Discovery mirrors cfd-backend's finder** (`cfd_cases.find`, an
+  `rglob` of `CFD_HOME`), bounded at `SERVER_SCAN_DEPTH` = 4 levels: test-suite
+  cases live in `CFD_HOME/tests/<name>`, which a one-level scan never saw -- the
+  phase-1 gate found a stack whose every case was there. It prunes at cases,
+  `processor*` and time dirs; hidden dirs are searched, as the backend does.
+  Names must be unique (the backend assumes it too); a duplicate is a 404 with
+  the ids. Labels
   come from `metadata.json` `NAME`; cell counts from the `nCells:` note in
   `polyMesh/owner`'s header (summed over `processor*`), then
   `case_info.ncells`. **`N-CELLS` in metadata.json is stale (observed 0) --
