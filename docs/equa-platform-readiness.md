@@ -94,12 +94,13 @@ Checked in `/work/equa-deployment` (`render/core.py`,
    - build them in CI from an OpenFOAM image such as cfd-openfoam-base.
 
    Decide first; everything else in CI depends on it.
-2. **A GL backend on the CI runner and in the devcontainer.** The pipeline
-   suite's render checks need OSMesa or EGL. The browser suite needs
-   Chromium's libraries and fonts. thermarest added Chromium libraries to a
-   repo-local devcontainer. Our recipe for a container without root is in
-   CLAUDE.md "Environment". The old cfd-viewer dev image installed
-   `libosmesa6` plus about 22 Chromium libraries by apt.
+2. **Chromium's libraries on the CI runner and in the devcontainer.** No GL:
+   since 2026-10-23 no suite renders server-side (the pipeline suite fails if
+   anything builds a vtkRenderWindow), and Chromium brings its own software GL.
+   The browser suite still needs Chromium's system libraries and fonts --
+   `playwright install --with-deps chromium` on a GitHub runner. thermarest
+   added Chromium libraries to a repo-local devcontainer. Our recipe for a
+   container without root is in CLAUDE.md "Environment".
 3. **The cockpit check needs a cfd-backend checkout** (`../cfd-backend`) and
    reports INCOMPLETE (exit 2) without one. In CI: check out cfd-backend too
    (it is public), or pin its `viz.sh` by commit.
@@ -193,12 +194,11 @@ Checked in `/work/equa-deployment` (`render/core.py`,
 - **This container** has no root and no system GL, and exposes no ports.
   Niklas's host is reachable at 10.88.192.203; the cockpit is on :8080 and
   the viewer at `/viz/`.
-- **The scratch toolchain** (conda Mesa via EGL, Node 24, Playwright's
-  Chromium, fonts) is per session. The recipe is in CLAUDE.md "Environment"
-  and in Claude's memory.
-- **Use a private uv environment**, `UV_PROJECT_ENVIRONMENT` in the
-  scratchpad. `.venv` is shared with the host and rebuilt by each side.
-- **Commit with `uv run git commit`.** The installed hooks carry the host's
-  interpreter path.
+- **The toolchain lives in `/work/.tools`** (Node 24, Chromium's libraries
+  from conda-forge, Playwright's Chromium) and survives container rebuilds:
+  `source /work/.tools/cfd-test-env.sh`. See CLAUDE.md "Environment".
+- **Since 2026-10-23 Niklas works in the container too**, so `.venv` and the
+  git hooks belong to the container side. A venv cannot be moved or shared
+  with the host: its scripts hard-code the interpreter path.
 - **`doit ci` is the gate** (about 3 min). Its cockpit check clones HEAD, so
   commit before running it.

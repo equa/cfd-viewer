@@ -37,10 +37,14 @@ What that means in practice:
   dependency of everything — including the scene server, which never renders.
   `render_window` and `interactor` are `@property` now, built on first access,
   and `cfd-viz` ships without either package. `screenshot`, `write_vtkjs` and
-  `pick_cor` still get a window the moment they ask. `tests/test_pipeline.py`
-  guards the invariant (`pipe.rendering_started is False` after construction).
-  Stripping the rest of the render half is still worth doing, but as a
-  simplification now, not to save a dependency.
+  `pick_cor` still get a window the moment they ask.
+  **Gone 2026-10-23:** the render window, interactor, `pick_cor`, `set_view`,
+  `screenshot` and `write_vtkjs`. Only `tests/test_pipeline.py` called them,
+  and only to test themselves -- they were the one reason any suite needed GL.
+  The suite now swaps `vtk.vtkRenderWindow` for a stub that raises, so a render
+  window cannot creep back. What is left of the render half (renderer, light
+  kit, actors, mappers, triad, `reset_camera`, theme/lighting setters) is
+  GL-free to construct; stripping it is a simplification, not a dependency fix.
 - The `trame` branch is **frozen**, not maintained. If a pipeline fix ever
   matters there, cherry-pick it deliberately.
 
@@ -192,23 +196,30 @@ it checks shape only and says so (`tests/contract.py`).
 
 ## Environment
 
-- **Container venv at `/opt/venv`, on `PATH`** (2026-09-04): baked into the image
-  from `requirements.txt` with **plain `vtk` 9.7** + system **`libosmesa6`** and
-  the Playwright/Chromium apt libs. `python`/`pip`/`playwright` all resolve to it.
-  Run things directly: `python tests/test_pipeline.py`, `python tests/check_client.py`.
-  **No `LD_LIBRARY_PATH` staging any more** — apt puts OSMesa on the default
-  linker path. This is the primary env now.
-- Legacy: a `vtk-osmesa` 9.3.1 venv still exists at `/home/node/.venvs/foamviz`
-  (`/home/node` is a persistent volume, `/workspace` is not) — self-contained
-  OSMesa, kept as a fallback; no longer the one to use.
-- Python 3.12, Ubuntu 24.04 container. **No root at runtime** (image built with root).
-- **A container without system GL (2026-10-20):** the pipeline suite segfaults
-  at its first render check. A user-space fix that worked: Mesa from
-  conda-forge (no OSMesa there since Mesa 25; VTK falls back to EGL with
-  `EGL_PLATFORM=surfaceless`), and for Chromium unset a host-leaked
-  `WAYLAND_DISPLAY` (it breaks SwiftShader) and set `FONTCONFIG_FILE`.
-  Details in `openspec/changes/standalone-viewer/tasks.md`, task 1.1.
-- `render_window.GetClassName()` should report `vtkOSOpenGLRenderWindow`.
+Since 2026-10-23 Niklas works in the same dev container as Claude (`/work`,
+Ubuntu 24.04, Python 3.12, **no root**, no system GL or Chromium libraries,
+no exposed ports). `/work` is the only host bind mount; home is container-local.
+
+- **Everything extra lives in `/work/.tools`**, so it survives a rebuild:
+  - `node/` -- Node 24 (the system `node` is 18, too old for Vite 8:
+    "`node:util` does not provide an export named `styleText`"). `~/.bashrc`
+    puts it on `PATH`.
+  - `bin/micromamba` + `testenv/` -- Chromium's system libraries and fonts from
+    conda-forge (nss, atk, at-spi2, dbus, the X libs, libxkbcommon, alsa-lib,
+    libgbm, fontconfig; ~120 MB). **No Mesa**: nothing needs it.
+  - `ms-playwright/` -- `playwright install chromium-headless-shell`.
+  - `cfd-test-env.sh` -- `source` it before the suites: `LD_LIBRARY_PATH`,
+    `FONTCONFIG_FILE` (else Chromium aborts in SkFontMgr),
+    `PLAYWRIGHT_BROWSERS_PATH`, and **unsets `WAYLAND_DISPLAY`** (leaks in
+    from the host and breaks Chromium's SwiftShader, so no WebGL).
+- **The Python env is `uv sync` -> `.venv`.** A venv cannot move: its scripts
+  hard-code the interpreter path, and `uv sync` does not rewrite them. "Failed
+  to spawn: doit / No such file" means a venv built elsewhere -- `rm -rf .venv
+  && uv sync`. The pre-commit hooks record an interpreter path too; they are
+  installed from the container, so commits belong on that side.
+- Removing a conda package can take a shared library with it (removing Mesa
+  removed `libgbm`), and a plain reinstall may not restore the symlinks:
+  `micromamba install --force-reinstall`.
 
 ### VTK packaging — checked 2026-08-11, don't re-derive
 
@@ -219,24 +230,12 @@ it checks shape only and says so (`tests/contract.py`).
   only *extracts* does not — but only since the render window became lazy
   (2026-09-22). Before that, merely constructing `FoamPipeline` required a
   backend, which is why removing the packages on 2026-09-21 failed outright.
-  `cfd-viz` ships without them now; the dev image below still needs them,
-  because it renders via Playwright/Chromium.
-- **The image now installs `libosmesa6` (apt)**, so `/opt/venv` runs stock `vtk`
-  9.7 straight from `requirements.txt` — no `vtk-osmesa`, no `LD_LIBRARY_PATH`.
-  Verified 2026-09-04: the 9-step browser suite is green on it. (Older containers
-  had no system Mesa and used `vtk-osmesa` 9.3.1 as a self-contained fallback —
-  see the legacy venv note above.)
+  `cfd-viz` ships without them, and since 2026-10-23 so do the tests.
 - `vtk-osmesa` is a dead end and should not be the default: not on PyPI
   (`--extra-index-url https://wheels.vtk.org`, which 301s to a GitLab package
   index), frozen at **9.3.1**, wheels only for cp36–cp312 on linux x86_64 and
   win amd64. Python 3.13+/macOS/arm64 cannot resolve it at all.
-- OpenFOAM 13 at `/opt/cfd/OpenFOAM-13`; `source /opt/cfd/OpenFOAM-13/etc/bashrc`.
-- **Playwright + Chromium are fully installed in the image (2026-09-04):**
-  browser under `$PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`, all Chromium system
-  libs apt-installed (`ldd` on the shell is clean). `check_client.py` launches
-  headless Chromium (WebGL 2.0 via SwiftShader) with **no `LD_LIBRARY_PATH`**.
-  The old "libs can't be installed, stage on LD_LIBRARY_PATH" recipe is obsolete;
-  the Containerfile apt list (libosmesa6 + ~22 Chromium libs) replaces it.
+- OpenFOAM 13 was at `/opt/cfd/OpenFOAM-13` in the old dev image; the /work container has none (regenerating demo data needs the host or an OpenFOAM image).
 
 ## VTK-Python traps hit here
 
@@ -740,7 +739,7 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 
 | | what it covers | last run (2026-10-21) |
 |---|---|---|
-| `tests/test_pipeline.py` | the VTK pipeline incl. read-only serial/decomposed cases, no browser | **72/72** |
+| `tests/test_pipeline.py` | the VTK pipeline incl. read-only serial/decomposed cases, no browser, no GL | **64/64** (2026-10-23) |
 | `tests/check_client.py` | the three.js client in real Chromium, incl. the start screen | **115/115** |
 | `tests/test_contract.py` | 56 recorded HTTP exchanges replayed (the API only grows) | **56/56** |
 | `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest 31 |
