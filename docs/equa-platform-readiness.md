@@ -159,18 +159,17 @@ Checked in `/work/equa-deployment` (`render/core.py`,
   repo's image (`docs/cfd-backend-switch.md`), and equa-ci adoption would
   publish that image.
 
-## Open questions for Niklas
+## Decisions (Niklas, 2026-10-23)
 
-1. **Order.** Is it adoption first (gaps A, plus B 6-7, which are cheap) and
-   deployment later, once B 8-9 are decided? Or both together?
-2. **Demo data in CI (A1).** Version the results, fetch them, or build them
-   with OpenFOAM in CI?
-3. **Cases on the platform (B8).** What should a deployed viewer show before
-   phase 3's uploads exist?
-4. **The repository name (C12).** Keep `cfd-viewer`, or rename to
-   `equa-cfd-viewer`?
-5. **The Windows bundle.** An equa-ci capability (a), or a repo-owned
-   workflow (b)? This is for phase 2, but adoption shapes it.
+1. **Order: adopt now, deploy later.** Adoption into equa-ci goes ahead;
+   deployment waits.
+2. **Demo data in CI:** tiny cases, versioned with their results (done).
+3. **Cases on the platform: deployment waits for phase 3.** There is no CFD
+   data on the platform, and without uploads the viewer is useless there. So
+   B8-B10 wait with it.
+4. **The repository is renamed `equa-cfd-viewer`** (the package already is).
+   cfd-backend's `VIZ_REPO` follows; GitHub redirects clones meanwhile.
+5. **The Windows bundle (phase 2):** still open, decided with phase 2.
 
 ## Suggested sequence
 
