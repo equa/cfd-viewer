@@ -110,16 +110,16 @@ Checked in `/work/equa-deployment` (`render/core.py`,
 
 ### B. Blocks deployment (equa-deployment)
 
-6. **Serve under `ROOT_PATH`.** aiohttp serves at `/`. Either mount the app
-   under `ROOT_PATH` (routes, static files, `/health`), or add a small prefix
-   middleware. The client already uses only relative URLs (`base: ''`), so it
-   should work unchanged under a prefix. Verify with the `/viz/` proxy test
-   pattern from `tests/check_cockpit_contract.py`.
-7. **Configuration from the environment.** The CLI takes arguments; platform
-   services are configured by environment (`ROOT_PATH`, `ENVIRONMENT`,
-   `WEB_DIST_DIR`, settings listed in `x-equa`). Add environment defaults for
-   `--data`, `--mode`, `--port` and `--scan-depth`, or a thin env-reading
-   entry, keeping the CLI as it is.
+6. ~~**Serve under `ROOT_PATH`.**~~ **Done 2026-10-23:** every route answers
+   under `ROOT_PATH` and at the root (as Starlette's `root_path` does for the
+   other services), and `/<path>` redirects to `/<path>/` keeping its query.
+   Checked in Chromium through `/viewer/`: the case renders and every request
+   stays under the prefix (`check_cockpit_contract.py --runtime-only`).
+7. ~~**Configuration from the environment.**~~ **Done 2026-10-23:**
+   `CASE_ROOTS`, `SCAN_DEPTH`, `PORT`, `ROOT_PATH` (`WEB_DIST_DIR` already);
+   the command line wins. The Dockerfile sets `CASE_ROOTS=/data`, `PORT=5003`
+   and runs a bare `cfd-viewer`; its HEALTHCHECK reads `PORT`. The image itself
+   is not rebuilt yet (no Podman in the dev container).
 8. **Where the cases come from on the platform.** Options:
    - a data volume, if a CFD service writes into one;
    - phase 3's uploads (D7), so nothing is visible until someone uploads;

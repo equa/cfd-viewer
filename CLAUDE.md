@@ -110,7 +110,17 @@ still to come. What phase 1 left in the code, and what not to undo:
 - **Cases are read in place** -- no `.foam` marker is written (see the trap
   below). Read-only shares and `:ro` mounts work.
 - **Run modes.** `--mode server` is the only mode and the default (`--server`
-  is an alias), so an empty `--data` no longer exits. `/health` and
+  is an alias), so an empty `--data` no longer exits.
+- **Platform mounting (2026-10-23).** `ROOT_PATH`/`--root-path` registers every
+  route twice, under the prefix and at the root (Starlette's `root_path`
+  behaviour, which the other platform services get for free): Traefik forwards
+  `/viewer/...` unstripped, the image HEALTHCHECK asks `/health`. `/viewer`
+  308-redirects to `/viewer/` *with its query* (`with_path` drops it -- a test
+  caught that); the client's relative URLs need the slash. Settings come from
+  `CASE_ROOTS` (os.pathsep list), `SCAN_DEPTH`, `PORT`, `ROOT_PATH`; the CLI
+  wins. **Not `HOST`**: equa-deployment uses it for the public domain and zsh
+  sets it. The Dockerfile's CMD is bare `cfd-viewer` so env settings apply;
+  cfd-viz's `main.py --server --data "$CFD_HOME"` is unaffected. `/health` and
   `/api/config` (mode, version, `canAddFolders`, `canUpload`) are cheap and
   open nothing.
 - **The start screen** (`web/src/ui/StartScreen.jsx`) shows when there is no
