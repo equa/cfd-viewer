@@ -72,7 +72,9 @@ still to come. What phase 1 left in the code, and what not to undo:
   identical), and `requirements.txt` exported from the lock
   (`requirements_check` keeps it in sync). `tests/check_cockpit_contract.py`
   (`doit cockpit_contract`) repeats that build and runtime on a clone of HEAD,
-  runs cfd-backend's own `viz.sh`, and drives `/viz/?case=<uuid>&theme=light`
+  runs cfd-backend's own `viz.sh` (from `../cfd-backend`, else the byte-identical
+  copy in `tests/cockpit/`, which fails the check when stale; cfd-backend is
+  **private**, so CI cannot clone it), and drives `/viz/?case=<uuid>&theme=light`
   through a proxy that strips `/viz/` like the cockpit's nginx. Every commit
   that reaches `main` ships with the next cfd-backend build. The way out is
   `docs/cfd-backend-switch.md`; the shims go only after that.
@@ -738,7 +740,7 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 | `tests/check_client.py` | the three.js client in real Chromium, incl. the start screen | **115/115** |
 | `tests/test_contract.py` | 56 recorded HTTP exchanges replayed (the API only grows) | **56/56** |
 | `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest 32 |
-| `tests/check_cockpit_contract.py` | cfd-backend's cfd-viz build + runtime, mirrored | **21/21** |
+| `tests/check_cockpit_contract.py` | cfd-backend's cfd-viz build + runtime, mirrored | **22/22** (21 without `../cfd-backend`) |
 | `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
 
 `tests/test_suites.py` runs the two script suites under pytest (the browser

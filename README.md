@@ -303,11 +303,13 @@ uv run pytest tests/test_sources.py tests/test_endpoints.py
 uv run python tests/bench.py hotRoom s2         # server-side extraction sizes and timings
 ```
 
-Nothing needs a system GL library (see "Which VTK"); the browser suite needs
-Playwright's Chromium (`uv run playwright install chromium`), which brings its
-own software GL (SwiftShader), plus Chromium's usual system libraries;
-the cockpit check needs a cfd-backend checkout next to this one, and reports an
-incomplete run without it.
+Nothing needs a system GL library (see "Which VTK"). The browser suite needs
+Playwright's Chromium, which brings its own software GL (SwiftShader), plus
+Chromium's usual system libraries: `doit` installs the browser itself (task
+`chromium`), and as root also the libraries, as in CI. The cockpit check runs
+cfd-backend's `viz.sh` from a checkout next to this one when there is one, and
+otherwise the copy in `tests/cockpit/` -- which must match the checkout's
+whenever both exist.
 
 Commit messages follow Conventional Commits. The checks run as git hooks once
 installed: `uv run pre-commit install --hook-type commit-msg --hook-type pre-commit`.

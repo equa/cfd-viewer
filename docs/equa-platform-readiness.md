@@ -88,24 +88,25 @@ Checked in `/work/equa-deployment` (`render/core.py`,
    demo cases are now tiny and versioned with their results (hotRoom coarsened
    to 500 cells, ~400 kB; cavity 400 cells, ~330 kB; both ASCII). A fresh
    checkout runs every suite with no OpenFOAM. See CLAUDE.md "Demo data".
-2. **Chromium's libraries on the CI runner and in the devcontainer.** No GL:
-   since 2026-10-23 no suite renders server-side (the pipeline suite fails if
-   anything builds a vtkRenderWindow), and Chromium brings its own software GL.
-   The browser suite still needs Chromium's system libraries and fonts --
-   `playwright install --with-deps chromium` on a GitHub runner. thermarest
-   added Chromium libraries to a repo-local devcontainer. Our recipe for a
-   container without root is in CLAUDE.md "Environment".
-3. **The cockpit check needs a cfd-backend checkout** (`../cfd-backend`) and
-   reports INCOMPLETE (exit 2) without one. In CI: check out cfd-backend too
-   (it is public), or pin its `viz.sh` by commit.
-4. **Map the repo-owned tasks onto `create_tasks`.** `test_ui`,
-   `cockpit_contract`, `requirements_check` and the wheel-contents check get
-   appended, as thermarest appends `test_ui` and `kinds_types`. `lint_py` is
-   already equa-ci's (ruff check only).
-5. **Python version.** Our image is `python:3.14-slim-trixie`, to match
-   cfd-viz. thermarest's is 3.12-bookworm. The Dockerfile is repo-owned, so
-   this is fine, but the template's `requires-python` and the devcontainer
-   Python must allow 3.14 for the image's lock to be tested.
+2. ~~**Chromium's libraries on the CI runner.**~~ **Done 2026-10-23:** no GL
+   needed anywhere, and the `chromium` doit task (a dependency of `test_ui` and
+   `cockpit_contract`) runs `playwright install --only-shell chromium`, adding
+   `--with-deps` when root -- thermarest's `test_ui` pattern, which works in
+   equa-ci's root `equa-base-ci` container. Not yet run in that container.
+3. ~~**The cockpit check needs a cfd-backend checkout.**~~ **Done 2026-10-23.**
+   cfd-backend (`equa/cfd-restful-backend`) is **private** -- this note used to
+   say public -- and `ci.yml` is template-owned, so CI cannot check it out.
+   `tests/cockpit/viz.sh` is a byte-identical copy (`VIZ_SH_FROM` names the
+   commit) that runs when no checkout is present; with one, a stale copy fails
+   the check. No INCOMPLETE exit any more.
+4. **Map the repo-owned tasks onto `create_tasks`.** Part of the adoption
+   itself (it needs the `equa-ci` wheel from the private feed). `test_ui`,
+   `chromium`, `cockpit_contract`, `requirements_check` and the wheel-contents
+   check get appended, as thermarest appends `test_ui` and `kinds_types`;
+   `lint_py` is already equa-ci's (ruff check only). Nothing to do before.
+5. ~~**Python version.**~~ **Covered:** `requires-python = ">=3.12"` matches the
+   template, and `cockpit_contract` already installs `requirements.txt` into a
+   fresh Python 3.14 venv, so the image's interpreter is tested by `doit ci`.
 
 ### B. Blocks deployment (equa-deployment)
 
