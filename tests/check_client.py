@@ -99,6 +99,12 @@ def red_pixels(page):
     )
 
 
+# Mean frame delta that counts as "it moves". On the 500-cell hotRoom the
+# comets measure ~0.13 on against ~0.003 off; the margin scales with how much
+# of the frame the streamlines cover, so it is set well below the "on" level.
+MOTION = 0.05
+
+
 def frame_difference(page, gap_ms=450):
     """Mean absolute pixel difference between two frames `gap_ms` apart.
 
@@ -626,7 +632,7 @@ def main():
             moving = frame_difference(page)
             check("turning the animation on costs no round trip", len(scene) == n,
                   f"{len(scene) - n} request(s)")
-            check("the animation actually moves the picture", moving > still + 0.15,
+            check("the animation actually moves the picture", moving > still + MOTION,
                   f"mean frame delta {still:.3f} off -> {moving:.3f} on")
             check("the animation is enabled on the GPU",
                   page.evaluate("window.__viz.comets()")["uComets"] == 1)
@@ -641,7 +647,7 @@ def main():
 
             page.click(ctl("comets"))
             page.wait_for_timeout(700)
-            check("turning it off stops the motion", frame_difference(page) <= still + 0.15,
+            check("turning it off stops the motion", frame_difference(page) <= still + MOTION,
                   f"mean frame delta back to {frame_difference(page):.3f}")
 
             # The plane's numeric fields are inert until their own Apply.

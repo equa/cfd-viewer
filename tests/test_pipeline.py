@@ -26,6 +26,10 @@ from equa.cfd_viewer.foamviz.case import FoamCase, derive_scalars, find_cases  #
 from equa.cfd_viewer.foamviz.pipeline import COLOR_ARRAY, FoamPipeline  # noqa: E402
 
 CASE = ROOT / "data" / "hotRoom"
+# From its system/blockMeshDict (the definition, so a check may rely on it):
+# 10 x 5 x 10 cells of 1 m. A z-cut crosses one layer of 10 x 5 cells.
+N_CELLS = 500
+LAYER = 50
 
 checks, failures = 0, []
 
@@ -66,7 +70,7 @@ def main():
     check("reports patches", len(case.patches) == 3, str(case.patches))
 
     case.load(case.times[-1])
-    check("reads internal mesh", case.n_cells() == 32000, f"{case.n_cells()} cells")
+    check("reads internal mesh", case.n_cells() == N_CELLS, f"{case.n_cells()} cells")
     check("reads boundary patches", len(case.boundary) == 3, str(list(case.boundary)))
     check("finds T and U", {"T", "U"} <= set(case.fields), str(sorted(case.fields)))
     check("classifies U as a vector", case.fields.get("U") == 3)
@@ -122,13 +126,13 @@ def main():
     zmid = sum(case.bounds()[4:6]) / 2  # world coordinate of the mid-height cut
     pipe.update_plane("z", zmid)
     pipe.cutter.Update()
-    check("slice has cells", pipe.cutter.GetOutput().GetNumberOfCells() > 1000,
+    check("slice has cells", pipe.cutter.GetOutput().GetNumberOfCells() >= LAYER,
           f"{pipe.cutter.GetOutput().GetNumberOfCells()} cells")
 
     # crinkle slice: whole cells the plane passes through (the true mesh layer)
     pipe.crinkle_surface.Update()
     crink = pipe.crinkle_surface.GetOutput()
-    check("crinkle slice extracts a cell layer", crink.GetNumberOfCells() > 1000,
+    check("crinkle slice extracts a cell layer", crink.GetNumberOfCells() >= LAYER,
           f"{crink.GetNumberOfCells()} faces")
     check("crinkle carries the colour array",
           crink.GetPointData().GetArray(COLOR_ARRAY) is not None)
@@ -372,7 +376,7 @@ def read_only_checks():
                 check(f"{label} read-only case picks the right reader",
                       ro.decomposed is decomposed, f"decomposed={ro.decomposed}")
                 check(f"{label} read-only case has geometry",
-                      ro.n_cells() == 32000 and len(ro.boundary) == 3
+                      ro.n_cells() == N_CELLS and len(ro.boundary) == 3
                       and all(b.GetNumberOfCells() > 0 for b in ro.boundary.values()),
                       detail)
             check(f"{label} read-only case is left untouched",

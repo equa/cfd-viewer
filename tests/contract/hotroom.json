@@ -8,9 +8,9 @@
     ],
     "entries": [
      {
-      "cells": 32000,
+      "cells": 500,
       "decomposed": false,
-      "id": "5d65e55a3445",
+      "id": "548979d16a24",
       "label": "hotRoom",
       "name": "hotRoom",
       "path": "hotRoom"
@@ -47,12 +47,12 @@
      10.0
     ],
     "case": "hotRoom",
-    "caseId": "5d65e55a3445",
+    "caseId": "548979d16a24",
     "caseLabel": "hotRoom",
     "cases": [
      "hotRoom"
     ],
-    "cells": 32000,
+    "cells": 500,
     "centre": [
      5.0,
      2.5,
@@ -150,7 +150,7 @@
      "ceiling",
      "fixedWalls"
     ],
-    "points": 35301,
+    "points": 726,
     "presets": [
      "coolwarm",
      "viridis",
@@ -170,8 +170,8 @@
     ],
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "units": {
      "T": "[\u00b0C]",
@@ -212,8 +212,8 @@
    "json": {
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ]
    },
    "kind": "json",
@@ -237,7 +237,7 @@
    "json": {
     "range": [
      26.850006103515625,
-     27.30441650390625
+     101.85000610351562
     ]
    },
    "kind": "json",
@@ -249,7 +249,7 @@
    "json": {
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ]
    },
    "kind": "json",
@@ -261,7 +261,7 @@
    "json": {
     "range": [
      0.0,
-     0.05484043374657618
+     0.03869333490729332
     ]
    },
    "kind": "json",
@@ -272,8 +272,8 @@
   {
    "json": {
     "range": [
-     -0.07083951681852341,
-     0.07086771726608276
+     -0.021790003404021263,
+     0.021635353565216064
     ]
    },
    "kind": "json",
@@ -284,8 +284,8 @@
   {
    "json": {
     "range": [
-     -0.022809921130537987,
-     0.02277945529669519
+     -0.012025462482124567,
+     0.011982850115746261
     ]
    },
    "kind": "json",
@@ -296,8 +296,8 @@
   {
    "json": {
     "range": [
-     -0.05139157176017761,
-     0.23053373396396637
+     -0.021080762147903442,
+     0.07506651431322098
     ]
    },
    "kind": "json",
@@ -308,8 +308,8 @@
   {
    "json": {
     "range": [
-     -0.027642290368676187,
-     0.03407852590084073
+     -0.014885470271110535,
+     0.03782013803720474
     ]
    },
    "kind": "json",
@@ -320,8 +320,8 @@
   {
    "json": {
     "range": [
-     -0.0708397850394249,
-     0.07086791843175888
+     -0.021790003404021263,
+     0.021635353565216064
     ]
    },
    "kind": "json",
@@ -332,8 +332,8 @@
   {
    "json": {
     "range": [
-     -0.022809029035270212,
-     0.022780059874057727
+     -0.012025462482124567,
+     0.011982850115746261
     ]
    },
    "kind": "json",
@@ -344,8 +344,8 @@
   {
    "json": {
     "range": [
-     1.3849704600943369e-06,
-     0.001732311793603003
+     1.0389399903942831e-05,
+     8.035753853619099e-05
     ]
    },
    "kind": "json",
@@ -356,8 +356,8 @@
   {
    "json": {
     "range": [
-     2.079735395454918e-06,
-     0.0007343816850334406
+     1.1039150194847025e-05,
+     7.811727118678391e-05
     ]
    },
    "kind": "json",
@@ -369,7 +369,7 @@
    "json": {
     "range": [
      0.0,
-     0.0024108965881168842
+     0.001348668709397316
     ]
    },
    "kind": "json",
@@ -380,8 +380,8 @@
   {
    "json": {
     "range": [
-     0.0,
-     0.0010173542983829935
+     3.790957634919323e-05,
+     0.0013011468993499903
     ]
    },
    "kind": "json",
@@ -392,8 +392,8 @@
   {
    "json": {
     "range": [
-     -0.03694809228181839,
-     0.07875064015388489
+     -0.006567901000380516,
+     0.09737782180309296
     ]
    },
    "kind": "json",
@@ -404,8 +404,8 @@
   {
    "json": {
     "range": [
-     -0.009022909309715032,
-     0.05585632845759392
+     -0.0041625285521149635,
+     0.09480602294206619
     ]
    },
    "kind": "json",
@@ -492,10 +492,10 @@
   },
   {
    "buffers": {
-    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
-    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
-    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
-    "boundary/scalar": "53d6097c113587283ab54d34d8e3938dea82e21cfe73d7a149d0f9e294038a4b"
+    "boundary/@index": "6099c4776c92bc50a979e8f580ddeec6caa358fb0263cb8d2dfeae07b6fb359f",
+    "boundary/normal": "e3382c1288c49f66d428336c264f1dc236a7f425216977d22087d69ab64d6243",
+    "boundary/position": "4cd63eab640eb5db86b1d6c8750e7f96960511e7bcf29efdd44807313c7f5706",
+    "boundary/scalar": "59f4c13183ac051510c1eea1127c45540085a860875b07d4987d64ddbf46acbe"
    },
    "header": {
     "bounds": [
@@ -511,7 +511,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -519,26 +519,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 26888,
+        "length": 1928,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 12800,
-       "vertices": 6722
+       "primitives": 800,
+       "vertices": 482
       },
       "index": {
-       "length": 153600,
+       "length": 9600,
        "type": "u32"
       },
       "mode": "triangles",
@@ -549,7 +549,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "boundary"
@@ -557,12 +557,12 @@
     "returned": [
      "boundary"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -574,10 +574,10 @@
   },
   {
    "buffers": {
-    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
-    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
-    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
-    "slice/scalar": "d260e1cc918dccc03d55d850556a063cd103565abefcd58f60716e07806ce026"
+    "slice/@index": "be8e06673f079b3b128209ac227f2b3fc6cfaf7157ba4cd41a7b48c4fdefda99",
+    "slice/normal": "530c80bbf10f42e364e4361cdccef817458584d7045da76c927da46df1aecb71",
+    "slice/position": "664ea5dbb4bd32bad7a2fbaab4bb2fe20c42af16223d53209a8d707cedace173",
+    "slice/scalar": "1e7577b4b58a004ef13aded47e6e16b81f80bc61b9cb294261b7e5550cacb671"
    },
    "header": {
     "bounds": [
@@ -593,7 +593,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -601,26 +601,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -631,7 +631,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "slice"
@@ -639,12 +639,12 @@
     "returned": [
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -656,10 +656,10 @@
   },
   {
    "buffers": {
-    "iso/@index": "9441fb6db20cf97e5838f24bdba1ce84acc50ecc34a388f1546fa8b9161ab596",
-    "iso/normal": "a83e24ef3ffc896d46b3447bfa7e4acf33bcd5b46c00c6d3627077d26406796a",
-    "iso/position": "90b9ef17c12b94b2e2c38883a687daa6b1b75b9e6279f5c16112315cc78637d9",
-    "iso/scalar": "8f6bd82a83ccac576edf9a6ae9d09b0b7fb0107e83d6ebfd18accd28cb54d265"
+    "iso/@index": "430f2b2afb59f2fb44bdf9e1e666d3e4e9c253462e2daac5e5fc140e94808c6c",
+    "iso/normal": "264b6affffa48269a6707e41b4a0977066a48be56693a4dcdad7124952df67da",
+    "iso/position": "50a60389add0b4c3b7c38fe06d9aa232b2249fdb332312fcc670de7fc85a9071",
+    "iso/scalar": "455a8ddcb202c0298fcd9610e98360dd5d548fdcfca71357ff1f9095f3102a8e"
    },
    "header": {
     "bounds": [
@@ -675,7 +675,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -683,26 +683,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 2604,
+        "length": 816,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 2604,
+        "length": 816,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 868,
+        "length": 272,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 408,
-       "vertices": 217
+       "primitives": 108,
+       "vertices": 68
       },
       "index": {
-       "length": 4896,
+       "length": 1296,
        "type": "u32"
       },
       "mode": "triangles",
@@ -713,7 +713,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "iso"
@@ -721,12 +721,12 @@
     "returned": [
      "iso"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -738,11 +738,11 @@
   },
   {
    "buffers": {
-    "stream/@index": "61ee9537c13e7686e85470888361d36440f641db719ae76f769d3474b119af09",
-    "stream/@ranges": "590a9793419019b558a70722d17d597e92d874dca6da36f0bb84c3999ba1f6bf",
-    "stream/position": "709a768b2b309401a731d01b7062b6a8e9cea0417dafe93695f83872b155c51a",
-    "stream/scalar": "24980de4734d063bb09100010df9af8cccb8397d47f7b4edb21db482576f44bb",
-    "stream/travel": "610aca2f0f6d760192e5ce4ac0b3c08034fc6ee2f4cc8ad378cd98ef7d160257"
+    "stream/@index": "8e45ef48ce30271f52337a53220cbd7565e105b01d2afd9a10c7ff41ea442b87",
+    "stream/@ranges": "24f00e09308dadbc57098cd365a12fd654c656e223a17b3691c3e85c0ac5254a",
+    "stream/position": "c9e0593bb7f07a0720fd653388b5a0d078554797d9cc2e330454c3b575a9d9ce",
+    "stream/scalar": "7cde7ad9c393a95cf51f8d99aa653671223fcd6158a63249f06ec088091e0d60",
+    "stream/travel": "b69ebcee75fe791b53b20058d806adbcf11b719db4ff1378b1b9d9c8a539450f"
    },
    "header": {
     "bounds": [
@@ -758,7 +758,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -766,34 +766,34 @@
       "attributes": {
        "position": {
         "components": 3,
-        "length": 318744,
+        "length": 69984,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 106248,
+        "length": 23328,
         "type": "f32"
        },
        "travel": {
         "components": 1,
-        "length": 106248,
+        "length": 23328,
         "type": "f32"
        }
       },
       "counts": {
-       "polylines": 350,
-       "primitives": 26162,
-       "vertices": 26562
+       "polylines": 70,
+       "primitives": 5700,
+       "vertices": 5832
       },
       "index": {
-       "length": 209296,
+       "length": 45600,
        "type": "u32"
       },
       "mode": "lines",
       "name": "stream",
       "ranges": {
        "components": 2,
-       "length": 2800,
+       "length": 560,
        "type": "u32"
       }
      }
@@ -802,7 +802,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "stream"
@@ -810,14 +810,14 @@
     "returned": [
      "stream"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
-    "travelDivisor": 973.5185719702833,
+    "travelDivisor": 349.9251699347618,
     "unit": "[m/s]"
    },
    "kind": "scene",
@@ -827,10 +827,10 @@
   },
   {
    "buffers": {
-    "glyph/@index": "d0b40320fff91b2f0a70d5f3c38109816abd91a2d0bc826271df7a74fccf7c38",
-    "glyph/normal": "71e828a3c74471e1e03971a0ad8e6e263bbe7351779de7c8a90bf17830461f00",
-    "glyph/position": "0d224a073a7f787a8718096bd30a23c0cb00053032ec5d76ff7579c241f8b5a2",
-    "glyph/scalar": "6268e8a12150f724b38a55f7d765c57b2062af8130109bd23a52147d28629c59"
+    "glyph/@index": "67ec904ad7817db048cae8d0f6bfcd43da3bd3bc5ddacf2fa4149bc9e81a921a",
+    "glyph/normal": "1cb003ac43e63114d9a543dd5cc7addbe2d8476b14eb117ce74eecc29375edf0",
+    "glyph/position": "2327809c35be8c0f02e82abcc962d72d60cc3d0115d44166d4e3ebcd5180dac5",
+    "glyph/scalar": "8faa0865eb84e6ab0dc606c5751f7ec8a706aecafd75f405aae8259662ae297e"
    },
    "header": {
     "bounds": [
@@ -846,7 +846,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -884,7 +884,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "glyph"
@@ -892,12 +892,12 @@
     "returned": [
      "glyph"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -926,7 +926,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -954,7 +954,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "geometry"
@@ -962,12 +962,12 @@
     "returned": [
      "geometry"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -979,29 +979,29 @@
   },
   {
    "buffers": {
-    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
-    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
-    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
-    "boundary/scalar": "53d6097c113587283ab54d34d8e3938dea82e21cfe73d7a149d0f9e294038a4b",
+    "boundary/@index": "6099c4776c92bc50a979e8f580ddeec6caa358fb0263cb8d2dfeae07b6fb359f",
+    "boundary/normal": "e3382c1288c49f66d428336c264f1dc236a7f425216977d22087d69ab64d6243",
+    "boundary/position": "4cd63eab640eb5db86b1d6c8750e7f96960511e7bcf29efdd44807313c7f5706",
+    "boundary/scalar": "59f4c13183ac051510c1eea1127c45540085a860875b07d4987d64ddbf46acbe",
     "geometry/@index": "4a8fec464a19709a9d20ec978e47960a7d7f40e73959cfab58d4d1dd63ad1e8d",
     "geometry/position": "889c5ba32e89c9c5688d3a911190f44268101831c897054c7774b8f5eb7ce6ff",
-    "glyph/@index": "d0b40320fff91b2f0a70d5f3c38109816abd91a2d0bc826271df7a74fccf7c38",
-    "glyph/normal": "71e828a3c74471e1e03971a0ad8e6e263bbe7351779de7c8a90bf17830461f00",
-    "glyph/position": "0d224a073a7f787a8718096bd30a23c0cb00053032ec5d76ff7579c241f8b5a2",
-    "glyph/scalar": "6268e8a12150f724b38a55f7d765c57b2062af8130109bd23a52147d28629c59",
-    "iso/@index": "9441fb6db20cf97e5838f24bdba1ce84acc50ecc34a388f1546fa8b9161ab596",
-    "iso/normal": "a83e24ef3ffc896d46b3447bfa7e4acf33bcd5b46c00c6d3627077d26406796a",
-    "iso/position": "90b9ef17c12b94b2e2c38883a687daa6b1b75b9e6279f5c16112315cc78637d9",
-    "iso/scalar": "8f6bd82a83ccac576edf9a6ae9d09b0b7fb0107e83d6ebfd18accd28cb54d265",
-    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
-    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
-    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
-    "slice/scalar": "d260e1cc918dccc03d55d850556a063cd103565abefcd58f60716e07806ce026",
-    "stream/@index": "895eb053dbcf7dd908d95d86bdd6a8f5fd90423803f0c674a614a23e90c74e1f",
-    "stream/@ranges": "d3636ef9d1f49e550a93f793c13659f713185b866647e2af92191748c5118d15",
-    "stream/position": "e970c45f998688da04defae04e86b47e5084f82cb122e464dfed6b318b3e798a",
-    "stream/scalar": "e1b2cb45d8478e85797309796af9d2130224a7310a57dcf3a4814013f659731c",
-    "stream/travel": "f57d998d9845a1999ca3a9e7835b8f1b4df0bb47f7fe0f2fe2d149fe71b88e67"
+    "glyph/@index": "67ec904ad7817db048cae8d0f6bfcd43da3bd3bc5ddacf2fa4149bc9e81a921a",
+    "glyph/normal": "1cb003ac43e63114d9a543dd5cc7addbe2d8476b14eb117ce74eecc29375edf0",
+    "glyph/position": "2327809c35be8c0f02e82abcc962d72d60cc3d0115d44166d4e3ebcd5180dac5",
+    "glyph/scalar": "8faa0865eb84e6ab0dc606c5751f7ec8a706aecafd75f405aae8259662ae297e",
+    "iso/@index": "430f2b2afb59f2fb44bdf9e1e666d3e4e9c253462e2daac5e5fc140e94808c6c",
+    "iso/normal": "264b6affffa48269a6707e41b4a0977066a48be56693a4dcdad7124952df67da",
+    "iso/position": "50a60389add0b4c3b7c38fe06d9aa232b2249fdb332312fcc670de7fc85a9071",
+    "iso/scalar": "455a8ddcb202c0298fcd9610e98360dd5d548fdcfca71357ff1f9095f3102a8e",
+    "slice/@index": "be8e06673f079b3b128209ac227f2b3fc6cfaf7157ba4cd41a7b48c4fdefda99",
+    "slice/normal": "530c80bbf10f42e364e4361cdccef817458584d7045da76c927da46df1aecb71",
+    "slice/position": "664ea5dbb4bd32bad7a2fbaab4bb2fe20c42af16223d53209a8d707cedace173",
+    "slice/scalar": "1e7577b4b58a004ef13aded47e6e16b81f80bc61b9cb294261b7e5550cacb671",
+    "stream/@index": "8e45ef48ce30271f52337a53220cbd7565e105b01d2afd9a10c7ff41ea442b87",
+    "stream/@ranges": "24f00e09308dadbc57098cd365a12fd654c656e223a17b3691c3e85c0ac5254a",
+    "stream/position": "c9e0593bb7f07a0720fd653388b5a0d078554797d9cc2e330454c3b575a9d9ce",
+    "stream/scalar": "7cde7ad9c393a95cf51f8d99aa653671223fcd6158a63249f06ec088091e0d60",
+    "stream/travel": "b69ebcee75fe791b53b20058d806adbcf11b719db4ff1378b1b9d9c8a539450f"
    },
    "header": {
     "bounds": [
@@ -1017,7 +1017,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -1025,26 +1025,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 26888,
+        "length": 1928,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 12800,
-       "vertices": 6722
+       "primitives": 800,
+       "vertices": 482
       },
       "index": {
-       "length": 153600,
+       "length": 9600,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1054,26 +1054,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1083,26 +1083,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 2604,
+        "length": 816,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 2604,
+        "length": 816,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 868,
+        "length": 272,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 408,
-       "vertices": 217
+       "primitives": 108,
+       "vertices": 68
       },
       "index": {
-       "length": 4896,
+       "length": 1296,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1112,34 +1112,34 @@
       "attributes": {
        "position": {
         "components": 3,
-        "length": 296556,
+        "length": 69984,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 98852,
+        "length": 23328,
         "type": "f32"
        },
        "travel": {
         "components": 1,
-        "length": 98852,
+        "length": 23328,
         "type": "f32"
        }
       },
       "counts": {
-       "polylines": 343,
-       "primitives": 24313,
-       "vertices": 24713
+       "polylines": 70,
+       "primitives": 5700,
+       "vertices": 5832
       },
       "index": {
-       "length": 194504,
+       "length": 45600,
        "type": "u32"
       },
       "mode": "lines",
       "name": "stream",
       "ranges": {
        "components": 2,
-       "length": 2744,
+       "length": 560,
        "type": "u32"
       }
      },
@@ -1196,7 +1196,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "boundary",
@@ -1214,14 +1214,14 @@
      "glyph",
      "geometry"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
-    "travelDivisor": 940.6844381328228,
+    "travelDivisor": 349.9251699347618,
     "unit": "[m/s]"
    },
    "kind": "scene",
@@ -1231,14 +1231,14 @@
   },
   {
    "buffers": {
-    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
-    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
-    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
-    "boundary/scalar": "53d6097c113587283ab54d34d8e3938dea82e21cfe73d7a149d0f9e294038a4b",
-    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
-    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
-    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
-    "slice/scalar": "d45287510305f83144e37ba50bbc0f95dfdcb2e4dac5749f02bbc6b11661e585"
+    "boundary/@index": "6099c4776c92bc50a979e8f580ddeec6caa358fb0263cb8d2dfeae07b6fb359f",
+    "boundary/normal": "e3382c1288c49f66d428336c264f1dc236a7f425216977d22087d69ab64d6243",
+    "boundary/position": "4cd63eab640eb5db86b1d6c8750e7f96960511e7bcf29efdd44807313c7f5706",
+    "boundary/scalar": "59f4c13183ac051510c1eea1127c45540085a860875b07d4987d64ddbf46acbe",
+    "slice/@index": "be8e06673f079b3b128209ac227f2b3fc6cfaf7157ba4cd41a7b48c4fdefda99",
+    "slice/normal": "530c80bbf10f42e364e4361cdccef817458584d7045da76c927da46df1aecb71",
+    "slice/position": "664ea5dbb4bd32bad7a2fbaab4bb2fe20c42af16223d53209a8d707cedace173",
+    "slice/scalar": "44b8aa4d28701168922acf61435ea4bb442f97b0b14ad7a2510ed68874ee2a72"
    },
    "header": {
     "bounds": [
@@ -1262,26 +1262,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 26888,
+        "length": 1928,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 12800,
-       "vertices": 6722
+       "primitives": 800,
+       "vertices": 482
       },
       "index": {
-       "length": 153600,
+       "length": 9600,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1291,26 +1291,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1335,8 +1335,8 @@
     "timeIndex": 0,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -1348,14 +1348,14 @@
   },
   {
    "buffers": {
-    "boundary/@index": "186351138ba2894b69e0e12e67bb1317046b1719f60a110bf703f116f63348fe",
-    "boundary/normal": "607a78c4394cc517b346e0d6ebc44e8d80e7692f3fc697e553d4bf7c67943513",
-    "boundary/position": "4930c84abdcff804374ad6924099cf80b9cbbbe989a490b72ac63298e9f52b76",
-    "boundary/scalar": "850272755f861f598df1ee57b39c2a7c4b7496045f88b55e6c2e2dd679cab912",
-    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
-    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
-    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
-    "slice/scalar": "72a2b7853f9cef24793e2a9a8d4d5c6ee1599ec5b88cf9dfaff7c91fd34d90d2"
+    "boundary/@index": "6099c4776c92bc50a979e8f580ddeec6caa358fb0263cb8d2dfeae07b6fb359f",
+    "boundary/normal": "e3382c1288c49f66d428336c264f1dc236a7f425216977d22087d69ab64d6243",
+    "boundary/position": "4cd63eab640eb5db86b1d6c8750e7f96960511e7bcf29efdd44807313c7f5706",
+    "boundary/scalar": "ef3251a312bb15fa1d9e93fcb74aaa4d0ab43076c1f59ba33f0352a1116a4f6e",
+    "slice/@index": "be8e06673f079b3b128209ac227f2b3fc6cfaf7157ba4cd41a7b48c4fdefda99",
+    "slice/normal": "530c80bbf10f42e364e4361cdccef817458584d7045da76c927da46df1aecb71",
+    "slice/position": "664ea5dbb4bd32bad7a2fbaab4bb2fe20c42af16223d53209a8d707cedace173",
+    "slice/scalar": "fe2674902dbedc66df12475fc4b11267cadb769516e8c7a5e698859b77cfb3f2"
    },
    "header": {
     "bounds": [
@@ -1379,26 +1379,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 80664,
+        "length": 5784,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 26888,
+        "length": 1928,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 12800,
-       "vertices": 6722
+       "primitives": 800,
+       "vertices": 482
       },
       "index": {
-       "length": 153600,
+       "length": 9600,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1408,26 +1408,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1448,12 +1448,12 @@
      "boundary",
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[\u00b0C]"
@@ -1465,10 +1465,10 @@
   },
   {
    "buffers": {
-    "slice/@index": "b751822d7250262cf4c65e20e709da63614b51103f47c6a648cc3215976c856c",
-    "slice/normal": "0acae85475099e7c9664b474a3e143f8f241f0a07058bfe0f671f1658a7b1a41",
-    "slice/position": "b21777f4db4a5bfebf471d9a7d65da93bd9f7549aefc4cb8ef64dd3f74aacdc3",
-    "slice/scalar": "cd1196d8730d711b2285e73ed5920b628c677f014f09f99e2ae132c8d6cc01d0"
+    "slice/@index": "c1c1d1d75b31c9c954e268959d023afa1f8ea720b59947dfd37cd21fdee50017",
+    "slice/normal": "e6f85c549b957cf11cc20d02619a51e1884bf58e5512367198394a6aa6f525cd",
+    "slice/position": "7a7a35f0fa03552f935522f4d43e9e451395c7640ccda41f92abfaa36b7c70ab",
+    "slice/scalar": "5c0aa4bc335d2b221e849757e4a3b644eda872719f1f0dc939b38862b090a930"
    },
    "header": {
     "bounds": [
@@ -1484,7 +1484,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -1492,26 +1492,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1522,7 +1522,7 @@
     "planeCoord": 2.5,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "slice"
@@ -1530,12 +1530,12 @@
     "returned": [
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -1547,15 +1547,15 @@
   },
   {
    "buffers": {
-    "slice/@index": "bd0b0145b74258eebbed9c42609f8d1613f5db0e4312c77702312762e832ee82",
-    "slice/normal": "14e89e0f9268e4c5488726992e8225de91a81084f3b6d52d400d8652155f3fa7",
-    "slice/position": "932c39ac583189ef0ae6509c7c39a6eb8019d05b210b6e08418a23b2dd3dedd7",
-    "slice/scalar": "acab45a35727bb60f430dc2b40373e9d25ac1897693f8f25f1acebde095f4e0d",
-    "stream/@index": "7d1ef8043c9f7533e60f945f08f89f509eb75c69098bff0a71bbd9c2b53ed7e8",
-    "stream/@ranges": "ae169c6bfc4899b9e3dbfe5c39d73c5accdfc6817871ab16e707f87a208d68de",
-    "stream/position": "2936ee8ac7d5f6f481d62b6021ea6e4ec30a24ce85a71fb6a7a5aab394c353b1",
-    "stream/scalar": "c5251ae48e8c3cefa95f8becdc025b8ca6b4a52366d232f5539f7b0b8cc01e51",
-    "stream/travel": "8120b68f13d89c78f1a517e07aa98e8e6ed398c6a9c1547f3689ff059785b7c8"
+    "slice/@index": "572a07426a490954b6559bfd4d41eb05e77c7e703b6906142cd9845f6701bdf2",
+    "slice/normal": "dba1069521ce495f2887f2a0bfce5735a374e0b2ba02aa8d9d6263f030d3695e",
+    "slice/position": "eb7f480c472c2e51a5c20cfd60d4b08cb98405ab89774a92d972bf8100f10aa3",
+    "slice/scalar": "d9b74de34182f89533b1cb61600e2d8b1d320bbdeb27aee28a51cf4572e49206",
+    "stream/@index": "65a64bc9cae93ec2fb46efabfdf707a0642e60de97caa591550276e8733393f6",
+    "stream/@ranges": "de78d4ab53a97fe8e7ebd8184b7726f5d5dc7348dc0e30de02d131e76d294244",
+    "stream/position": "8b524580c3d39e0a851162b2f19583fd7e73da01a3c339fa16cc4663170b8009",
+    "stream/scalar": "ab8229a8fe4b78829f63002a008f3b64384a68122f5c2d4e79cf781be7a1823b",
+    "stream/travel": "71e3c957ebeff316ae3bbde5109d972e6e2a53e8df455c5be488fc8d07eedb9b"
    },
    "header": {
     "bounds": [
@@ -1571,7 +1571,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -1579,26 +1579,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 20172,
+        "length": 1452,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 20172,
+        "length": 1452,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 6724,
+        "length": 484,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 3200,
-       "vertices": 1681
+       "primitives": 200,
+       "vertices": 121
       },
       "index": {
-       "length": 38400,
+       "length": 2400,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1608,34 +1608,34 @@
       "attributes": {
        "position": {
         "components": 3,
-        "length": 299892,
+        "length": 358344,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 99964,
+        "length": 119448,
         "type": "f32"
        },
        "travel": {
         "components": 1,
-        "length": 99964,
+        "length": 119448,
         "type": "f32"
        }
       },
       "counts": {
-       "polylines": 358,
-       "primitives": 24591,
-       "vertices": 24991
+       "polylines": 162,
+       "primitives": 29620,
+       "vertices": 29862
       },
       "index": {
-       "length": 196728,
+       "length": 236960,
        "type": "u32"
       },
       "mode": "lines",
       "name": "stream",
       "ranges": {
        "components": 2,
-       "length": 2864,
+       "length": 1296,
        "type": "u32"
       }
      }
@@ -1644,7 +1644,7 @@
     "planeCoord": 2.5,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "slice",
@@ -1654,14 +1654,14 @@
      "slice",
      "stream"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
-    "travelDivisor": 712.1892624832369,
+    "travelDivisor": 757.213545864485,
     "unit": "[m/s]"
    },
    "kind": "scene",
@@ -1671,10 +1671,10 @@
   },
   {
    "buffers": {
-    "iso/@index": "ef866d1a73ab99b075ee1e8a4db4a81bc9f246df9edd89ba07e05e0363b4b608",
-    "iso/normal": "5cee81ee617bfcf70468b392520b59163718846d0f4c047f5ba7a61a30f21288",
-    "iso/position": "542f28cb3a392a4a829e50e626098c1ce3e88932f190ca6755482d24df13beae",
-    "iso/scalar": "98cdab12aa1d3ed13d34d060678ee7075d75b5fc176cf356d33e703d53dc83a7"
+    "iso/@index": "f4405795f203fa33735a2b6dfedb00a88967ea3a1e89ef7274ba435ecff88f4b",
+    "iso/normal": "eed91872bfc4d1cfa30f042455f487febe5922be7bebf42afb4008c7a5e112a7",
+    "iso/position": "d9c2ead83fc34d2343f97c23590b0866d86cc976e6e18b080cc8f98b8f79fa7a",
+    "iso/scalar": "b2065a78f4402e6b6d17e9b2a385caaedee6fb11f47f2e6580c1a633b6b06fa3"
    },
    "header": {
     "bounds": [
@@ -1700,26 +1700,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 2580,
+        "length": 1332,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 2580,
+        "length": 1332,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 860,
+        "length": 444,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 156,
-       "vertices": 215
+       "primitives": 52,
+       "vertices": 111
       },
       "index": {
-       "length": 1872,
+       "length": 624,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1738,12 +1738,12 @@
     "returned": [
      "iso"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[\u00b0C]"
@@ -1755,10 +1755,10 @@
   },
   {
    "buffers": {
-    "glyph/@index": "16844bab0ce42d7bec7b325763018b782e5ca99a2e1a57e372c36a9b6bf15995",
-    "glyph/normal": "bd87d3a8442812df8372974074544957208b47a94a40793095ade78e7befafc1",
-    "glyph/position": "51d1c7d480a1c3db4f430fc354a6aad79a4f48beb1483be61c9fc446dafac9fd",
-    "glyph/scalar": "b512db5b7fff81d41b25492df9c7fe99f772c611ed0a7f8189a479c0699b0350"
+    "glyph/@index": "7f79bbbaef40e3d7cd07da268f19e6e27fc7a87fa38410246dfe9d1d12afe10e",
+    "glyph/normal": "9a6a239ab40664c78e0111e5d2fe6d5708cf6a963b9777bfe8827824b3285279",
+    "glyph/position": "55257a36741eba88704801a9e203c85c2355d6e090dd2f847c99049bd2f4b118",
+    "glyph/scalar": "977a178272a3cc16091aa2a46a7b2b2d3fbf0c023bc5f6a6061062acdedcf5af"
    },
    "header": {
     "bounds": [
@@ -1774,7 +1774,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -1812,7 +1812,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "glyph"
@@ -1820,12 +1820,12 @@
     "returned": [
      "glyph"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -1837,10 +1837,10 @@
   },
   {
    "buffers": {
-    "glyph/@index": "fe7d3c76fd1b982dd81a9f023977697b3e3cb71f48e5209fedc24b1e593b500f",
-    "glyph/normal": "4568e856811974f72c61fb7553f9285c8cd97fdbf7c45499b55e4315959d9b92",
-    "glyph/position": "d550597156c9213e345c00f313f5a08bba61a4b125526b1ad67d74122351a383",
-    "glyph/scalar": "dfd361a309c78155bf921fe9c70ad72875ca43bc13a23c1e203fe6c207d3398b"
+    "glyph/@index": "9902a8b35a4114b3fd5096db3b44b021d263caae2439d2591cebf7a7feb48963",
+    "glyph/normal": "a030b2ee2f64f53c14418d55042feb1b0194b30afa0719de2a7361c68d8708c7",
+    "glyph/position": "64b11a8ba1e15222405a41ac05aa32238155cf2b0275ca196c2d4637ee341dae",
+    "glyph/scalar": "f469a25e7c2b5791a46d738fef54ba1872ba9c618383af2226f9c77868fbd81a"
    },
    "header": {
     "bounds": [
@@ -1856,7 +1856,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -1864,26 +1864,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 158844,
+        "length": 49776,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 158844,
+        "length": 49776,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 52948,
+        "length": 16592,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 14322,
-       "vertices": 13237
+       "primitives": 4488,
+       "vertices": 4148
       },
       "index": {
-       "length": 171864,
+       "length": 53856,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1894,7 +1894,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "glyph"
@@ -1902,12 +1902,12 @@
     "returned": [
      "glyph"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -1919,10 +1919,10 @@
   },
   {
    "buffers": {
-    "slice/@index": "c3be25a3f173f0879897d23f40e6b41bd970cd7d685ceda3854862cf2686e542",
-    "slice/normal": "ebbaa73ba7dc85023ac66881133f1d016ecbf43288f9a9794f4679ce3abfb9a5",
-    "slice/position": "a7b11fa52cbbba9d17fb8b4cca2d9f99aab2943c8470d68f06b00a1d529547b9",
-    "slice/scalar": "d003a15d2ed1d04cc4466ba9df248ad0572f413772d5142f9106a74835622bcd"
+    "slice/@index": "fe3999e428e4de4443b2564a4fe49707f200047667d9d9bd7a0ba34f5e5ad5d6",
+    "slice/normal": "dc02c2a56f0922f254108caa35d14b109617cf657b9a2fd9722cb000013accf4",
+    "slice/position": "c06b2f6c314c0fec9085467763769cff3cf27fbed46197109b0bf9d623d620b8",
+    "slice/scalar": "62ee7dd782926bd548bf586b9645bd6d1e396bf550ccd1d94ee5b9946510ec57"
    },
    "header": {
     "bounds": [
@@ -1938,7 +1938,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -1946,26 +1946,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 20664,
+        "length": 1584,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 20664,
+        "length": 1584,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 6888,
+        "length": 528,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 3440,
-       "vertices": 1722
+       "primitives": 260,
+       "vertices": 132
       },
       "index": {
-       "length": 41280,
+       "length": 3120,
        "type": "u32"
       },
       "mode": "triangles",
@@ -1976,7 +1976,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "slice"
@@ -1984,12 +1984,12 @@
     "returned": [
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2001,10 +2001,10 @@
   },
   {
    "buffers": {
-    "boundary/@index": "79c6fa776083d972a4061a3dbf9f167d47e17ee3fb0f66e0aa21301400985e88",
-    "boundary/normal": "9cf41e44851d5135d4e0c0670f4b309a6bbd3c0a20553e6b3550c25331356efd",
-    "boundary/position": "67247c908c57ddcbaf0f900bcbee45abc8862318b21da29e923b3b32f209e71f",
-    "boundary/scalar": "df8350fa189b581a81a3cf49af3f27cc862181b4aaec8c9b02afd5363a3f403c"
+    "boundary/@index": "e507a6eee9558d125b688448bb7373f203ce570aba6a9dd3b9b7a2fdd90c466f",
+    "boundary/normal": "5ff266b003e20b545e5fe91a452584a5f807849e35a14ba142ccde5a7e972639",
+    "boundary/position": "045174bdb3da791e204b83988dd74f1c2df180aa681aa8925ae134ed075cb5df",
+    "boundary/scalar": "a1a4f5721c1c4610af7f71078f3a68c330536d679803b0e0507ee8dc10c5dfca"
    },
    "header": {
     "bounds": [
@@ -2020,7 +2020,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -2028,26 +2028,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 16092,
+        "length": 1152,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 16092,
+        "length": 1152,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 5364,
+        "length": 384,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 2560,
-       "vertices": 1341
+       "primitives": 160,
+       "vertices": 96
       },
       "index": {
-       "length": 30720,
+       "length": 1920,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2058,7 +2058,7 @@
     "planeCoord": 1.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "boundary"
@@ -2066,12 +2066,12 @@
     "returned": [
      "boundary"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2083,14 +2083,14 @@
   },
   {
    "buffers": {
-    "boundary/@index": "b919be5824ac99f7f1c93e9c93d33f6ced92ebf193ddc64ea5b94be89c3e52e0",
-    "boundary/normal": "60ace7ca015f2db78e36395f5b73afe919da47a627a59432b4cf3e643b614232",
-    "boundary/position": "5cf6bde9e873608132bd8b41597997facbdf2a837490c5532c257c1aef96fb17",
-    "boundary/scalar": "0c5cc90b079d0d9c1ded1376357d23a9782a704a83e01731f50ccd162e246492",
-    "slice/@index": "1c06697361930e24335b31b79a6923c9799111666e921ee5903a29e7db09c8de",
-    "slice/normal": "9a6f206708bd4a7f404beb0942dfd6687adf40429fc8a9a4a8cfddaf7aabeab1",
-    "slice/position": "1b2dbebec9ebfbacfc5fba163c78ab63ee5ec8e75f24121cdf812b8d9f17462c",
-    "slice/scalar": "c766c3318759c94065ba5fca09f378bde935e2187488a856085e4e9af38b8ab8"
+    "boundary/@index": "f7b7f95565f109cddc706408ec0ef30115d8ce157c245148107929487b73ede8",
+    "boundary/normal": "9e1ed3d988e3bc480228982ff339cd91b644532defec4f52b9be014bd8232990",
+    "boundary/position": "29e5e768ba442ffdbb820c46409d5fff52b53a95b39a1ab076e68a1d0d819de5",
+    "boundary/scalar": "e9a15a094703faaea3fdf53af7e04da21717008ab4bb228799712b2fced03c65",
+    "slice/@index": "31c4d357f4440759108dcb4b14645a7d75bc02cf3597e7c6e20d8173e33e0fc3",
+    "slice/normal": "581745641783f3db655f0a00932db23002d74328f63bf53f4f11daebc46fbcd2",
+    "slice/position": "12d76f8719f1221e88b26ed0c7226aea7a586315de40964dd96e874aff00efc0",
+    "slice/scalar": "2daac432f12f88a76a46421b31686e0b63930f30de73c0ce33a069f1e655298f"
    },
    "header": {
     "bounds": [
@@ -2106,7 +2106,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -2114,26 +2114,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 460800,
+        "length": 28800,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 460800,
+        "length": 28800,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 153600,
+        "length": 9600,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 12800,
-       "vertices": 38400
+       "primitives": 800,
+       "vertices": 2400
       },
       "index": {
-       "length": 153600,
+       "length": 9600,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2143,26 +2143,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 57600,
+        "length": 3600,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 57600,
+        "length": 3600,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 19200,
+        "length": 1200,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 4800
+       "primitives": 100,
+       "vertices": 300
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2173,7 +2173,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "boundary",
@@ -2183,12 +2183,12 @@
      "boundary",
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2200,10 +2200,10 @@
   },
   {
    "buffers": {
-    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
-    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
-    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
-    "slice/scalar": "5676302883541e69e8201274cf3828a49baae6ec97ccdbed3403f7a66eaad382"
+    "slice/@index": "be8e06673f079b3b128209ac227f2b3fc6cfaf7157ba4cd41a7b48c4fdefda99",
+    "slice/normal": "530c80bbf10f42e364e4361cdccef817458584d7045da76c927da46df1aecb71",
+    "slice/position": "664ea5dbb4bd32bad7a2fbaab4bb2fe20c42af16223d53209a8d707cedace173",
+    "slice/scalar": "d68a43e1311c23b4971038225d2aa57aace05b07390c05ea0de985f20d104f4f"
    },
    "header": {
     "bounds": [
@@ -2219,7 +2219,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     1.4100223779678345e-05
+     -7.732491940259933e-05
     ],
     "field": "U",
     "parts": [
@@ -2227,26 +2227,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2256,8 +2256,8 @@
     "planeAxis": "z",
     "planeCoord": 5.0,
     "range": [
-     -0.07083951681852341,
-     0.07086771726608276
+     -0.021790003404021263,
+     0.021635353565216064
     ],
     "requested": [
      "slice"
@@ -2265,12 +2265,12 @@
     "returned": [
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2282,10 +2282,10 @@
   },
   {
    "buffers": {
-    "iso/@index": "20ce4062538c7f84a1b88761a8c71d9fc8132356bbda2178f00a8e31d5a36a9d",
-    "iso/normal": "2f2d99ca0699e6a40aa038be43d9b231b00637fec97aab5c768d0d8ee722863a",
-    "iso/position": "b938f3fc6eaaa5bccbe076bb53c5b258844f2b62769648222a1421078592bf82",
-    "iso/scalar": "441a7a73bbf0f483a1176fd5edb9d47a9cc7b8a381f380c993db493990baf87e"
+    "iso/@index": "c5dbe468bc316674948a5c89b5fa11a7859808e09b8ba9880fa4208dc2af0b61",
+    "iso/normal": "67ef4344ca6f25b126d7cd6e51e7dc0ec06881242975fe7eba11d724b089be0d",
+    "iso/position": "4cf8f4d9b0e84a81b6c79c964f610bc7841dd7dc620cf140211b04c38baf2636",
+    "iso/scalar": "e497faa60453ea3b817e1cabdf1cfffcc2d255c597a68c1d43d1391f4919e705"
    },
    "header": {
     "bounds": [
@@ -2309,26 +2309,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 1404,
+        "length": 636,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 1404,
+        "length": 636,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 468,
+        "length": 212,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 60,
-       "vertices": 117
+       "primitives": 20,
+       "vertices": 53
       },
       "index": {
-       "length": 720,
+       "length": 240,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2339,7 +2339,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "iso"
@@ -2347,12 +2347,12 @@
     "returned": [
      "iso"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2381,7 +2381,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -2409,7 +2409,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "geometry"
@@ -2417,12 +2417,12 @@
     "returned": [
      "geometry"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2434,10 +2434,10 @@
   },
   {
    "buffers": {
-    "slice/@index": "590bbef37bfcdd4ae29ba4f422fbece81824fff94b84cfb96648b469b7393983",
-    "slice/normal": "13ae5a1da85b2297685f96c0b7f20d455b6c5108bbf9fc2c2f607bfee8711ebd",
-    "slice/position": "8f9a2c7a7988e3eb381a0ad969dbfd39c9ff8046f9d1ab241e5912a8beac9149",
-    "slice/scalar": "d260e1cc918dccc03d55d850556a063cd103565abefcd58f60716e07806ce026"
+    "slice/@index": "be8e06673f079b3b128209ac227f2b3fc6cfaf7157ba4cd41a7b48c4fdefda99",
+    "slice/normal": "530c80bbf10f42e364e4361cdccef817458584d7045da76c927da46df1aecb71",
+    "slice/position": "664ea5dbb4bd32bad7a2fbaab4bb2fe20c42af16223d53209a8d707cedace173",
+    "slice/scalar": "1e7577b4b58a004ef13aded47e6e16b81f80bc61b9cb294261b7e5550cacb671"
    },
    "header": {
     "bounds": [
@@ -2453,7 +2453,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.02742021687328809
+     0.01934666745364666
     ],
     "field": "U",
     "parts": [
@@ -2461,26 +2461,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 10332,
+        "length": 792,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 3444,
+        "length": 264,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 1600,
-       "vertices": 861
+       "primitives": 100,
+       "vertices": 66
       },
       "index": {
-       "length": 19200,
+       "length": 1200,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2491,7 +2491,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.05484043374657618
+     0.03869333490729332
     ],
     "requested": [
      "slice"
@@ -2499,12 +2499,12 @@
     "returned": [
      "slice"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2516,10 +2516,10 @@
   },
   {
    "buffers": {
-    "boundary/@index": "4d88f58f84239aea941d27fc9d7f01b9ab24f75c3e85cd2c693edd9bd9ab6c22",
-    "boundary/normal": "14e89e0f9268e4c5488726992e8225de91a81084f3b6d52d400d8652155f3fa7",
-    "boundary/position": "af871029db98e40cb0a6b94cf1556c27f1ee2105c5759e4a5ed2c1eb0dc02e01",
-    "boundary/scalar": "009e8f58ee92f2cc0b4860ba10de2896072799c163f486ed96bc99ea3f5daa66"
+    "boundary/@index": "a17578e0d8ee46764fadd0da1c94b6382a4a04b4af7da89a2284fb0365bd8596",
+    "boundary/normal": "dba1069521ce495f2887f2a0bfce5735a374e0b2ba02aa8d9d6263f030d3695e",
+    "boundary/position": "7aceb301e4b52740f5429f081a769a7689a50cf8d7671ff746e5081d59f2d308",
+    "boundary/scalar": "280cd897348c9100635bf79e7dbda96fac1641df479216a6eb059c52522860a3"
    },
    "header": {
     "bounds": [
@@ -2535,7 +2535,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -2543,26 +2543,26 @@
       "attributes": {
        "normal": {
         "components": 3,
-        "length": 20172,
+        "length": 1452,
         "type": "f32"
        },
        "position": {
         "components": 3,
-        "length": 20172,
+        "length": 1452,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 6724,
+        "length": 484,
         "type": "f32"
        }
       },
       "counts": {
-       "primitives": 3200,
-       "vertices": 1681
+       "primitives": 200,
+       "vertices": 121
       },
       "index": {
-       "length": 38400,
+       "length": 2400,
        "type": "u32"
       },
       "mode": "triangles",
@@ -2573,7 +2573,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "boundary"
@@ -2581,12 +2581,12 @@
     "returned": [
      "boundary"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
     "travelDivisor": null,
     "unit": "[m/s]"
@@ -2598,11 +2598,11 @@
   },
   {
    "buffers": {
-    "stream/@index": "abb32db45424f9e9dd9acb4af58c5842e82390d0930bf006b9ba230944b7981f",
-    "stream/@ranges": "18b930a821d6001faba22c752d0947a2d0fce0436d4cb1dc63ee84a5583ac4ea",
-    "stream/position": "3442b70dd082e2446d4c3c01850666b10d8029476d605f1aedff347a3baac483",
-    "stream/scalar": "0eae1c284666c1cbb373d4d702cb5cc4b764d4025724ad1f563824fd04edf0c9",
-    "stream/travel": "71103152194d04237874c60fc2811ac8c6ea7e16ae0f4bc8881d20a49c953bda"
+    "stream/@index": "def36ef3fd732bc38ba40724e23787d2c1512ff8ea27d2eda8c5b2fe010544aa",
+    "stream/@ranges": "2ca6f2aa417992cad26424940df4784bb64345070a67375f9840108c259b17ea",
+    "stream/position": "8a6ad2f7124c898b190634db80255629657fc6be677b51bcb65b410bd53d2719",
+    "stream/scalar": "9f6475b7dfe0d86b18bac69df5c4941ac3f9c79f21c6861ea0b3c7c6a7b0639f",
+    "stream/travel": "39048a6160c85eead9ee355b35195679e46cacb063baaf13c092dbdac3c304db"
    },
    "header": {
     "bounds": [
@@ -2618,7 +2618,7 @@
     "contourField": "U",
     "contourLocked": false,
     "contourValues": [
-     0.11526686698198318
+     0.03753342479467392
     ],
     "field": "U",
     "parts": [
@@ -2626,34 +2626,34 @@
       "attributes": {
        "position": {
         "components": 3,
-        "length": 45804,
+        "length": 27660,
         "type": "f32"
        },
        "scalar": {
         "components": 1,
-        "length": 15268,
+        "length": 9220,
         "type": "f32"
        },
        "travel": {
         "components": 1,
-        "length": 15268,
+        "length": 9220,
         "type": "f32"
        }
       },
       "counts": {
-       "polylines": 90,
-       "primitives": 3717,
-       "vertices": 3817
+       "polylines": 47,
+       "primitives": 2205,
+       "vertices": 2305
       },
       "index": {
-       "length": 29736,
+       "length": 17640,
        "type": "u32"
       },
       "mode": "lines",
       "name": "stream",
       "ranges": {
        "components": 2,
-       "length": 720,
+       "length": 376,
        "type": "u32"
       }
      }
@@ -2662,7 +2662,7 @@
     "planeCoord": 5.0,
     "range": [
      0.0,
-     0.23053373396396637
+     0.07506684958934784
     ],
     "requested": [
      "stream"
@@ -2670,14 +2670,14 @@
     "returned": [
      "stream"
     ],
-    "time": 1730.0,
+    "time": 740.0,
     "timeIndex": 2,
     "times": [
      0.0,
-     1000.0,
-     1730.0
+     700.0,
+     740.0
     ],
-    "travelDivisor": 708.589334927484,
+    "travelDivisor": 275.44177773428936,
     "unit": "[m/s]"
    },
    "kind": "scene",
@@ -2694,7 +2694,7 @@
   }
  ],
  "fingerprint": {
-  "case": "2ca5de958bfafcd0",
+  "case": "200a83fe52c0fb12",
   "matplotlib": "3.11.2",
   "numpy": "2.5.4",
   "vtk": "9.7.1"

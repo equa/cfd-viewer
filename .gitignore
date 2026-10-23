@@ -13,15 +13,9 @@ data/*
 !data/hotRoom/
 !data/cavity/
 
-# Of each demo case, version only the *definition*; its `Allrun` regenerates
-# the rest (see CLAUDE.md "Demo data").
-data/*/[0-9]*/
-!data/*/0/
-# hotRoom only: its 0/T is written by setFields from 0/T.orig. (The cavity's
-# 0/T is a real input and is versioned.)
-data/hotRoom/0/T
-# Written by blockMesh and the solver.
-data/*/constant/polyMesh/
+# The demo cases are versioned WITH their results: both are tiny and ASCII
+# (hotRoom 500 cells, cavity 400), so a fresh checkout -- CI's included -- runs
+# every suite without OpenFOAM. Only run by-products stay out.
 data/*/log.*
 data/*/run.log
 data/*/*.foam

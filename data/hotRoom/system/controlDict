@@ -30,9 +30,9 @@ writeControl    timeStep;
 
 writeInterval   100;
 
-purgeWrite      0;
+purgeWrite      2;
 
-writeFormat     binary;
+writeFormat     ascii;
 
 writePrecision  6;
 

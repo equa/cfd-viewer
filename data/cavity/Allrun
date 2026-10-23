@@ -7,4 +7,6 @@ cd ${0%/*} || exit 1    # Run from this directory
 runApplication blockMesh
 runApplication foamRun
 
+rm -rf postProcessing log.*
+
 #------------------------------------------------------------------------------

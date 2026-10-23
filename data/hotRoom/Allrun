@@ -8,4 +8,7 @@ runApplication blockMesh
 runApplication setFields
 runApplication foamRun
 
+# Keep only what the viewer reads: 0/ plus the last two writes (purgeWrite 2).
+rm -rf postProcessing log.*
+
 #------------------------------------------------------------------------------
