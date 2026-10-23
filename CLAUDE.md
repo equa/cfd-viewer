@@ -127,11 +127,9 @@ still to come. What phase 1 left in the code, and what not to undo:
   template's `.pre-commit-config.yaml` and `commitlint.config.js`, and a
   `Dockerfile` on cfd-viz's base and uid. doit keeps its state in `.doit.json`
   (JSON backend): dbm files differ between Python 3.12 and 3.13+.
-- **Host and dev container share this checkout**, `.venv` included, and each
-  side rebuilds `.venv` for its own interpreter -- in the container, point
-  `UV_PROJECT_ENVIRONMENT` elsewhere. The installed git hooks carry the host's
-  absolute interpreter path; in the container commit with `uv run git commit`
-  so the fallback finds `pre-commit` on `PATH`. And `pre-commit run
+- **Host and dev container:** since 2026-10-23 development, tests and commits
+  happen in the container (see "Environment"); a `.venv` or hook installed on
+  one side does not work on the other. Note `pre-commit run
   --commit-msg-filename` does NOT test commitlint (the hook lints
   `.git/COMMIT_EDITMSG`); test it with a real commit in a throwaway clone.
 
@@ -168,7 +166,7 @@ The project lives at `/workspace/cfd-viewer` and is under version control
 CLAUDE.md README.md pyproject.toml uv.lock requirements.txt hatch_build.py
 dodo.py Dockerfile .dockerignore .gitignore .pre-commit-config.yaml
 commitlint.config.js main.py foamviz/ src/ web/ tests/ tools/ docs/ openspec/
-data/hotRoom/{Allrun,Allclean,system,constant,0}     # the case definition only
+data/                                                 # both demo cases, results included (~0.7 MB)
 ```
 
 Everything else rebuilds:
@@ -177,11 +175,8 @@ Everything else rebuilds:
 - `web/dist/` — `cd web && npm run build` (the Python server serves it from there;
   without it, `/` shows a short "no client build" page instead)
 - the Python env -- `uv sync` (see "Environment" below)
-- `data/hotRoom/` (74 MB) — regenerate, see "Demo data". Or point `--data` at a
-  real case; nothing depends on the demo except the tests. `data/cavity/` needs
-  nothing: the suites only list it.
 
-`tests/test_pipeline.py` hardcodes the demo case (32 000 cells, 3 patches,
+`tests/test_pipeline.py` hardcodes the demo case (500 cells, 3 patches,
 T range 300–600 K, more than one time step). Point it elsewhere and those
 specific assertions need updating — the checks are deliberately concrete.
 
@@ -737,13 +732,13 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 
 `uv run doit ci` runs everything below (about 3 min); each also runs directly.
 
-| | what it covers | last run (2026-10-21) |
+| | what it covers | last run (2026-10-23) |
 |---|---|---|
-| `tests/test_pipeline.py` | the VTK pipeline incl. read-only serial/decomposed cases, no browser, no GL | **64/64** (2026-10-23) |
+| `tests/test_pipeline.py` | the VTK pipeline incl. read-only serial/decomposed cases, no browser, no GL | **64/64** |
 | `tests/check_client.py` | the three.js client in real Chromium, incl. the start screen | **115/115** |
 | `tests/test_contract.py` | 56 recorded HTTP exchanges replayed (the API only grows) | **56/56** |
-| `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest 31 |
-| `tests/check_cockpit_contract.py` | cfd-backend's cfd-viz build + runtime, mirrored | **16/16** |
+| `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest 32 |
+| `tests/check_cockpit_contract.py` | cfd-backend's cfd-viz build + runtime, mirrored | **21/21** |
 | `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
 
 `tests/test_suites.py` runs the two script suites under pytest (the browser
@@ -782,43 +777,44 @@ one marked `browser`, which `doit test_py` deselects).
 
 ## Demo data
 
-`data/hotRoom` = OpenFOAM 13 `fluid/hotRoomBoussinesqSteady`, copied from
-`$FOAM_TUTORIALS/fluid/hotRoomBoussinesqSteady`, with two edits:
+**Both demo cases are versioned with their results** (2026-10-23, Niklas's
+call): tiny, ASCII, so CI and a fresh checkout run every suite with no
+OpenFOAM and no download. "No need to test viz at CI level on MB datasets."
+Big cases are for `bench.py` and by-eye checks, via `--data`.
 
-- `system/blockMeshDict`: `hex (...) (20 10 20)` → `(40 20 40)` (32 000 cells)
-- `system/controlDict`: `writeFormat ascii` → `binary`
+`data/hotRoom` = OpenFOAM 13 `fluid/hotRoomBoussinesqSteady`, with these edits:
 
-10 × 5 × 10 m room, 1 m² of floor held at 600 K, everything else 300 K.
-Converges at iteration 1730. `Allrun` writes 19 time directories; the copy in
-`data/` keeps three (`0`, `1000`, `1730`, trimmed 2026-10-22 to keep it small),
-which is all the suites need.
+- `system/blockMeshDict`: `(20 10 20)` → **`(10 5 10)`** (500 cells of 1 m).
+- `system/controlDict`: `writeFormat ascii` (the tutorial's), `purgeWrite 2`
+  so `Allrun` leaves exactly `0` + the last two writes.
+- `system/setFieldsDict`: heater box `(4.5…5.5)²` → **`(4…6)²`**. On 1 m cells
+  the old box edges coincide with face centres (a tie); the new one selects the
+  centre 2×2 floor faces, a 4 m² heater, still centred.
+- `Allrun` deletes `postProcessing` and `log.*` after the run.
 
+10 × 5 × 10 m room, 4 m² of floor at 600 K, everything else 300 K. Converges
+at iteration 740 → times `0`, `700`, `740`; ~400 kB. Still genuinely 3-D, which
+is why it was kept over the 1-D `shockTube` that was also considered (its
+slices and isosurfaces degenerate, and the reader skips its `p` and `rho`).
 `constant/triSurface/building.obj` is a small **added fixture** (a box at the
-room bounds), not part of the tutorial — it exercises the Geometry tool and its
-pipeline test. `Allrun`/`Allclean` leave it alone. A real case ships its own
-`building.obj` here. Regenerate the solution (not the OBJ):
+room bounds), not part of the tutorial; `Allclean` leaves it alone.
+
+`data/cavity` = lid-driven cavity for the `fluid` solver, 20 × 20 × 1 = 400
+cells (2-D), ASCII, times `0`, `0.5`, `1`, ~330 kB. Its T is constant (the case
+is isothermal). It is the second case for the start screen; `check_client.py`
+*fails* on fewer than two.
+
+Regenerate on the host (no OpenFOAM in the container), then re-record the
+contract and review its diff:
 
 ```bash
-source /opt/cfd/OpenFOAM-13/etc/bashrc
 cd data/hotRoom && ./Allclean && ./Allrun
+uv run python tools/record_contract.py
 ```
 
-Chosen as the nearest tutorial analogue to an IDA ICE `HEATING` case:
-buoyancy-driven room airflow with a thermal plume, steady state.
-
-`data/cavity` (added 2026-10-22, by Niklas) is the lid-driven cavity for
-OpenFOAM 13's `fluid` solver: 20 × 20 × 1 = 400 cells, writing times 0.5 and 1.
-It is versioned as a **definition only** (`Allrun` = `blockMesh` + `foamRun`),
-and that is its job: a second case, so the start screen always has a list to
-show and filter in `tests/check_client.py` (which now *fails* on fewer than two
-cases instead of skipping). Unmeshed, it lists with no cell count and opens as
-an empty case (0 cells). No suite opens it. `.gitignore` treats both cases
-alike with `data/*/...` patterns, except `0/T`: hotRoom's is generated by
-`setFields`, the cavity's is a real input.
-
-Large cases (`s2`, the fancoil case) are no longer kept in `data/`: nothing in
-`doit ci` opened them (they were only listed), and `bench.py` takes them by
-`--data` when needed.
+Thresholds that depend on the mesh are written in terms of the definition
+(`N_CELLS`, `LAYER` in `test_pipeline.py`); `check_client.py`'s animation
+check uses a `MOTION` margin measured on this case (~0.13 on vs ~0.003 off).
 
 ## Architecture in one paragraph
 

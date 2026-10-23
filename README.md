@@ -179,28 +179,34 @@ Extraction is also **per part**: moving the cut plane re-extracts the slice
 untouched on the GPU. Decoded parts are cached by request signature, so going
 back to a time step or slice position you have already visited is free.
 
-## Demo case
+## Demo cases
 
-`data/hotRoom` is OpenFOAM 13's `fluid/hotRoomBoussinesqSteady` tutorial,
-refined to 40×20×40 (32 000 cells) — a 10 × 5 × 10 m room with a 1 m² patch of
-floor held at 600 K. It converged in 1730 iterations; the copy here keeps the
-time steps `0`, `1000` and `1730` (its `Allrun` writes 19), enough for the time
-player to step through.
-`constant/triSurface/building.obj` is a small added fixture (a box at the room
-bounds) that exercises the Geometry tool.
+Both are versioned **with their results**, ASCII and tiny, so a fresh checkout
+runs every suite without OpenFOAM. They are test fixtures, not showcases: point
+`--data` at a real case to see what the viewer does at scale.
 
-Chosen as the closest tutorial analogue to an IDA ICE `HEATING` case:
-buoyancy-driven room airflow with a thermal plume, steady state. To regenerate
-the solution (not the OBJ):
+`data/hotRoom` is OpenFOAM 13's `fluid/hotRoomBoussinesqSteady` tutorial on a
+coarse 10×5×10 mesh (500 cells of 1 m) -- a 10 × 5 × 10 m room with 4 m² of
+floor held at 600 K. It converges at iteration 740; `purgeWrite 2` keeps the
+time steps `0`, `700` and `740`, enough for the time player to step through.
+About 400 kB. `constant/triSurface/building.obj` is a small added fixture (a
+box at the room bounds) that exercises the Geometry tool. Chosen as the closest
+tutorial analogue to an IDA ICE `HEATING` case: buoyancy-driven room airflow
+with a thermal plume, steady state, and genuinely 3-D.
+
+`data/cavity` is the lid-driven cavity for the `fluid` solver: 20×20×1 (400
+cells, 2-D), times `0`, `0.5`, `1`, about 330 kB. It makes the start screen
+list more than one case.
+
+To regenerate either (OpenFOAM 13 sourced):
 
 ```bash
-source /opt/cfd/OpenFOAM-13/etc/bashrc
 cd data/hotRoom && ./Allclean && ./Allrun
 ```
 
-`data/cavity` is the lid-driven cavity (400 cells), versioned as a definition
-only. It is there so the start screen always has more than one case; run its
-`Allrun` (`blockMesh`, `foamRun`) to view it too.
+Then re-record the HTTP contract (`uv run python tools/record_contract.py`)
+and review its diff: the replay compares values only while the case files
+match the recording.
 
 ## Screenshots
 
