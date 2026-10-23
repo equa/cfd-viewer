@@ -7,11 +7,9 @@ change written from them supersedes this note.
 
 ## Where things stand
 
-- **Phase 1 of `standalone-viewer` is shipped.** GitHub `main` is `46b4cf2`, and
-  cfd-backend's CI passed with it. Local `main` is a few commits ahead
-  (close-out, the contract shape/value split, the cavity demo case), not yet
-  pushed. Every task in `openspec/changes/standalone-viewer/tasks.md` is ticked.
-  The change is **not archived** yet.
+- **Phase 1 of `standalone-viewer` is shipped and archived** (2026-10-23,
+  `openspec/changes/archive/2026-10-23-standalone-viewer/`); its specs are the
+  baseline in `openspec/specs/`.
 - **Phases 2 and 3 are designed but not proposed.** That is `local-desktop-viewer`
   (Windows bundle; design D4-D6) and `hosted-case-upload` (uploads, session
   workers; D7-D8).

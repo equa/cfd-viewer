@@ -50,8 +50,10 @@ What that means in practice:
 
 ## The standalone-viewer change, phase 1 (2026-10-20 .. 22)
 
-`openspec/changes/standalone-viewer/` is the design record (proposal, design
-D1-D11, specs, and `tasks.md` with the measured result of every task). Phase 1
+`openspec/changes/archive/2026-10-23-standalone-viewer/` is the design record
+(proposal, design D1-D11, specs, and `tasks.md` with the measured result of
+every task); its specs are now the baseline in `openspec/specs/`
+(`case-sources`, `start-screen`, `viewer-build`). Phase 1
 turned the cockpit-only viewer into a package that can also stand alone;
 phases 2 (Windows desktop bundle) and 3 (hosted uploads) are separate changes
 still to come. What phase 1 left in the code, and what not to undo:
