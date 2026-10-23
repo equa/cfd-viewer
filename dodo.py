@@ -18,12 +18,16 @@ What runs where:
 - ``package``  the wheel, client included, and a check of what it contains
 - ``requirements_check``  requirements.txt is exactly what the lock exports
 - ``cockpit_contract``  cfd-backend's cfd-viz build and runtime, mirrored on a
-               clone of HEAD (needs ../cfd-backend; commit first -- it clones)
+               clone of HEAD (commit first -- it clones); runs ../cfd-backend's
+               viz.sh if checked out, else the copy in tests/cockpit/
+- ``chromium``  Playwright's headless Chromium, for the two tasks above
 
-No suite needs a system GL library; the browser suite needs Playwright's
-Chromium and its system libraries (CLAUDE.md, "Environment").
+No suite needs a system GL library. As root (equa-ci's CI container),
+``chromium`` also apt-installs Chromium's system libraries; without root they
+must already be there (CLAUDE.md, "Environment").
 """
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -70,10 +74,20 @@ def task_test_py():
             "verbosity": 2}
 
 
+def task_chromium():
+    """Install Playwright's headless Chromium (and, as root, its system libraries)."""
+    # As thermarest's test_ui does: CI runs as root in equa-base-ci, so
+    # --with-deps can apt-get the libraries. Without root that would fail; the
+    # dev container gets them from /work/.tools instead.
+    deps = ["--with-deps"] if os.name == "posix" and os.geteuid() == 0 else []
+    return {"actions": [["uv", "run", "playwright", "install", *deps, "--only-shell", "chromium"]],
+            "uptodate": [False], "verbosity": 2}
+
+
 def task_test_ui():
     """Run the browser suite (tests/check_client.py) in Chromium."""
     return {"actions": [["uv", "run", "pytest", "tests/", "-v", "-m", "browser"]],
-            "task_dep": ["web_build"], "verbosity": 2}
+            "task_dep": ["web_build", "chromium"], "verbosity": 2}
 
 
 def task_test():
@@ -151,7 +165,7 @@ def task_requirements_check():
 def task_cockpit_contract():
     """Mirror cfd-backend's cfd-viz build and runtime on a clone of HEAD."""
     return {"actions": [["uv", "run", "python", "tests/check_cockpit_contract.py"]],
-            "verbosity": 2}
+            "task_dep": ["chromium"], "verbosity": 2}
 
 
 def task_ci():

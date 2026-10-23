@@ -20,8 +20,10 @@ build half
   3. ``npm ci && npm run build`` in ``web/``, then drop ``node_modules`` and
      ``.git`` as the image does;
   4. a fresh Python 3.14 venv and ``pip install -r requirements.txt``;
-  5. cfd-backend's own ``viz.sh``, read from a cfd-backend checkout, with the
-     clone standing in for ``/opt/foamviz``.
+  5. cfd-backend's own ``viz.sh``, with the clone standing in for
+     ``/opt/foamviz``: from a cfd-backend checkout when there is one, else
+     the copy kept in ``tests/cockpit/`` (cfd-backend is private, so CI cannot
+     clone it).
 
 runtime half
   6. the image's exact CMD on a ``CFD_HOME`` holding the demo case under a
@@ -36,8 +38,10 @@ Both halves run with no GL library on the library path, as the image has
 none. ``--runtime-only --base-url`` runs step 8 and the API checks against a
 real stack instead (tasks 11.2).
 
-A missing cfd-backend checkout makes the run INCOMPLETE (exit 2), never a
-silent pass.
+With a cfd-backend checkout, the kept copy must match its ``viz.sh`` byte for
+byte, or the run fails: a stale copy would test yesterday's smoke test. Refresh
+it with ``cp ../cfd-backend/tests/smoke/viz.sh tests/cockpit/`` and update
+``VIZ_SH_FROM``.
 """
 
 import argparse
@@ -64,6 +68,11 @@ LATE_ID = "e2614af7-0000-4000-8000-00000000c0c2"
 # cfd-backend's test suite stages its cases one level down, in CFD_HOME/tests/.
 # The one-level scan missed them; found at the phase-1 gate (2026-10-22).
 TEST_CASE = "tests/window-radiator-no-ahu_0"
+
+# cfd-backend's tests/smoke/viz.sh, kept here for checkouts without cfd-backend
+# (CI: the repo is private). VIZ_SH_FROM is the cfd-backend commit it matches.
+VIZ_SH_COPY = ROOT / "tests" / "cockpit" / "viz.sh"
+VIZ_SH_FROM = "b56cd88 (2026-09-22)"
 
 checks, failures = 0, []
 
@@ -212,23 +221,29 @@ def build_half(repo, work, backend):
         return None
 
     viz_sh = backend / "tests" / "smoke" / "viz.sh" if backend else None
-    if viz_sh is None or not viz_sh.is_file():
-        print(f"\n  !! INCOMPLETE: no cfd-backend checkout at {backend} -- its smoke test "
-              "tests/smoke/viz.sh was NOT run. Pass --backend <path>.\n")
-        return clone, python, False
+    if viz_sh is not None and viz_sh.is_file():
+        source = f"cfd-backend's {viz_sh.relative_to(backend)}"
+        same = VIZ_SH_COPY.read_bytes() == viz_sh.read_bytes()
+        check("the kept copy of viz.sh matches cfd-backend's", same,
+              "" if same else f"{VIZ_SH_COPY.relative_to(ROOT)} is stale: "
+              f"cp {viz_sh} {VIZ_SH_COPY.parent}/ and update VIZ_SH_FROM")
+    else:
+        viz_sh = VIZ_SH_COPY
+        source = f"cfd-backend's viz.sh, kept copy @ {VIZ_SH_FROM}"
+        print(f"  (no cfd-backend checkout at {backend}: running the kept copy of its viz.sh)")
     script = viz_sh.read_text()
     if script.count("cd /opt/foamviz") != 1:
         check("viz.sh still changes into /opt/foamviz (needed to stand the clone in)", False,
               "cfd-backend's smoke test changed shape; update this check")
-        return clone, python, True
+        return clone, python
     local = work / "viz.sh"
     local.write_text(script.replace("cd /opt/foamviz", 'cd "$FOAMVIZ_ROOT"'))
     ok, tail = run(["bash", str(local)],
                    env=no_gl_env({"FOAMVIZ_ROOT": str(clone),
                                   "PATH": f"{venv / 'bin'}{os.pathsep}{os.environ['PATH']}"}))
-    check(f"cfd-backend's {viz_sh.relative_to(backend)} (no GL libraries)", ok,
+    check(f"{source} (no GL libraries)", ok,
           tail.splitlines()[-1] if ok else tail)
-    return clone, python, True
+    return clone, python
 
 
 def start_cmd(clone, python, cfd_home, port):
@@ -336,7 +351,8 @@ def main():
     ap.add_argument("--repo", type=Path, default=ROOT,
                     help="repository to clone (its checked-out HEAD); default this checkout")
     ap.add_argument("--backend", type=Path, default=ROOT.parent / "cfd-backend",
-                    help="cfd-backend checkout providing tests/smoke/viz.sh")
+                    help="cfd-backend checkout providing tests/smoke/viz.sh "
+                         "(without one, the copy in tests/cockpit/ runs)")
     ap.add_argument("--runtime-only", action="store_true",
                     help="only drive a running stack at --base-url (no build)")
     ap.add_argument("--base-url", help="with --runtime-only: the /viz/ URL of a running stack")
@@ -353,12 +369,10 @@ def main():
         check("the stack lists cases", bool(cases), f"{len(cases)} case(s)")
         if cases:
             browser_checks(base, args.case or cases[0])
-        complete = True
     else:
         with tempfile.TemporaryDirectory(prefix="cfdv-cockpit-") as tmp:
             built = build_half(args.repo.resolve(), Path(tmp),
                                args.backend.resolve() if args.backend else None)
-            complete = built is not None and built[2]
             if built is not None and not failures:
                 runtime_half(built[0], built[1], Path(tmp))
 
@@ -366,9 +380,6 @@ def main():
     if failures:
         print("failed:\n" + "\n".join(f"  - {f}" for f in failures))
         return 1
-    if not complete:
-        print("INCOMPLETE: cfd-backend's smoke test did not run")
-        return 2
     return 0
 
 
