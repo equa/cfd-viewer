@@ -1,4 +1,4 @@
-"""The VTK scene: representations, colouring, and the render window.
+"""The VTK scene: representations and colouring.
 
 Design notes
 ------------
@@ -99,6 +99,13 @@ class FoamPipeline:
         self.glyph_probe.SetSourceData(empty)
 
     def _build_scene(self):
+        # A renderer, but never a render window: nothing here renders. The
+        # scene server reads polydata straight off the filters (server/scene.py)
+        # and the browser draws it. A vtkRenderWindow needs a GL backend present
+        # just to be constructed, so not having one keeps this package -- and
+        # its tests -- free of Mesa/OSMesa. The window and the methods that
+        # used it (pick_cor, set_view, screenshot, write_vtkjs) were the Trame
+        # front end's, and went on 2026-10-23.
         self.renderer = vtk.vtkRenderer()
         self.renderer.SetBackground(0.09, 0.10, 0.13)
         self.renderer.SetBackground2(0.17, 0.19, 0.24)
@@ -116,60 +123,7 @@ class FoamPipeline:
         self.light_kit.AddLightsToRenderer(self.renderer)
         self.renderer.TwoSidedLightingOn()
 
-        # The render window and interactor are built ON FIRST USE, not here.
-        # See the `render_window` property below.
-        self._render_window = None
-        self._interactor = None
-
         self.lut = colors.color_transfer_function(self.preset, 0.0, 1.0)
-
-    # ── Rendering, on demand ────────────────────────────────────────────────
-    #
-    # Constructing a vtkRenderWindow requires a GL backend to be PRESENT --
-    # not merely to render, but to construct at all. VTK probes X11, then EGL,
-    # then OSMesa, and raises if none resolves. That made an eagerly-built
-    # render window a hard dependency on libosmesa6/libgl1 for every consumer
-    # of this class, including the three.js scene server, which never renders
-    # anything: it reads polydata straight off the filters (see
-    # server/scene.py) and ships triangles to the browser.
-    #
-    # The cost was not theoretical. libosmesa6 pulls in mesa-libgallium and
-    # libllvm19, and those three accounted for a large share of the cfd-viz
-    # image's vulnerability findings -- for a code path the service never
-    # takes.
-    #
-    # So: build it lazily. Anything that genuinely renders -- `screenshot`,
-    # `write_vtkjs`, `pick_focus`, the test suite -- gets a render window the
-    # moment it asks, exactly as before, and needs a GL backend to be present
-    # as it always did. Anything that only extracts never triggers it, and can
-    # run in an image with no GL libraries at all.
-    @property
-    def render_window(self):
-        if self._render_window is None:
-            rw = vtk.vtkRenderWindow()
-            rw.SetOffScreenRendering(1)
-            rw.AddRenderer(self.renderer)
-            rw.SetSize(1200, 800)
-            rw.SetMultiSamples(0)
-            self._render_window = rw
-        return self._render_window
-
-    @property
-    def interactor(self):
-        if self._interactor is None:
-            it = vtk.vtkRenderWindowInteractor()
-            it.SetRenderWindow(self.render_window)
-            it.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
-            self._interactor = it
-        return self._interactor
-
-    @property
-    def rendering_started(self):
-        """True once something has actually asked for a render window.
-
-        Only useful for tests and diagnostics: it answers "did constructing
-        this pipeline quietly take a GL dependency again?"""
-        return self._render_window is not None
 
     def _build_filters(self):
         # --- boundary surface -------------------------------------------
@@ -861,99 +815,3 @@ class FoamPipeline:
 
     def reset_camera(self):
         self.renderer.ResetCamera()
-
-    def pick_cor(self, x, y, w, h):
-        """Set the centre of rotation from a point picked on the client canvas.
-
-        ``x, y`` are display coordinates (VTK origin: bottom-left) in the client
-        canvas of size ``w x h``. We size the offscreen window to match, so the
-        projection aspect equals the client's and the pick ray lines up with
-        what the user sees, then cast it with a cell picker.
-
-        vtk.js orbits about the camera *focal point* -- there is no separate
-        centre of rotation -- so to pivot about the picked point P we set the
-        focal point to P and slide the camera along its current view direction
-        so P lands at screen centre. View direction and distance are preserved,
-        so the scene neither tilts nor zooms: it only pans P to the middle and
-        rotates about it thereafter. Returns True if the ray hit geometry."""
-        if w <= 0 or h <= 0:
-            return False
-        self.render_window.SetSize(int(w), int(h))
-        self.render_window.Render()
-        picker = vtk.vtkCellPicker()
-        picker.SetTolerance(0.0005)
-        if not picker.Pick(x, y, 0, self.renderer):
-            return False
-        target = np.array(picker.GetPickPosition())
-        camera = self.renderer.GetActiveCamera()
-        pos = np.array(camera.GetPosition())
-        focal = np.array(camera.GetFocalPoint())
-        view_dir = focal - pos
-        distance = np.linalg.norm(view_dir)
-        if distance == 0:
-            return False
-        view_dir = view_dir / distance
-        camera.SetFocalPoint(*target)
-        camera.SetPosition(*(target - view_dir * distance))
-        self.renderer.ResetCameraClippingRange()
-        return True
-
-    def set_view(self, direction):
-        """Look along a named axis: ``+x``, ``-x``, ``+y`` ... or ``iso``.
-
-        Z is up: these are building rooms, laid out with x/y in the ground plane
-        and z vertical. So every view has +z up, except the top/bottom (z-axis)
-        views, where the up vector can't be z and falls back to +y."""
-        camera = self.renderer.GetActiveCamera()
-        if direction == "iso":
-            camera.SetPosition(1, 1, 1)
-            camera.SetViewUp(0, 0, 1)
-        else:
-            sign = -1.0 if direction.startswith("-") else 1.0
-            axis = direction[-1]
-            vec = [0.0, 0.0, 0.0]
-            vec["xyz".index(axis)] = sign
-            camera.SetPosition(*vec)
-            camera.SetViewUp((0, 0, 1) if axis != "z" else (0, 1, 0))
-        camera.SetFocalPoint(0, 0, 0)
-        self.renderer.ResetCamera()
-
-    def write_vtkjs(self, directory):
-        """Export the current scene to a vtk.js scene *directory* (index.json +
-        binary data arrays + the lookup tables). Zipped, this is a ``.vtkjs``
-        the report embeds for interactive (rotate/zoom) viewing -- the same
-        vtk.js renderer the client uses, so it looks identical to the live view."""
-        exporter = vtk.vtkJSONSceneExporter()
-        exporter.SetRenderWindow(self.render_window)
-        exporter.SetFileName(str(directory))
-        exporter.Write()
-
-    def screenshot(self, path, magnification=1):
-        """Write a PNG of the current view.
-
-        ``magnification`` stays 1: ``vtkWindowToImageFilter`` scales up by *tiled*
-        rendering, and offscreen OSMesa does not shift the camera per tile, so a
-        scale of 2 yields the same frame repeated in a 2x2 grid rather than a
-        higher-resolution image. At scale 1 the capture is the window's own size
-        (which, with a live client, is the client's viewport)."""
-        # Refit the near/far clipping planes to the scene from the *current*
-        # camera. In local mode the client pushes its camera position to the
-        # server on zoom but not its clipping range, so a zoomed-in shot would
-        # otherwise clip against a stale near plane (only the far side survives).
-        # This adjusts the planes only -- it does not move the camera.
-        self.renderer.ResetCameraClippingRange()
-        # Ensure a current frame in the buffer: without a live client driving it
-        # (report export) the window may be unrendered, or left perturbed by the
-        # scene exporter -- either segfaults vtkWindowToImageFilter otherwise.
-        self.render_window.Render()
-        window_to_image = vtk.vtkWindowToImageFilter()
-        window_to_image.SetInput(self.render_window)
-        window_to_image.SetScale(magnification)
-        window_to_image.ReadFrontBufferOff()
-        window_to_image.Update()
-
-        writer = vtk.vtkPNGWriter()
-        writer.SetFileName(str(path))
-        writer.SetInputConnection(window_to_image.GetOutputPort())
-        writer.Write()
-        return path

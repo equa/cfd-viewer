@@ -20,8 +20,8 @@ What runs where:
 - ``cockpit_contract``  cfd-backend's cfd-viz build and runtime, mirrored on a
                clone of HEAD (needs ../cfd-backend; commit first -- it clones)
 
-The pipeline suite renders, so ``test_py`` needs a GL backend (CLAUDE.md,
-"Environment"); the browser suite needs Playwright's Chromium.
+No suite needs a system GL library; the browser suite needs Playwright's
+Chromium and its system libraries (CLAUDE.md, "Environment").
 """
 
 import subprocess

@@ -17,6 +17,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import vtk
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -39,7 +40,18 @@ def check(label, condition, detail=""):
         failures.append(label)
 
 
+def _no_render_window(*_args, **_kwargs):
+    raise AssertionError(
+        "vtkRenderWindow constructed: it needs a GL backend just to exist, and nothing "
+        "here renders -- the scene server ships polydata and the browser draws it")
+
+
 def main():
+    # Nothing in the pipeline may build a render window: that alone makes
+    # Mesa/OSMesa (and their CVEs) a hard dependency of the service and of this
+    # suite. Fail loudly here rather than segfault in a GL-less CI image.
+    vtk.vtkRenderWindow = _no_render_window
+
     if not CASE.is_dir():
         print(f"missing demo case at {CASE}; run data/hotRoom/Allrun first")
         return 1
@@ -82,15 +94,6 @@ def main():
     print("\npipeline")
     pipe = FoamPipeline()
 
-    # Constructing the pipeline must NOT construct a render window. VTK needs a
-    # GL backend present to build one at all -- not merely to render into it --
-    # so an eager render window makes libosmesa6/libgl1 a hard dependency for
-    # every consumer, including the scene server, which never renders: it reads
-    # polydata straight off the filters. That cost the cfd-viz image
-    # mesa-libgallium and libllvm19, and their vulnerabilities, for a code path
-    # the service never takes. Guard the invariant here so it cannot creep back.
-    check("construction takes no GL dependency (no render window built)",
-          pipe.rendering_started is False)
     # Empty-case invariant: with NO case loaded, every actor's mapper must still
     # have a valid input algorithm. trame's local-render serializer calls
     # mapper.GetInputAlgorithm().Update() on every actor at on_server_ready -- a
@@ -246,38 +249,6 @@ def main():
     check("isosurface glyphs build",
           pipe.glyph.GetOutput().GetNumberOfPoints() > 0,
           f"{pipe.glyph.GetOutput().GetNumberOfPoints()} pts")
-
-    print("\ncentre-of-rotation pick (F-key focus)")
-    pipe.set_view("iso")
-    cam = pipe.renderer.GetActiveCamera()
-    d0 = np.array(cam.GetFocalPoint()) - np.array(cam.GetPosition())
-    dist0 = np.linalg.norm(d0)
-    hit = pipe.pick_cor(400, 300, 800, 600)  # canvas centre -> onto the model
-    check("centre pick hits geometry", hit)
-    d1 = np.array(cam.GetFocalPoint()) - np.array(cam.GetPosition())
-    check("focus keeps view direction", np.allclose(d0 / dist0, d1 / np.linalg.norm(d1), atol=1e-6))
-    check("focus keeps zoom (distance)", np.isclose(dist0, np.linalg.norm(d1), rtol=1e-6))
-    fp_before = np.array(cam.GetFocalPoint())
-    miss = pipe.pick_cor(2, 2, 800, 600)  # corner -> empty space
-    check("miss is a no-op", (not miss) and np.allclose(fp_before, cam.GetFocalPoint()))
-    check("bad canvas size guarded", pipe.pick_cor(10, 10, 0, 0) is False)
-
-    print("\nrendering (offscreen / OSMesa)")
-    pipe.set_view("iso")
-    pipe.render_window.Render()
-    check("uses an offscreen GL context",
-          "OSOpenGL" in pipe.render_window.GetClassName()
-          or pipe.render_window.GetOffScreenRendering() == 1,
-          pipe.render_window.GetClassName())
-
-    from PIL import Image
-
-    with tempfile.TemporaryDirectory() as tmp:
-        png = Path(tmp) / "shot.png"
-        pipe.screenshot(png, magnification=1)
-        image = Image.open(png).convert("RGB")
-        distinct = len(set(image.getdata()))
-    check("render is not blank", distinct > 200, f"{distinct} distinct colours")
 
     print("\ntime stepping")
     reloaded = case.load(case.times[0])

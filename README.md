@@ -105,38 +105,21 @@ so case directories can be read-only: a network share, or a `:ro` mount.
 
 ### Which VTK
 
-Plain `vtk` from PyPI, **9.4 or newer**. Since 9.4 the standard wheels carry
-both an EGL and an OSMesa render window and choose one at runtime — X11 first,
-then EGL, then OSMesa. VTK `dlopen`s those libraries rather than bundling them,
-so a slim container needs:
+Plain `vtk` from PyPI, **9.4 or newer**, and **no GL library at all** -- not
+for the server, not for the tests. The server never renders: it only extracts
+geometry, and the browser draws it. `FoamPipeline` builds no render window
+(VTK needs a GL backend present just to *construct* one), and since
+2026-10-23 there is nothing left that renders server-side: `screenshot()`,
+`write_vtkjs()` and `pick_cor()` were the Trame front end's and are gone.
+`tests/test_pipeline.py` replaces `vtk.vtkRenderWindow` with a stub that
+raises, so a render window cannot creep back unnoticed; cfd-backend's smoke
+test checks the same from its side. Neither image (cfd-backend's `cfd-viz`,
+nor this repository's) installs `libosmesa6` or `libgl1`.
 
-```bash
-apt-get install -y libosmesa6      # or: dnf install -y mesa-libOSMesa
-```
-
-A normal Linux workstation already has it. Check with:
-
-```bash
-python -c "import vtk; w=vtk.vtkRenderWindow(); w.SetOffScreenRendering(1); w.Render(); print(w.GetClassName())"
-# vtkOSOpenGLRenderWindow  (or vtkEGLRenderWindow on a GPU machine)
-```
-
-**`vtk-osmesa` is a fallback, not the recommendation.** It statically bundles
-OSMesa so it needs no system library, but it is not on PyPI (it lives only on
-`https://wheels.vtk.org`), it stopped at **9.3.1**, and it publishes wheels only
-for CPython 3.6–3.12 on Linux x86_64 and Windows — which is the usual reason
-`pip install vtk-osmesa` fails. Reach for it only where you cannot install
-`libosmesa6`.
-
-**The server needs no GL library at all.** It never renders, it only extracts,
-and since 2026-09-22 `FoamPipeline` builds its render window lazily, so
-constructing it needs no GL backend either. Neither image (cfd-backend's
-`cfd-viz`, nor this repository's) installs `libosmesa6`, and cfd-backend's
-smoke test checks that construction stays GL-free. The libraries above matter
-only for what genuinely renders: `screenshot()`, `write_vtkjs()`, `pick_cor()`,
-and the rendering checks of `tests/test_pipeline.py`. Run with
-`vtkRenderWindow` patched to raise, that suite passes 48 checks and first fails
-at `pick_cor`, which really does render.
+If you ever do want VTK to render -- an ad-hoc script, say -- the stock wheels
+carry EGL and OSMesa render windows and `dlopen` the libraries, so install
+`libosmesa6` (or `mesa-libOSMesa`) first. `vtk-osmesa` is a dead end: not on
+PyPI, frozen at 9.3.1, CPython 3.12 at most.
 
 ## What it does
 
@@ -306,7 +289,7 @@ the wheel carries the client, a check that `requirements.txt` matches the lock,
 and the cockpit contract. The suites also run directly:
 
 ```bash
-uv run python tests/test_pipeline.py            # 72 checks, no browser: the VTK pipeline
+uv run python tests/test_pipeline.py            # 64 checks, no browser, no GL: the VTK pipeline
 uv run python tests/check_client.py             # 115 checks: the client in real Chromium
 uv run python tests/test_contract.py            # 56 recorded HTTP exchanges, replayed
 uv run python tests/check_cockpit_contract.py   # cfd-backend's cfd-viz build, mirrored
@@ -314,8 +297,9 @@ uv run pytest tests/test_sources.py tests/test_endpoints.py
 uv run python tests/bench.py hotRoom s2         # server-side extraction sizes and timings
 ```
 
-The pipeline suite renders, so it needs a GL backend (see "Which VTK"); the
-browser suite needs Playwright's Chromium (`uv run playwright install chromium`);
+Nothing needs a system GL library (see "Which VTK"); the browser suite needs
+Playwright's Chromium (`uv run playwright install chromium`), which brings its
+own software GL (SwiftShader), plus Chromium's usual system libraries;
 the cockpit check needs a cfd-backend checkout next to this one, and reports an
 incomplete run without it.
 
