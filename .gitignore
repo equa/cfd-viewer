@@ -1,4 +1,5 @@
 # Rebuildable: pip install -r requirements.txt
+.env
 .venv/
 __pycache__/
 *.pyc
