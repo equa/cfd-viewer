@@ -125,6 +125,15 @@ class FoamPipeline:
 
         self.lut = colors.color_transfer_function(self.preset, 0.0, 1.0)
 
+    @property
+    def rendering_started(self):
+        """Always False: nothing here builds a render window any more.
+
+        Kept because cfd-backend's tests/smoke/viz.sh reads it to check that
+        constructing the pipeline takes no GL dependency. Remove it only
+        together with that check."""
+        return False
+
     def _build_filters(self):
         # --- boundary surface -------------------------------------------
         self.surface_input = vtk.vtkAppendPolyData()
