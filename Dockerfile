@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.10
+# syntax=docker/dockerfile:1.28
 #
 # cfd-viewer's own image: the server in `server` mode, the client inside its
 # wheel. Shaped like the equa-ci service archetype's Dockerfile (web, builder,
