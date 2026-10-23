@@ -40,3 +40,7 @@ web/dist/
 # doit's task state (dodo.py); .doit.db* from before it moved to JSON
 .doit.json
 .doit.db*
+
+# Claude Code's local settings, and the openspec skills/commands that
+# `openspec init` generates into it (rebuildable)
+.claude/
