@@ -54,12 +54,17 @@ cd web && npm run dev                        # terminal 2 -> http://localhost:51
 
 The options:
 
-| Option | Meaning |
-|---|---|
-| `--data DIR` | A directory of cases, or one case. Repeat for several roots. Default `./data` |
-| `--scan-depth N` | Directory levels below each root to search for cases. Default 4. Cases are found at any level up to it, never inside another case, as cfd-backend finds them (e.g. its test cases in `CFD_HOME/tests/<name>`) |
-| `--host`, `--port` | Default `0.0.0.0`, `5003` |
-| `--mode server` | The only mode so far, and the default: an empty `--data` is not fatal, cases are picked up as they appear. `--server` is an alias |
+| Option | Variable | Meaning |
+|---|---|---|
+| `--data DIR` | `CASE_ROOTS` | A directory of cases, or one case. Repeat for several roots (in the variable, separate them with `:`). Default `./data` |
+| `--scan-depth N` | `SCAN_DEPTH` | Directory levels below each root to search for cases. Default 4. Cases are found at any level up to it, never inside another case, as cfd-backend finds them (e.g. its test cases in `CFD_HOME/tests/<name>`) |
+| `--host`, `--port` | `PORT` | Default `0.0.0.0`, `5003` |
+| `--root-path PATH` | `ROOT_PATH` | Also serve under `PATH` (`/viewer`), for a proxy that does not strip it, as equa-deployment's Traefik does. Every route then answers under it *and* at the root; `PATH` redirects to `PATH/`. Default none |
+| `--mode server` | | The only mode so far, and the default: an empty `--data` is not fatal, cases are picked up as they appear. `--server` is an alias |
+
+An option on the command line wins over its variable. The image sets
+`CASE_ROOTS=/data` and `PORT=5003` and passes no options, so a platform's
+settings take effect.
 
 `python main.py ...` with `pip install -r requirements.txt` still works the old
 way; that is how cfd-backend's `cfd-viz` image runs it (see

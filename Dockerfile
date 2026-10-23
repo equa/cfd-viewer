@@ -84,7 +84,9 @@ COPY --from=builder /opt/venv /opt/venv
 
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    CASE_ROOTS=/data \
+    PORT=5003
 
 USER cfd
 WORKDIR /home/cfd
@@ -92,8 +94,10 @@ EXPOSE 5003
 
 # Python, not curl: the runtime layer carries no shell HTTP client.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5003/health', timeout=4).status == 200 else 1)"]
+    CMD ["python", "-c", "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"5003\")}/health', timeout=4).status == 200 else 1)"]
 
 # Cases are read in place and never written to, so /data may be mounted
 # read-only. An empty /data is not fatal: cases are picked up as they appear.
-CMD ["cfd-viewer", "--mode", "server", "--data", "/data", "--host", "0.0.0.0", "--port", "5003"]
+# Configured by the environment (CASE_ROOTS, PORT, SCAN_DEPTH, ROOT_PATH; see
+# `cfd-viewer --help`), so no option here: one would override the platform's.
+CMD ["cfd-viewer"]

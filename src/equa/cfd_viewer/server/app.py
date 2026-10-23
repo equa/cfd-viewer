@@ -80,10 +80,25 @@ MODES = {
 }
 
 
-def make_app(source, mode="server"):
-    """The aiohttp app over a case source (``sources.DirectorySource``)."""
+def normalise_root_path(root_path):
+    """``/viewer`` from ``/viewer/`` or ``viewer/``; ``""`` for the root."""
+    root_path = (root_path or "").strip().strip("/")
+    return f"/{root_path}" if root_path else ""
+
+
+def make_app(source, mode="server", root_path=""):
+    """The aiohttp app over a case source (``sources.DirectorySource``).
+
+    *root_path* (``/viewer``) is the path an edge proxy serves this under
+    without stripping it, as equa-deployment's Traefik does (``ROOT_PATH``).
+    Every route then answers both under it and at the root, as Starlette's
+    ``root_path`` does for the other platform services: the edge sends
+    ``/viewer/health``, the image's own HEALTHCHECK asks ``/health``. The
+    cockpit's nginx strips ``/viz/`` itself and needs no root path.
+    """
     if mode not in MODES:
         raise ValueError(f"unknown mode {mode!r}")
+    root_path = normalise_root_path(root_path)
     scene_source = SceneSource(source)
     # The filter graph is shared mutable state; one extraction at a time.
     lock = asyncio.Lock()
@@ -190,24 +205,32 @@ def make_app(source, mode="server"):
         # copy after a redeploy points at assets that no longer exist.
         return web.FileResponse(page, headers={"Cache-Control": "no-store"})
 
+    async def to_slash(request):
+        # The client's URLs are relative (base ''), so the page only works at
+        # /viewer/ -- at /viewer its assets would resolve against the parent.
+        # with_path drops the query, and ?case= must survive the redirect.
+        raise web.HTTPPermanentRedirect(
+            request.rel_url.with_path(root_path + "/").with_query(request.query))
+
     app = web.Application()
-    app.router.add_get("/", index)
-    app.router.add_get("/health", health)
-    app.router.add_get("/api/config", config)
-    app.router.add_get("/api/cases", cases)
-    app.router.add_get("/api/meta", meta)
-    app.router.add_get("/api/times", times)
-    app.router.add_get("/api/range", field_range)
-    app.router.add_get("/api/scene", scene)
-    app.router.add_get("/api/lut", lut)
-    if (DIST / "assets").is_dir():
-        # Vite fingerprints these, so they can be cached forever.
-        app.router.add_static("/assets/", DIST / "assets")
+    routes = {"/": index, "/health": health, "/api/config": config, "/api/cases": cases,
+              "/api/meta": meta, "/api/times": times, "/api/range": field_range,
+              "/api/scene": scene, "/api/lut": lut}
+    for prefix in dict.fromkeys(["", root_path]):
+        for path, handler in routes.items():
+            app.router.add_get(prefix + path, handler)
+        if (DIST / "assets").is_dir():
+            # Vite fingerprints these, so they can be cached forever.
+            app.router.add_static(prefix + "/assets/", DIST / "assets")
+    if root_path:
+        app.router.add_get(root_path, to_slash)
     app["source"] = scene_source
     return app
 
 
-def serve(source, host="0.0.0.0", port=5003, mode="server"):
-    log.info("cfd-viewer %s (%s mode) serving %s on http://%s:%d/",
-             __version__, mode, source.describe(), host, port)
-    web.run_app(make_app(source, mode=mode), host=host, port=port, print=None)
+def serve(source, host="0.0.0.0", port=5003, mode="server", root_path=""):
+    root_path = normalise_root_path(root_path)
+    log.info("cfd-viewer %s (%s mode) serving %s on http://%s:%d%s/",
+             __version__, mode, source.describe(), host, port, root_path)
+    web.run_app(make_app(source, mode=mode, root_path=root_path),
+                host=host, port=port, print=None)

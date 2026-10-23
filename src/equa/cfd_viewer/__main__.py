@@ -6,16 +6,38 @@
 VTK extracts server-side (``foamviz/`` + ``server/``); the browser draws with
 React and three.js (``web/``).
 
+Every option can also come from the environment, as platform services are
+configured (equa-deployment); a command-line option wins over its variable:
+
+    CASE_ROOTS   --data, several roots separated by os.pathsep (":" on Linux)
+    SCAN_DEPTH   --scan-depth
+    PORT         --port
+    ROOT_PATH    --root-path, the path the edge serves this under (/viewer)
+
 The original Trame + vtk.js front end was mothballed on 2026-09-12 and lives on
 the frozen ``trame`` branch.
 """
 
 import argparse
 import logging
+import os
 
 from .server.sources import SERVER_SCAN_DEPTH, DirectorySource
 
 log = logging.getLogger("cfdviewer")
+
+
+def _env_int(name, default):
+    raw = os.environ.get(name, "").strip()
+    try:
+        return int(raw) if raw else default
+    except ValueError:
+        raise SystemExit(f"cfd-viewer: {name}={raw!r} is not an integer")
+
+
+def _env_roots():
+    raw = os.environ.get("CASE_ROOTS", "").strip()
+    return [r for r in raw.split(os.pathsep) if r] or None
 
 
 def main(argv=None):
@@ -25,19 +47,28 @@ def main(argv=None):
         "--data",
         action="append",
         help="directory holding OpenFOAM cases, or a single case directory; "
-             "repeat for several roots (default: ./data)",
+             "repeat for several roots (default: $CASE_ROOTS, else ./data)",
     )
     parser.add_argument(
         "--scan-depth",
         type=int,
-        default=SERVER_SCAN_DEPTH,
+        default=_env_int("SCAN_DEPTH", SERVER_SCAN_DEPTH),
         metavar="N",
         help="directory levels below each root to search for cases (default "
              f"{SERVER_SCAN_DEPTH}; cases are found at any level up to it, as "
              "cfd-backend finds them, and never inside another case)",
     )
-    parser.add_argument("--port", type=int, default=5003)
+    parser.add_argument("--port", type=int, default=_env_int("PORT", 5003))
+    # Not from $HOST: equa-deployment uses HOST for the public domain, and zsh
+    # sets it to the machine name.
     parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument(
+        "--root-path",
+        default=os.environ.get("ROOT_PATH", ""),
+        metavar="PATH",
+        help="serve under PATH (e.g. /viewer) as well as at the root, for an "
+             "edge proxy that does not strip it (default: $ROOT_PATH, else none)",
+    )
     parser.add_argument(
         "--mode",
         choices=["server"],
@@ -65,7 +96,7 @@ def main(argv=None):
 
     if args.scan_depth < 0:
         parser.error("--scan-depth must be 0 or more")
-    source = DirectorySource(args.data or ["data"], depth=args.scan_depth)
+    source = DirectorySource(args.data or _env_roots() or ["data"], depth=args.scan_depth)
     cases = source.list()
     if not cases:
         msg = (
@@ -82,7 +113,7 @@ def main(argv=None):
 
     from .server.app import serve
 
-    serve(source, host=args.host, port=args.port, mode=args.mode)
+    serve(source, host=args.host, port=args.port, mode=args.mode, root_path=args.root_path)
 
 
 if __name__ == "__main__":
