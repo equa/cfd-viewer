@@ -1,0 +1,25 @@
+# equa-cfd-viewer's own devcontainer (adopt-service-archetype D10): T2 plus the
+# vscode user and Chromium's system libraries, for the browser suite. No GL:
+# nothing here renders server-side, and Chromium brings its own.
+#
+# This tag must equal base_image_version in .github/workflows/ci.yml.
+# `uv run doit check_devcontainer_base` fails `doit ci` on a mismatch; change
+# both in the template-update PR that bumps ci.yml.
+FROM ghcr.io/equa/equa-base-lite:v1.0.0-beta.11
+
+# As T3 creates it; rootless Podman's keep-id mapping and the bind mounts rely on UID/GID 1000.
+RUN userdel -r ubuntu 2>/dev/null || true \
+    && groupadd --gid 1000 vscode \
+    && useradd --uid 1000 --gid 1000 -m --shell /bin/bash vscode \
+    && echo 'vscode ALL=(root) NOPASSWD:ALL' > /etc/sudoers.d/vscode \
+    && chmod 0440 /etc/sudoers.d/vscode
+
+# Libraries only: `doit chromium` fetches the browser matching uv.lock's playwright.
+RUN npx --yes playwright install-deps chromium \
+    && rm -rf /var/lib/apt/lists/* /root/.npm
+
+# Each level named: install -d -o owns only the last component, and a root-owned
+# ~/.cache breaks uv and npm. The named volume copies ms-playwright's owner.
+RUN install -d -o vscode -g vscode /home/vscode/.cache /home/vscode/.cache/ms-playwright
+
+USER vscode

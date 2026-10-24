@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -172,11 +173,36 @@ def task_cockpit_contract() -> dict[str, Any]:
             "task_dep": ["chromium"], "verbosity": 2}
 
 
+# The devcontainer's FROM tag must follow the base the template renders into
+# ci.yml (adopt-service-archetype D10), as thermarest checks its own.
+_DEVCONTAINER = Path(".devcontainer/cfd-viewer/Containerfile")
+_CI_WORKFLOW = Path(".github/workflows/ci.yml")
+_BASE_TAG = re.compile(r"ghcr\.io/equa/equa-base[a-z-]*:(\S+)")
+
+
+def task_check_devcontainer_base() -> dict[str, Any]:
+    """Fail unless the devcontainer's base tag matches ci.yml's."""
+
+    def check() -> bool:
+        from_tag = next(m.group(1) for line in _DEVCONTAINER.read_text().splitlines()
+                        if line.startswith("FROM") and (m := _BASE_TAG.search(line)))
+        ci_tags = set(_BASE_TAG.findall(_CI_WORKFLOW.read_text()))
+        if ci_tags != {from_tag}:
+            print(f"{_DEVCONTAINER} FROM tag {from_tag} != {_CI_WORKFLOW} base tag "
+                  f"{', '.join(sorted(ci_tags))}")
+            return False
+        return True
+
+    return {"actions": [check], "file_dep": [str(_DEVCONTAINER), str(_CI_WORKFLOW)],
+            "verbosity": 2}
+
+
 _factory_task_ci = task_ci  # noqa: F821 -- defined by create_tasks above
 
 
 def task_ci() -> dict[str, Any]:
     """Run the full local CI suite (lint + test + optional typecheck)."""
     task = _factory_task_ci()
-    task["task_dep"] = [*task["task_dep"], "wheel_check", "requirements_check", "cockpit_contract"]
+    task["task_dep"] = [*task["task_dep"], "wheel_check", "requirements_check", "cockpit_contract",
+                        "check_devcontainer_base"]
     return task
