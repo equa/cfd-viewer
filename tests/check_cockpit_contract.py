@@ -5,8 +5,8 @@
     python tests/check_cockpit_contract.py --repo /tmp/x    # a throwaway clone, to prove a failure
     python tests/check_cockpit_contract.py --runtime-only --base-url http://localhost:8080/viz/
 
-cfd-backend builds its ``cfd-viz`` image from a clone of this repository's
-``main`` (its ``Containerfile``, stages ``viz-build`` and ``cfd-viz``) and
+cfd-backend builds its ``cfd-viz`` image from a clone of a release tag of
+this repository (its ``Containerfile``, stages ``viz-build`` and ``cfd-viz``) and
 smoke-tests it with its own ``tests/smoke/viz.sh``. Until it builds from this
 repository's Dockerfile instead, every commit here must keep that build and
 that runtime working (openspec standalone-viewer, viewer-build spec "The

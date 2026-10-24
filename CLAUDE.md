@@ -18,9 +18,11 @@ host, so no absolute path is given):
   `ghcr.io/equa/equa-cfd-viewer`; it publishes no package. Its `Dockerfile` and
   `.dockerignore` are its own. It is deployed nowhere yet: deployment waits
   for hosted case uploads (adopt-service-archetype D8).
-- **Branches.** `beta` is the default branch and takes every PR. `main` is the
-  stable channel and moves only when `beta` is promoted. cfd-backend's
-  `cfd-viz` image clones `main`, so promoting is what ships to the cockpit.
+- **Branches.** `beta` is the default branch and takes every PR; there is no
+  `main` (the frozen `trame` branch stays). cfd-backend's `cfd-viz` image
+  clones a release tag (`VIZ_BRANCH` in its `Containerfile`), and Renovate
+  there proposes each newer one, so merging that PR is what ships a release to
+  the cockpit.
 - **Devcontainer:** `.devcontainer/cfd-viewer/` (`equa-base-lite` plus
   Chromium's libraries). The checkout sits beside `equa-ci` and
   `equa-platform-docs`: the bind mount and the OpenSpec symlinks are relative,
@@ -106,8 +108,8 @@ still to come. What phase 1 left in the code, and what not to undo:
   refuses a wheel without it. The client is served from, first match:
   `WEB_DIST_DIR`, the packaged copy, the checkout's `web/dist`.
 - **The cockpit contract -- read before moving files.** cfd-backend's `cfd-viz`
-  image is built from a clone of this repo's **`main`** (`git clone --branch
-  main`), checks for `web/package.json`, `web/package-lock.json`,
+  image is built from a clone of a **release tag** of this repo (`git clone
+  --branch v1.0.0-beta.N`), checks for `web/package.json`, `web/package-lock.json`,
   `requirements.txt` and `main.py`, runs `pip install -r requirements.txt` on
   Python 3.14 and `python main.py --server --data "$CFD_HOME" ...`, and its
   smoke test `tests/smoke/viz.sh` does
@@ -119,8 +121,8 @@ still to come. What phase 1 left in the code, and what not to undo:
   runs cfd-backend's own `viz.sh` (from `../cfd-backend`, else the byte-identical
   copy in `tests/cockpit/`, which fails the check when stale; cfd-backend is
   **private**, so CI cannot clone it), and drives `/viz/?case=<uuid>&theme=light`
-  through a proxy that strips `/viz/` like the cockpit's nginx. Every commit
-  that reaches `main` ships with the next cfd-backend build. The way out is
+  through a proxy that strips `/viz/` like the cockpit's nginx. Every release
+  ships to the cockpit once cfd-backend moves its tag to it. The way out is
   [the switch](https://github.com/equa/equa-platform-docs/blob/beta/docs/platform/modules/cfd-viewer/cfd-backend-switch.md); the shims go only after that.
 - **The HTTP API only grows.** `tests/test_contract.py` replays 56 recorded
   exchanges (`tests/contract/hotroom.json`; first recorded on `main` before
@@ -1010,8 +1012,8 @@ side now owns its own geometry, so closing the tab does reclaim that half.
   only *sources* `docker-entrypoint.d/*.envsh` with `+x`, silently ignoring the
   rest. Hence `--chmod=755` on `scripts/nginx-resolver.envsh`.
 - Niklas runs rootless, nginx on host port 8080. The `cfd-viz` image clones this
-  repo at build time, so **push before rebuilding** -- and see "The cockpit
-  contract" above: what reaches `main` ships.
+  repo's release tag at build time, so a change reaches the cockpit only after
+  a release and a cfd-backend tag bump -- see "The cockpit contract" above.
 - **The `cfd-home` volume could be mounted `:ro` now** -- the viewer writes
   nothing into cases since 2026-10-20. cfd-backend's compose still mounts it rw
   with a comment about the marker file; changing that is cfd-backend's call.
