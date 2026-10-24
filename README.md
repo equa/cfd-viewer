@@ -1,4 +1,4 @@
-# cfd-viewer — OpenFOAM post-processing in a browser
+# equa-cfd-viewer — OpenFOAM post-processing in a browser
 
 Serves a solved OpenFOAM case as an interactive 3-D visualization over HTTP,
 aimed at what an IDA ICE CFD backend needs: open a case, pick a field, cut a
@@ -27,6 +27,10 @@ state, so they cost **no round trip**; only what has to be re-*extracted* does.
 
 ## Running it
 
+Develop in the devcontainer `.devcontainer/cfd-viewer/`, with this checkout
+beside `equa-ci` (its `.env` holds the `equa-dev` feed credentials that
+`uv sync` needs) and `equa-platform-docs`.
+
 The server is the Python package `equa-cfd-viewer`, managed with
 [uv](https://docs.astral.sh/uv/):
 
@@ -34,7 +38,7 @@ The server is the Python package `equa-cfd-viewer`, managed with
 uv sync                                          # Python env from uv.lock
 
 # the client, once (and after changes to web/)
-cd web && npm ci && npm run build && cd ..
+uv run doit web_build
 
 # the server (serves web/dist at /)
 uv run cfd-viewer --data ./data
@@ -78,7 +82,8 @@ case is anything containing `system/controlDict`. The bundled demo lives in
 ### In a container
 
 The repository's own `Dockerfile` builds the server with the client inside it,
-from the lock file, on the same base and uid as cfd-backend's `cfd-viz`:
+from the lock file, on the same base and uid as cfd-backend's `cfd-viz`. Each
+release publishes it as `ghcr.io/equa/equa-cfd-viewer`; to build one locally:
 
 ```bash
 podman build --format docker --build-arg SERVICE_VERSION=0.0.0-dev -t cfd-viewer:dev .
@@ -239,11 +244,11 @@ web/src/ui/            React + Mantine: start screen, top bar, side pane, tools,
 main.py, foamviz/,     shims kept for cfd-backend's cfd-viz build (see below)
 requirements.txt
 pyproject.toml, uv.lock, hatch_build.py   the package; the hook puts web/dist in the wheel
-dodo.py                doit tasks, named as in equa-ci
+dodo.py                doit tasks: equa-ci's create_tasks plus this repository's own
 Dockerfile             this repository's own image
-openspec/              specs and changes (the standalone-viewer change lives here)
+openspec/              symlinks to the specs and changes in equa-platform-docs
 tests/                 see below
-docs/                  screenshots, the three.js spike report, the cfd-backend switch note
+docs/                  the screenshots; the design notes are in equa-platform-docs
 ```
 
 ### The cockpit contract
@@ -292,12 +297,13 @@ custom accessor. `server/wire.py` ships raw typed arrays that map 1:1 onto
 
 ```bash
 uv run doit ci                     # everything a change must pass, ~3 min
-uv run doit list                   # the separate tasks: lint_py, test_py, test_ui, package, ...
+uv run doit list                   # the separate tasks: lint, test_py, test_ui, wheel_check, ...
 ```
 
-`doit ci` runs ruff, pytest, the browser suite, the client build, a check that
-the wheel carries the client, a check that `requirements.txt` matches the lock,
-and the cockpit contract. The suites also run directly:
+`doit ci` runs ruff, markdownlint and cspell, pytest, the browser suite, the
+client build, a check that the wheel carries the client, a check that
+`requirements.txt` matches the lock, the cockpit contract and the
+devcontainer's base tag. The suites also run directly:
 
 ```bash
 uv run python tests/test_pipeline.py            # 64 checks, no browser, no GL: the VTK pipeline
