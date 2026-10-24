@@ -113,7 +113,7 @@ still to come. What phase 1 left in the code, and what not to undo:
   **private**, so CI cannot clone it), and drives `/viz/?case=<uuid>&theme=light`
   through a proxy that strips `/viz/` like the cockpit's nginx. Every commit
   that reaches `main` ships with the next cfd-backend build. The way out is
-  `docs/cfd-backend-switch.md`; the shims go only after that.
+  [the switch](https://github.com/equa/equa-platform-docs/blob/beta/docs/platform/modules/cfd-viewer/cfd-backend-switch.md); the shims go only after that.
 - **The HTTP API only grows.** `tests/test_contract.py` replays 56 recorded
   exchanges (`tests/contract/hotroom.json`; first recorded on `main` before
   anything moved, which proved the package move changed no extraction byte).
@@ -339,7 +339,7 @@ no exposed ports). `/work` is the only host bind mount; home is container-local.
 
 ## The three.js client (2026-09-08)
 
-`server/` extracts, `web/` draws. Read `docs/threejs-spike-report.md` for the
+`server/` extracts, `web/` draws. Read the [spike report](https://github.com/equa/equa-platform-docs/blob/beta/docs/platform/modules/cfd-viewer/threejs-spike-report.md) for the
 measured numbers behind the decision; this section is how the shipped thing is
 built and what to be careful of.
 

@@ -91,7 +91,7 @@ as Fedora; it relabels the mounted directory.
 
 Cases are read in place and never written to, so `/data` can be read-only.
 cfd-backend still builds `cfd-viz` its own way, from a clone of this repository;
-[docs/cfd-backend-switch.md](docs/cfd-backend-switch.md) describes moving it to
+[The switch](https://github.com/equa/equa-platform-docs/blob/beta/docs/platform/modules/cfd-viewer/cfd-backend-switch.md) describes moving it to
 this image, and what can be removed here once it has.
 
 ### Deep-linking a case, and the theme
@@ -259,7 +259,7 @@ three shims (`main.py`, the top-level `foamviz/` alias and a generated
 `tests/check_cockpit_contract.py`. Its HTTP behavior is a contract too:
 `tests/test_contract.py` replays recorded responses: the API may only grow
 (fields, types and statuses are always checked), and while the demo data and
-library versions match the recording, values and geometry bytes must match too. [docs/cfd-backend-switch.md](docs/cfd-backend-switch.md)
+library versions match the recording, values and geometry bytes must match too. [The switch](https://github.com/equa/equa-platform-docs/blob/beta/docs/platform/modules/cfd-viewer/cfd-backend-switch.md)
 is the way out of the layout half.
 
 ### Design decisions worth knowing

@@ -6,7 +6,8 @@
 # viewer-build spec "One dependency set for every deployment").
 #
 # Not yet what cfd-backend ships: its `cfd-viz` image still clones this repo and
-# runs main.py (see docs/cfd-backend-switch.md for the switch). Until then this
+# runs main.py (see cfd-viewer/cfd-backend-switch.md in
+# equa-platform-docs' module tree for the switch). Until then this
 # image is meant to match cfd-viz where it matters -- same Python base, same
 # uid, no GL libraries -- so that the switch changes how the image is built,
 # not what runs in it.
