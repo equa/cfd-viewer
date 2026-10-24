@@ -777,12 +777,12 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 
 `uv run doit ci` runs everything below (about 3 min); each also runs directly.
 
-| | what it covers | last run (2026-10-23) |
+| | what it covers | last run (2026-10-24, adopt branch) |
 |---|---|---|
 | `tests/test_pipeline.py` | the VTK pipeline incl. read-only serial/decomposed cases, no browser, no GL | **64/64** |
 | `tests/check_client.py` | the three.js client in real Chromium, incl. the start screen | **115/115** |
 | `tests/test_contract.py` | 56 recorded HTTP exchanges replayed (the API only grows) | **56/56** |
-| `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest 32 |
+| `tests/test_sources.py`, `test_endpoints.py` | discovery, ids, labels, 404s; `/health`, `/api/config` | pytest **41** |
 | `tests/check_cockpit_contract.py` | cfd-backend's cfd-viz build + runtime, mirrored | **22/22** (21 without `../cfd-backend`) |
 | `tests/bench.py` | per-part extraction sizes and timings (not pass/fail) | — |
 
