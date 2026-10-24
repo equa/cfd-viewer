@@ -253,8 +253,8 @@ docs/                  the screenshots; the design notes are in equa-platform-do
 
 ### The cockpit contract
 
-cfd-backend's `cfd-viz` image is built from a **clone of this repository's
-`main`**: it needs `web/package.json`, `web/package-lock.json`,
+cfd-backend's `cfd-viz` image is built from a **clone of a release tag of this
+repository** (`VIZ_BRANCH` in its `Containerfile`): it needs `web/package.json`, `web/package-lock.json`,
 `requirements.txt` and `main.py` at the root, installs with
 `pip install -r requirements.txt` on Python 3.14, runs
 `python main.py --server --data "$CFD_HOME" ...`, and its smoke test imports
