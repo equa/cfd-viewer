@@ -18,7 +18,7 @@
 # (with a warning) unless told to write a Docker-format image. buildx in CI
 # writes Docker format anyway.
 
-ARG PYTHON_IMAGE=python:3.14-slim-trixie
+ARG PYTHON_IMAGE=python:3.15-slim-trixie
 ARG NODE_IMAGE=node:24-slim
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.5
 
