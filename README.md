@@ -221,7 +221,7 @@ match the recording.
 
 ## Layout
 
-```
+```text
 src/equa/cfd_viewer/
   __main__.py          the CLI: `cfd-viewer`, `python -m equa.cfd_viewer`
   foamviz/case.py      vtkOpenFOAMReader wrapper: times, fields, patches, snapshots
