@@ -64,6 +64,9 @@ equa-ci = { index = "equa-dev" }
 [[tool.uv.index]]
 name = "equa-dev"
 url = "https://pkgs.dev.azure.com/EQUADevelopment/_packaging/equa-dev/pypi/simple/"
+# Only for what [tool.uv.sources] pins to it (equa-ci, dev only): the image build
+# has no feed credentials, and uv stops at an index that answers 401.
+explicit = true
 
 [tool.ruff]
 src = ["src"]
