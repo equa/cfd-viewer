@@ -53,7 +53,7 @@ uv run doit ci                           # the gate: lint, tests, wheel, cockpit
 The original **FoamViz (Trame + vtk.js) front end lives on the frozen `trame`
 branch** and is gone from here. It was the whole app until 2026-09-08, then a
 second entry point while the three.js client caught up, and is now retired. If
-you need it — to compare behaviour, or to recover a feature that was never
+you need it — to compare behavior, or to recover a feature that was never
 ported — `git show trame:foamviz/app.py`.
 
 What that means in practice:
@@ -150,7 +150,7 @@ still to come. What phase 1 left in the code, and what not to undo:
   is an alias), so an empty `--data` no longer exits.
 - **Platform mounting (2026-10-23).** `ROOT_PATH`/`--root-path` registers every
   route twice, under the prefix and at the root (Starlette's `root_path`
-  behaviour, which the other platform services get for free): Traefik forwards
+  behavior, which the other platform services get for free): Traefik forwards
   `/viewer/...` unstripped, the image HEALTHCHECK asks `/health`. `/viewer`
   308-redirects to `/viewer/` *with its query* (`with_path` drops it -- a test
   caught that); the client's relative URLs need the slash. Settings come from
@@ -189,9 +189,9 @@ Standing instructions for how to work in this repo, not one-off requests.
 - **Ask before big changes.** "I might be asking for silly things." A request
   that turns out to need a new dependency, a new rendering path or a schema
   change is a conversation, not a fait accompli.
-- **Reuse and generalise before adding.** Search for an existing function or
+- **Reuse and generalize before adding.** Search for an existing function or
   class first — writing a new one is always easier than finding the old one, and
-  that is exactly the temptation to resist. Prefer generalising what is there,
+  that is exactly the temptation to resist. Prefer generalizing what is there,
   **as long as the argument list does not grow much**.
 - **Prefer a class to a long argument list**, and to threading arguments through
   several call layers.
@@ -232,7 +232,7 @@ specific assertions need updating — the checks are deliberately concrete.
 **The rule for test data (2026-10-22):** a check may depend on hotRoom's
 *definition* -- the versioned files: mesh size, patches, fields, boundary
 conditions -- because that changes only by a deliberate edit. It may not
-depend on run artefacts that can change on a mere rerun or trim: how many time
+depend on run artifacts that can change on a mere rerun or trim: how many time
 steps were kept, timings, the exact solved values. The one place that does
 compare values, the recorded HTTP contract, does so only while a fingerprint of
 the case's files and of VTK/numpy/matplotlib matches the recording; otherwise
@@ -298,7 +298,7 @@ no exposed ports). `/work` is the only host bind mount; home is container-local.
   `glyph.SetSourceConnection(vtk.vtkArrowSource().GetOutputPort())` **segfaults**
   — Python collects the temporary while the pipeline still references it. Keep an
   attribute for every source. This cost the most time of anything in the build.
-- **Do not colour by vector mode on a lookup table.** Same reason. `pipeline.py`
+- **Do not color by vector mode on a lookup table.** Same reason. `pipeline.py`
   bakes a derived scalar array (`FoamVizColor`) instead, so both render modes
   agree and the data range is trivially correct.
 - **Time stepping**: pull with `reader.UpdateTimeStep(t)` and hand downstream
@@ -333,9 +333,9 @@ no exposed ports). `/work` is the only host bind mount; home is container-local.
   `vtkExtractGeometry` + `ExtractBoundaryCellsOn`/`ExtractOnlyBoundaryCellsOn`
   is the general, single-threaded, all-cell-type equivalent (what ParaView's
   crinkle relies on). Slower, but crinkle is a deliberate "show me the mesh".
-- **Arrow length must be normalised by the SEED set's own max |vector|**, not
+- **Arrow length must be normalized by the SEED set's own max |vector|**, not
   the whole domain's. Scaling by a domain-wide peak made the arrows vanish
-  whenever the colour field was a large scalar like T; `_seed_vector_max` reads
+  whenever the color field was a large scalar like T; `_seed_vector_max` reads
   the plane grid / isosurface samples where arrows are actually drawn.
 
 ## The three.js client (2026-09-08)
@@ -379,18 +379,18 @@ This split *is* the architecture, and the UI tags every control `server` or
 
 | Client — a uniform or GPU state, instant | Server — re-extraction, one round trip |
 |---|---|
-| colour map, colour range, bands, opacity-by-value | colour **field** and component (scalars are baked per vertex) |
-| per-part visibility and opacity, "colour by field" | cut-plane position/axis, isovalues, seed counts, glyph count/size |
+| color map, color range, bands, opacity-by-value | color **field** and component (scalars are baked per vertex) |
+| per-part visibility and opacity, "color by field" | cut-plane position/axis, isovalues, seed counts, glyph count/size |
 | near-wall culling, shell mesh edges | time step, patch selection, crinkle slice, clip-at-plane, tubes |
 | camera, view presets, F-pick, lighting, theme, legend | true cell values, the isosurface's locked field |
-| per-part solid colour, colour-by-field | *robust range and Rescale: a cheap `/api/range`, no extraction* |
+| per-part solid color, color-by-field | *robust range and Rescale: a cheap `/api/range`, no extraction* |
 | **streamline comets** (an animated dash pattern over a baked `travel` attribute) | — |
 | **streamlines as tubes, and their width** (built from the line data in the browser) | streamline seeds and max length (the tracer) |
 
 Two things moved from the server column to the client column in the port, and
 both were wins: **bands and the opacity ramp** (a transfer function in VTK is a
 *uniform* in a shader, and the opacity ramp was outright impossible in vtk.js
-local mode — reverted there, see the note below), and **the centre-of-rotation
+local mode — reverted there, see the note below), and **the center-of-rotation
 pick**, which needed a server `vtkCellPicker` round trip in Trame and is a
 `THREE.Raycaster` call here because the geometry is already local.
 
@@ -411,7 +411,7 @@ setting rebuilt a VTK object, and has been dropped.
 - **Commit-on-release** for every slider whose value the server needs: plane
   position, time, isosurface count, glyph count and size.
 
-**Dropped, because they stopped costing anything:** bands, colour min/max and
+**Dropped, because they stopped costing anything:** bands, color min/max and
 opacity-by-value are now live (they were behind the Options Apply); per-part
 opacity and lighting are live. The Options popover still has an Apply, but only
 over the two settings that genuinely re-read or re-bake scalars (robust range,
@@ -467,7 +467,7 @@ is drag-only purely to match the UX that was tuned in Trame.
   from the server is expanded to 256×4 on upload.
 - **`renderer.outputColorSpace = LinearSRGBColorSpace`, deliberately.** The LUT
   bytes are the same matplotlib samples VTK writes into its transfer function,
-  so any output conversion would make the two renderers disagree on colour for
+  so any output conversion would make the two renderers disagree on color for
   no reason.
 - **`OrbitControls` bakes `object.up` into a quaternion in its constructor** and
   never re-reads it, so `camera.up.set(0, 0, 1)` must come *before*
@@ -481,11 +481,11 @@ is drag-only purely to match the UX that was tuned in Trame.
   changes and the opacity-map toggle alike. Blending is **unsorted** — no depth
   peeling, no OIT — so the near-zero `discard` in the shader is what keeps it
   looking sane, and `RENDER_ORDER` puts the big translucent shell last.
-- **An uncoloured part has no value to ramp**, so `uOpacityMap` is multiplied by
-  `uColored` in the shader. The shell defaults to *uncoloured* (neutral grey, so
+- **An uncolored part has no value to ramp**, so `uOpacityMap` is multiplied by
+  `uColored` in the shader. The shell defaults to *uncolored* (neutral gray, so
   the slice inside it reads), which means opacity-by-value appears to do nothing
-  until you turn "Colour by field" on. That is correct, and it cost a
-  false-failing test to establish — the test now colours the shell first.
+  until you turn "Color by field" on. That is correct, and it cost a
+  false-failing test to establish — the test now colors the shell first.
 - **`wireframe: true` draws the triangulation, not the mesh** — never use it.
   `THREE.EdgesGeometry` suppresses edges between coplanar faces, so a
   triangulated quad loses its diagonal and the real cell grid comes back. It only
@@ -494,8 +494,8 @@ is drag-only purely to match the UX that was tuned in Trame.
   *slice* gets its edges from the server's crinkle extraction instead.
 - **Screenshot-based render checks lie.** The HUD, legend and busy overlay sit on
   top of the canvas, so a page screenshot of an *empty* scene comes back
-  colourful. `Viewer.grab()` does a `readPixels` and counts distinct colours in
-  the browser. And `Color.getHex()` colour-manages its output, so it does not
+  colorful. `Viewer.grab()` does a `readPixels` and counts distinct colors in
+  the browser. And `Color.getHex()` color-manages its output, so it does not
   match the framebuffer bytes — a background check built on it read 0% both ways
   and looked green. `grab()` reads a corner pixel as the reference instead. A
   check that cannot fail is worse than no check.
@@ -533,7 +533,7 @@ hotRoom's 18 k points, **28.5 ms** for 120 k — one or two frames, once per
 fetch.
 
 **The width is a uniform, not geometry.** The builder emits the tube's
-*centreline* positions with the ring's radial direction as the vertex normal,
+*centerline* positions with the ring's radial direction as the vertex normal,
 and the vertex shader displaces by `normal * uTubeRadius`. So dragging the width
 slider moves no vertices and rebuilds nothing — verified: the vertex count is
 identical before and after. `uTubeRadius` is 0 on every other material, where
@@ -567,7 +567,7 @@ Consequences worth keeping straight:
   used it was a temporal-dead-zone `ReferenceError` at render, i.e. a blank
   page, not a warning.
 - **Inflate the bounding sphere by the radius.** It is computed from the
-  centreline, so without the correction the tube gets frustum-culled while still
+  centerline, so without the correction the tube gets frustum-culled while still
   partly on screen.
 - **A ~180 degree tangent flip collapses the transported normal.** A hairpin in
   a streamline would otherwise emit NaNs and blank the whole draw call; the
@@ -592,12 +592,12 @@ a pulse that advances along every line at once, in the fragment shader
 already emits **`IntegrationTime`** — the integrator's own time-of-flight from
 the seed, negative upstream since we integrate both directions, and verified
 monotonic along every polyline. So `_add_travel` in `server/scene.py` does no
-integration of its own; it normalises what is already there. The payoff is that
+integration of its own; it normalizes what is already there. The payoff is that
 comets move at the **local flow speed** (~32x variation along the demo case's
 streamlines), so they rip through a plume and crawl in the corners. Riding arc
 length instead would have looked similar and meant nothing.
 
-**Why normalised, and why by the median.** Dimensionless travel is what lets the
+**Why normalized, and why by the median.** Dimensionless travel is what lets the
 UI's speed and spacing defaults work on any case. The divisor is the *median*
 per-polyline span, not the max or the mean, because a room's slowest
 recirculating streamline can span 10x the typical one (30 000 s against a
@@ -628,7 +628,7 @@ animation would mean re-running `vtkStreamTracer`, ~2.6 s, for a control that
 otherwise costs nothing. Paying a fixed 24% on a part that is opt-in already
 (streamlines start hidden) is the better trade. If it ever does matter, the lever
 is precision, not conditionality: float32 over a ±20 range is wild overkill for
-something whose only job is to look smooth, and a quantised uint16 with a
+something whose only job is to look smooth, and a quantized uint16 with a
 scale/offset in the header would halve it.
 
 **Traps and tuning:**
@@ -664,15 +664,15 @@ nothing at all, silently.** That is the failure mode this architecture invites,
 and there is no error to notice.
 
 **Opacity by value did nothing on the shell.** The ramp was written as
-`uOpacityMap * uColored`, and the shell ships *uncoloured* (a neutral grey so
+`uOpacityMap * uColored`, and the shell ships *uncolored* (a neutral gray so
 the slice inside it reads), so the one surface you most want to see through
 ignored the ramp. My error in the port: I coupled two independent questions.
-"Fade out the low values" is meaningful on a flat grey surface too. It is now
+"Fade out the low values" is meaningful on a flat gray surface too. It is now
 gated on `uHasScalar`, which is the *real* precondition — a part with no scalar
 attribute reads `vScalar == 0`, hence `t == 0`, hence `alpha == 0`, and would
 vanish entirely the moment the ramp came on. Note the browser check had been
-*written around* the bug (it coloured the shell first); it now uses the shell as
-it ships. A test that documents a bug as intended behaviour is worse than no
+*written around* the bug (it colored the shell first); it now uses the shell as
+it ships. A test that documents a bug as intended behavior is worse than no
 test.
 
 **Robust range did nothing at all.** It changes only the reported range, no
@@ -680,23 +680,23 @@ geometry, so it is correctly in no part's `PART_INPUTS` — and therefore moved 
 cache signature, triggered no refetch, and never delivered its new range. The
 fix is a cheap **`GET /api/range`** endpoint rather than adding `robust` to every
 part's inputs: two floats should not cost a re-extraction of every visible part.
-`Rescale` now goes through it too, so it re-reads the data and honours robust
+`Rescale` now goes through it too, so it re-reads the data and honors robust
 instead of reusing the last scene header.
 
 **True cell values could never have worked.** The pipeline baked the cell array
 and `server/wire.py` only ever read `GetPointData()`. Worth understanding *why*
-it needs more than a plumbing fix: flat per-cell colour is **impossible on an
-indexed mesh**, because neighbouring cells share vertices and there is nowhere
+it needs more than a plumbing fix: flat per-cell color is **impossible on an
+indexed mesh**, because neighboring cells share vertices and there is nowhere
 to put a per-cell value. So `_de_index_cells` emits three vertices per triangle,
 each carrying its own cell value — 3x the vertex data, which is why it happens
 only when the toggle is on. (GLSL's `flat` qualifier is not a shortcut: it takes
 the *provoking vertex's* value, which on a shared-vertex mesh is an arbitrary
-neighbour's, not the cell's.) Scoped to the shell and the slice, as in the Trame
+neighbor's, not the cell's.) Scoped to the shell and the slice, as in the Trame
 app; the derived filters read point data by construction.
 
 **The isosurface behaved "randomly" across a field change.** Its values were
 seeded exactly once per case, guarded on `contour_min === 0 && contour_max === 1`.
-Switch the colour field from U to T and the isovalue stayed at a `|U|` number,
+Switch the color field from U to T and the isovalue stayed at a `|U|` number,
 nowhere near the T range, so the surface came back empty or arbitrary. They now
 re-seed whenever the contoured field changes **identity** — deps are field
 identity only, so typing a value never triggers a reseed.
@@ -721,17 +721,17 @@ Two decisions in it are deliberate:
 - **Steps come from the data range**, via `stepFor(span)` (~1/100th of the span,
   snapped to 1/2/5 x a power of ten). A fixed step of 1 is wrong for nearly
   every field here: uselessly coarse on `|U|` (0..0.23 → 0.002), far too coarse
-  for a plane position that needs sub-metre precision (0..10 → 0.1), and far too
+  for a plane position that needs sub-meter precision (0..10 → 0.1), and far too
   fine on `p` (0..1e5 → 1000). This governs the spinner arrows as well, so it
   matters even for anyone who never touches the wheel.
 
 ### Locking the isosurface's field
 
-`pipeline.contour_field` (None = follow the colour field) plus a separate baked
-`CONTOUR_ARRAY`, so an isosurface of one field can be **coloured by another** —
-contour speed, colour by temperature. That is what "lock" has to mean, and it is
-also the useful case: an isosurface coloured by its *own* field is a single flat
-colour, verified (a T isosurface ships scalars 176.9..176.9).
+`pipeline.contour_field` (None = follow the color field) plus a separate baked
+`CONTOUR_ARRAY`, so an isosurface of one field can be **colored by another** —
+contour speed, color by temperature. That is what "lock" has to mean, and it is
+also the useful case: an isosurface colored by its *own* field is a single flat
+color, verified (a T isosurface ships scalars 176.9..176.9).
 
 `apply_contour_array()` was added rather than folded into `update_contour()`,
 which is untouched; with `contour_field` unset the filter contours `COLOR_ARRAY`
@@ -740,7 +740,7 @@ exactly as before. It carries its own
 baking dirties `case.internal`, whose MTime bump re-executes every filter fed by
 it (see the perf invariant). `update_data()` and `release_case()` clear it.
 
-Verified: colour=T locked to U gives the *same* geometry as colour=U unlocked
+Verified: color=T locked to U gives the *same* geometry as color=U unlocked
 (217 verts, isovalue 0.1153) with T-valued scalars. `Rescale` re-seeds the
 isovalues when following and deliberately leaves them alone when locked.
 
@@ -757,7 +757,7 @@ each other the wrong geometry. Still **one case per process**, as in Trame.
 - **"Add to report".** Not ported, and it needs a decision before it is: does
   the figure come from the client canvas or from a server render? See
   "Case-report figures" below — that is where the seam is.
-- **Cell-data (flat) colouring of the surface** needs non-indexed triangles with
+- **Cell-data (flat) coloring of the surface** needs non-indexed triangles with
   the cell scalar replicated per vertex (3× the vertex data). The server's
   `cell_data` flag is wired and bakes the array, but the client still draws
   point-interpolated values.
@@ -801,15 +801,15 @@ one marked `browser`, which `doit test_py` deselects).
   tractable) job rather than a delete.
 - `check_client.py` mostly does **not** ask "did it render" — it asks **which
   controls cause a refetch**, by counting `/api/scene` requests around each
-  interaction (zero for a colour-map switch, zero for a whole cut-plane drag,
+  interaction (zero for a color-map switch, zero for a whole cut-plane drag,
   exactly one for the release, zero for returning to a cached time step). That
   boundary is the architecture and it decays silently, so those counts are the
   most valuable assertions in the repo. It also counts red pixels to prove the
   plane outline actually appears mid-drag.
 - **Reading rendered pixels: use the in-page hook, not a screenshot.** The HUD,
   legend and busy overlay sit on top of the canvas, so a page screenshot of an
-  *empty* scene comes back colourful. `window.__viz.grab()` does a `readPixels`
-  and counts distinct colours in the browser (`Viewer.grab`). The older advice
+  *empty* scene comes back colorful. `window.__viz.grab()` does a `readPixels`
+  and counts distinct colors in the browser (`Viewer.grab`). The older advice
   here — "screenshot the page, not the canvas, because a WebGL canvas without
   `preserveDrawingBuffer` reads back blank" — applied to the Trame/vtk.js view
   and is **not** how the three.js suite works; that renderer sets
@@ -837,8 +837,8 @@ Big cases are for `bench.py` and by-eye checks, via `--data`.
 - `system/controlDict`: `writeFormat ascii` (the tutorial's), `purgeWrite 2`
   so `Allrun` leaves exactly `0` + the last two writes.
 - `system/setFieldsDict`: heater box `(4.5…5.5)²` → **`(4…6)²`**. On 1 m cells
-  the old box edges coincide with face centres (a tie); the new one selects the
-  centre 2×2 floor faces, a 4 m² heater, still centred.
+  the old box edges coincide with face centers (a tie); the new one selects the
+  center 2×2 floor faces, a 4 m² heater, still centered.
 - `Allrun` deletes `postProcessing` and `log.*` after the run.
 
 10 × 5 × 10 m room, 4 m² of floor at 600 K, everything else 300 K. Converges
@@ -871,7 +871,7 @@ check uses a `MOTION` margin measured on this case (~0.13 on vs ~0.003 off).
 concrete datasets for one instant — rather than a live pipeline connection.
 `pipeline.py` owns the filter graph and every representation, and bakes the
 selected field/component into a real scalar array (`FoamVizColor`) that
-everything colours by. `colors.py` samples matplotlib colour maps once and
+everything colors by. `colors.py` samples matplotlib color maps once and
 serves the VTK transfer function, the CSS legend gradient *and* the 256-entry
 RGB table the three.js shader samples, so all three cannot drift apart.
 
@@ -913,7 +913,7 @@ The cut plane is the hub — the slice and the stream-tracer seeds derive from i
 - **Isosurfaces**: count is 1/3/5 only (a slider stepping by 2 from 1; default
   1). `_contour_values()` builds the isovalues — the single `contour_value` for
   one surface, else interior fractions across `[contour_min, contour_max]`. All
-  three seed from (track) the colour range in `_rescale`. `update_contour` takes
+  three seed from (track) the color range in `_rescale`. `update_contour` takes
   an explicit values list and **always sets the isovalues** (even when the actor
   is hidden) so the "On isosurface" arrow source can read the contour output.
 - **Arrows**: two seed sources. "On plane" lays a **regular grid over the cut
@@ -989,7 +989,7 @@ side now owns its own geometry, so closing the tab does reclaim that half.
   directory name, which the viewer resolves as a name (its own ids are
   different; both work).
 - **Process model:** one shared process. Per-session launching is the later
-  productisation; see the open questions below.
+  productization; see the open questions below.
 - **Deep links:** `?case=<name>` and `?theme=light|dark`, read from the URL by
   the client itself (`urlOptions` in `web/src/api.js`). Serving under the
   `/viz/` prefix works because the build is relative — `base: ''` plus relative
@@ -1098,7 +1098,7 @@ not the poster.
 **What the Trame app did**, for reference — `git show trame:foamviz/app.py`, and
 the figures it wrote are still readable by the cfd-backend side: per figure into
 `<case>/report/`, a `figure_NN.png` poster plus a `figure_NN.json` carrying
-caption, field/component/range/preset/bands, and the colour-bar gradient and
+caption, field/component/range/preset/bands, and the color-bar gradient and
 ticks so the report redraws the bar from `colors.py` (the poster is the 3D view
 only, no legend). Interactive `.vtkjs` export was built and then mothballed —
 unused scenes just accumulated.

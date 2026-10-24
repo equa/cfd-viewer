@@ -38,7 +38,7 @@ python spike/check_browser.py --case s2 --out /tmp/shots   # headless browser, 2
 reader, same decomposed-case handling, same cutter/contour/tracer, same baked
 `FoamVizColor` array, same `colors.py` tables (a new `rgb_table()` serves the
 LUT as 768 bytes, sampled from the same matplotlib data the VTK transfer
-function uses, so both renderers show identical colours). Nothing in the CFD
+function uses, so both renderers show identical colors). Nothing in the CFD
 pipeline had to change to serve three.js. That is the headline result: the VTK
 investment is renderer-agnostic, and only `app.py` (the Trame UI) is not.
 
@@ -64,7 +64,7 @@ Per-part, s2: boundary 588 k triangles / 170 ms / 15.0 MB raw · slice 10 k /
 64 ms / 0.27 MB · isosurface 11 k / 35 ms / 0.29 MB · streamlines 43 k segments
 / **2649 ms** / 1.0 MB.
 
-## Navigation and slider behaviour
+## Navigation and slider behavior
 
 **Turntable, +Z up.** `OrbitControls` *is* a turntable: it orbits the target
 while maintaining `camera.up`, so azimuth spins about world +Z and the horizon
@@ -91,32 +91,32 @@ selects and number inputs cannot stack up either and the newest request always
 wins. `check_browser.py` asserts both halves: 20 drag events cause zero
 requests, the release causes exactly one.
 
-## Colour banding and opacity mapping
+## Color banding and opacity mapping
 
 Not a problem -- it is *better* here, and it is worth being precise about why.
 FoamViz has to bake bands into the transfer function's **nodes** (flat plateaus,
-one per band) because `vtkDiscretizableColorTransferFunction` does not serialise
-to vtk.js. In a shader, bands are a quantisation of the lookup coordinate:
+one per band) because `vtkDiscretizableColorTransferFunction` does not serialize
+to vtk.js. In a shader, bands are a quantization of the lookup coordinate:
 
 ```glsl
 if (n >= 1.5) t = (min(floor(t * n), n - 1.0) + 0.5) / n;
 ```
 
 Sampling the smooth 256-entry LUT at `(i+0.5)/N` returns exactly
-`cmap((i+0.5)/N)` -- the same colour FoamViz bakes into plateau *i* -- so the
+`cmap((i+0.5)/N)` -- the same color FoamViz bakes into plateau *i* -- so the
 two renderers band identically rather than merely similarly. `uBands` is a
 uniform, so the band count is a live client-side control: no re-extraction, no
 LUT rebuild, no round trip. Measured on the unlit slice: 823 distinct pixel
-colours smooth, 21 with 5 bands, zero `/api/scene` requests.
+colors smooth, 21 with 5 bands, zero `/api/scene` requests.
 
 The slice is drawn **unlit** (ambient 1.0), the same call FoamViz makes with
 `slice_actor.LightingOff()`. That matters more with bands on: a shaded band is
-no longer one colour, which defeats the point of banding.
+no longer one color, which defeats the point of banding.
 
-### Colour-map-weighted opacity
+### Color-map-weighted opacity
 
 Reverted in FoamViz as not feasible in vtk.js local mode (the discretizable CTF
-does not serialise); here it is a shader line and a checkbox, linear as
+does not serialize); here it is a shader line and a checkbox, linear as
 requested:
 
 ```glsl
@@ -126,7 +126,7 @@ if (alpha < 0.01) discard;
 
 Alpha follows the **unbanded** `t`, so the opacity ramp is a function of the
 value the way ParaView's own opacity transfer function is, independent of how
-the colours are banded. Measured on the boundary alone -- no-slip walls, so
+the colors are banded. Measured on the boundary alone -- no-slip walls, so
 `|U|` is ~0 across them -- the view goes from 75% empty to 96% empty, with zero
 `/api/scene` requests. The result is the familiar ParaView look: the plume glows
 and everything slow fades out.
@@ -151,7 +151,7 @@ Two honest limitations:
 Banding and opacity now live in the client, so anything rendered *server-side*
 (a report PNG) does not know about them -- the band count and the opacity flag
 would have to travel with the render request. In the VTK path the transfer
-function carries them for free. This generalises: every appearance setting the
+function carries them for free. This generalizes: every appearance setting the
 shader owns is a setting the server no longer knows.
 
 ## Findings
@@ -163,7 +163,7 @@ shader owns is a setting the server no longer knows.
 2. **The streamline tracer is the bottleneck**: 2.6 s of the 3.1 s server time on
    s2, and 309 ms of 330 ms on hotRoom. That is `vtkStreamTracer`, and FoamViz
    pays exactly the same price today — it is not a cost of this architecture.
-   Optimising it (fewer seeds, coarser integration, or a cached seed set) helps
+   Optimizing it (fewer seeds, coarser integration, or a cached seed set) helps
    both paths equally.
 3. **Compress the transport and the wire problem mostly goes away.** s2 drops
    16.2 → 3.9 MB with plain gzip (24%). Normals compress to nothing on
@@ -171,9 +171,9 @@ shader owns is a setting the server no longer knows.
    `|U|` is 0 nearly everywhere: 1.2 MB → 3 kB). What is left is indices
    (6.9 → 2.3 MB) and positions (3.5 → 0.8 MB).
 4. **The interaction model splits cleanly, and the split is the design.**
-   Colour map, colour range, per-part visibility, boundary opacity and near-wall
+   Color map, color range, per-part visibility, boundary opacity and near-wall
    culling are pure GPU state — no request, instant, verified by asserting zero
-   `/api/scene` calls. Cut-plane position, isovalue, seed count, colour *field*
+   `/api/scene` calls. Cut-plane position, isovalue, seed count, color *field*
    and time step change what must be extracted, so they cost a round trip. The
    UI tags every control `server` or `client` so the cost is visible while you
    use it.
@@ -195,8 +195,8 @@ shader owns is a setting the server no longer knows.
 ## Wire format
 
 Not glTF, on purpose. glTF's material model has no concept of a scalar field,
-so carrying `|U|` per vertex means either baking vertex colours server-side —
-which kills client-side re-colouring, the one interaction that must never cost a
+so carrying `|U|` per vertex means either baking vertex colors server-side —
+which kills client-side re-coloring, the one interaction that must never cost a
 round trip — or smuggling values through a custom accessor. Instead:
 
 ```

@@ -121,7 +121,7 @@ export function TopBar({
         <Popover.Dropdown>
           {/* Instant: uniforms. No Apply, no round trip -- this is the half of
               the old Options popover that stopped needing one. */}
-          <Head kind="client">Colour mapping</Head>
+          <Head kind="client">Color mapping</Head>
           <NumberField
             size="xs"
             label="Bands"

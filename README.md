@@ -1,6 +1,6 @@
 # cfd-viewer — OpenFOAM post-processing in a browser
 
-Serves a solved OpenFOAM case as an interactive 3-D visualisation over HTTP,
+Serves a solved OpenFOAM case as an interactive 3-D visualization over HTTP,
 aimed at what an IDA ICE CFD backend needs: open a case, pick a field, cut a
 plane through the room, see where the air actually goes.
 
@@ -15,9 +15,9 @@ VTK does every CFD filter on the server; the browser draws the result. The
 server extracts geometry per **part** — boundary, slice, isosurface,
 streamlines, arrows, geometry — and ships plain triangles, line segments and
 scalars (`src/equa/cfd_viewer/`: `foamviz/` + `server/`). The client turns those into `BufferGeometry`
-and colours them in a shader (`web/`), so it knows no CFD at all.
+and colors them in a shader (`web/`), so it knows no CFD at all.
 
-That division is the point. Colour map, range, banding, opacity, per-part
+That division is the point. Color map, range, banding, opacity, per-part
 visibility, the camera and the streamline animation are shader uniforms or GPU
 state, so they cost **no round trip**; only what has to be re-*extracted* does.
 
@@ -101,7 +101,7 @@ this image, and what can be removed here once it has.
 **id** (from its root and path, shown in the case switcher); its directory
 **name** works too as long as exactly one case has it. An unknown or ambiguous
 `?case=` is a 404, and the page falls back to the start screen with a notice,
-never to a different case. `?theme=light|dark` sets the colour scheme (default
+never to a different case. `?theme=light|dark` sets the color scheme (default
 dark). Both are what let a host application embed the viewer for one case in
 an `<iframe>` and have it match the surrounding app.
 
@@ -130,15 +130,15 @@ PyPI, frozen at 9.3.1, CPython 3.12 at most.
 
 | Tool | What you get |
 |---|---|
-| **Colour** (top bar) | Any field the case contains; magnitude or X/Y/Z for vectors; nine colour maps; automatic, percentile (1–99 %) or manual range; discrete bands; opacity weighted by value |
+| **Color** (top bar) | Any field the case contains; magnitude or X/Y/Z for vectors; nine color maps; automatic, percentile (1–99 %) or manual range; discrete bands; opacity weighted by value |
 | **Cut plane** | An X/Y/Z-aligned plane positioned by world coordinate — the anchor for everything below. Optionally a *crinkle* slice: the true cell layer rather than a flat cut |
-| **Boundary** | The room shell, neutral or field-coloured, with near-wall culling so you can see in, mesh edges, opacity, cut-away-at-plane, and per-patch read selection |
-| **Isosurfaces** | 1 / 3 / 5 nested isosurfaces of the coloured field, or **locked** to a field of their own — so you can contour speed and colour by temperature |
+| **Boundary** | The room shell, neutral or field-colored, with near-wall culling so you can see in, mesh edges, opacity, cut-away-at-plane, and per-patch read selection |
+| **Isosurfaces** | 1 / 3 / 5 nested isosurfaces of the colored field, or **locked** to a field of their own — so you can contour speed and color by temperature |
 | **Streamlines** | RK45 integration seeded from the cut plane, as lines or **tubes built in the browser** (so the representation and the width are instant). **Animate flow** sends comets along them at the local flow speed — which is also the only thing that shows a streamline's *direction* |
 | **Arrows** | Glyphs on the plane (an even grid) or on the isosurface, uniform length or scaled by magnitude |
 | **Geometry** | The building outline from `constant/triSurface/building*.obj`, as feature edges or full wireframe |
 | Bottom bar | Time-step player, six axis-aligned camera presets plus iso, time re-scan |
-| Keyboard | `x`/`y`/`z` look down an axis (shift for the far side), `r` reframes, `f` sets the centre of rotation under the cursor |
+| Keyboard | `x`/`y`/`z` look down an axis (shift for the far side), `r` reframes, `f` sets the center of rotation under the cursor |
 
 The cut plane deliberately drives the slice, the stream seeds *and* the arrows.
 For room airflow that matches how a result actually gets read: choose a plane,
@@ -149,7 +149,7 @@ Streamline **tubes are built in the browser** from the line data, not shipped.
 on a 2.3 M-cell case: 10.30 MB gzipped against 1.13 MB) since the tracer
 dominates either way. Inflating locally takes a few milliseconds, makes the
 lines/tubes switch instant, and turns the width into a shader uniform — it
-displaces the tube's centreline along the ring normal, so dragging it rebuilds
+displaces the tube's centerline along the ring normal, so dragging it rebuilds
 nothing.
 
 The streamline animation is an animated dash pattern rather than particles — no
@@ -165,11 +165,11 @@ Tubes cost nothing now, so there is no reason not to.
 The viewer labels every control `server` or `client`, because the difference is
 worth seeing while you use it:
 
-- **client** — colour map, range, bands, opacity-by-value, per-part visibility,
-  opacity, colour-by-field and its solid-colour fallback, near-wall culling,
+- **client** — color map, range, bands, opacity-by-value, per-part visibility,
+  opacity, color-by-field and its solid-color fallback, near-wall culling,
   shell mesh edges, the streamline animation, camera, lighting, theme. These are
   shader uniforms or GPU state: instant, no request.
-- **server** — colour *field* and component, cut-plane position, isovalues, the
+- **server** — color *field* and component, cut-plane position, isovalues, the
   isosurface's locked field, seed and glyph counts, time step, patch selection,
   crinkle slice, true cell values. These change what has to be extracted.
   Robust range and **Rescale** are the exception: they change no geometry, so
@@ -196,7 +196,7 @@ floor held at 600 K. It converges at iteration 740; `purgeWrite 2` keeps the
 time steps `0`, `700` and `740`, enough for the time player to step through.
 About 400 kB. `constant/triSurface/building.obj` is a small added fixture (a
 box at the room bounds) that exercises the Geometry tool. Chosen as the closest
-tutorial analogue to an IDA ICE `HEATING` case: buoyancy-driven room airflow
+tutorial analog to an IDA ICE `HEATING` case: buoyancy-driven room airflow
 with a thermal plume, steady state, and genuinely 3-D.
 
 `data/cavity` is the lid-driven cavity for the `fluid` solver: 20×20×1 (400
@@ -256,7 +256,7 @@ cfd-backend's `cfd-viz` image is built from a **clone of this repository's
 `foamviz.pipeline` from the checkout root. So that layout is a contract, kept by
 three shims (`main.py`, the top-level `foamviz/` alias and a generated
 `requirements.txt`) and checked on every `doit ci` by
-`tests/check_cockpit_contract.py`. Its HTTP behaviour is a contract too:
+`tests/check_cockpit_contract.py`. Its HTTP behavior is a contract too:
 `tests/test_contract.py` replays recorded responses: the API may only grow
 (fields, types and statuses are always checked), and while the demo data and
 library versions match the recording, values and geometry bytes must match too. [docs/cfd-backend-switch.md](docs/cfd-backend-switch.md)
@@ -264,13 +264,13 @@ is the way out of the layout half.
 
 ### Design decisions worth knowing
 
-**Colour scalars are baked into an array.** Instead of asking a mapper for "the
+**Color scalars are baked into an array.** Instead of asking a mapper for "the
 magnitude of U" at render time, `pipeline.py` computes a plain scalar array
-(`FoamVizColor`) and colours by that. Vector modes on a lookup table are a
+(`FoamVizColor`) and colors by that. Vector modes on a lookup table are a
 render-side concept that does not survive being shipped to a browser, so baking
 them means the client receives a number per vertex and makes the data range
 trivially correct. It also means isosurfaces contour whatever you are
-currently colouring by, which turns out to be the intuitive behaviour.
+currently coloring by, which turns out to be the intuitive behavior.
 
 **The reader is pulled, not connected.** `FoamCase.load()` requests a time step
 and hands downstream filters a concrete snapshot via `SetInputData`. Requesting
@@ -283,7 +283,7 @@ matters once cases get large.
 
 **The wire format is not glTF, on purpose.** glTF's material model has no
 concept of a scalar field, so carrying `|U|` per vertex would mean either baking
-vertex colours server-side — which kills client-side re-colouring, the one
+vertex colors server-side — which kills client-side re-coloring, the one
 interaction that must never cost a round trip — or smuggling values through a
 custom accessor. `server/wire.py` ships raw typed arrays that map 1:1 onto
 `THREE.BufferAttribute` instead: one fetch, one `arrayBuffer()`, zero parsing.
@@ -327,15 +327,15 @@ came out the other end.
 `check_client.py` mostly does not ask "did it render". It asks **which controls
 cause a refetch**, because that boundary is the architecture and it is the kind
 of thing that decays silently — add one dependency to a hook and changing the
-colour map re-extracts the mesh, with no symptom beyond the app feeling slow on
+color map re-extracts the mesh, with no symptom beyond the app feeling slow on
 a big case. So it counts `/api/scene` requests around nearly every interaction:
-zero for a colour-map switch, zero for a whole cut-plane drag, exactly one for
+zero for a color-map switch, zero for a whole cut-plane drag, exactly one for
 the release, and zero for returning to a cached time step. It also asserts the
 red plane outline actually appears mid-drag by counting red pixels.
 
 The browser suite reads rendered pixels through a `readPixels` hook in the page
 rather than from a screenshot: the HUD, legend and busy overlay sit on top of
-the canvas, so a page screenshot of an *empty* scene comes back colourful.
+the canvas, so a page screenshot of an *empty* scene comes back colorful.
 
 ## Where this would need work for production
 
@@ -355,7 +355,7 @@ the canvas, so a page screenshot of an *empty* scene comes back colourful.
 - **Comfort metrics.** The IDA ICE side cares about draught rate, PMV/PPD and
   operative temperature, none of which are OpenFOAM fields. They would be
   derived arrays computed on load — a natural extension of the same baked-array
-  mechanism used for colouring.
+  mechanism used for coloring.
 
 Scale is *not* on this list: tested to 12 M cells, and measured on a 15.8 M-cell
 IDA ICE case: 13 s to open, a 25 MB gzipped boundary, and **7.3 GB peak RAM**

@@ -237,8 +237,8 @@ export function ContourTool({ meta, request, setRequest, style, setStyle }) {
         size="xs"
         label={tagged('Lock field', 'server')}
         description={locked
-          ? 'Pinned — the colour field no longer moves this surface'
-          : `Following the colour field (${base})`}
+          ? 'Pinned — the color field no longer moves this surface'
+          : `Following the color field (${base})`}
         checked={locked}
         onChange={(e) => setRequest({
           contour_field: e.currentTarget.checked ? request.field : '',

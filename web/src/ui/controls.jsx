@@ -176,7 +176,7 @@ export function ColourBy({ ctl, colored, solid, onChange, defaultSolid = '#b8c0c
         size="xs"
         label={(
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Colour by field<Tag kind="client" />
+            Color by field<Tag kind="client" />
           </span>
         )}
         checked={colored}

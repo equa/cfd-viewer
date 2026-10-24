@@ -22,7 +22,7 @@ cfd-backend's `Containerfile` builds `cfd-viz` in two stages:
 `python main.py --help`, and checks for `web/dist/index.html`.
 
 So cfd-backend depends on this repository's **file layout**, not only on its
-behaviour. That is why this repository keeps three shims (below), and why
+behavior. That is why this repository keeps three shims (below), and why
 every commit here runs `doit cockpit_contract`, which repeats those steps on a
 clone.
 
@@ -95,5 +95,5 @@ exist only for the old build and can be removed together:
   rewritten to describe the image.
 
 `tests/test_contract.py`, the recorded HTTP contract, **stays**. The cockpit
-embeds the viewer whichever way it is built, so its HTTP behaviour remains the
+embeds the viewer whichever way it is built, so its HTTP behavior remains the
 contract.

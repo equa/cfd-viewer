@@ -64,6 +64,6 @@ export function useShortcuts({ onView, onReset, onPick }) {
 export const SHORTCUT_HELP = [
   ['x / y / z', 'look down the axis (shift = other side)'],
   ['r', 'reframe the domain'],
-  ['f', 'centre of rotation under the cursor'],
+  ['f', 'center of rotation under the cursor'],
   ['drag', 'left rotate · middle pan · right zoom'],
 ]
