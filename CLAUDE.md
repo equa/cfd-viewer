@@ -34,7 +34,6 @@ host, so no absolute path is given):
   (answers in `.copier-answers.yml`). Never hand-edit a templated file to
   diverge; change the answer or the template.
 
-
 Browser-based post-processing for OpenFOAM cases, aimed at an IDA ICE CFD
 backend. See `README.md` for what it does and how to run it; this file records
 what cost time to discover.
@@ -45,7 +44,7 @@ This repo is a **React + three.js client over a Python/VTK extraction server**.
 `foamviz/` reads OpenFOAM and drives the filters, `server/` packs geometry onto
 the wire (both under `src/equa/cfd_viewer/` since 2026-10-21), `web/` draws it.
 
-```
+```bash
 uv run cfd-viewer --data ./data          # or, the old way: python main.py --data ./data
 uv run doit ci                           # the gate: lint, tests, wheel, cockpit contract
 ```
@@ -103,8 +102,8 @@ still to come. What phase 1 left in the code, and what not to undo:
   main`), checks for `web/package.json`, `web/package-lock.json`,
   `requirements.txt` and `main.py`, runs `pip install -r requirements.txt` on
   Python 3.14 and `python main.py --server --data "$CFD_HOME" ...`, and its
-  smoke test `tests/smoke/viz.sh` does `from foamviz.pipeline import
-  FoamPipeline` from the checkout root. Hence three shims: `main.py`, the
+  smoke test `tests/smoke/viz.sh` does
+  `from foamviz.pipeline import FoamPipeline` from the checkout root. Hence three shims: `main.py`, the
   top-level `foamviz/` alias (registers the real submodules, so classes are
   identical), and `requirements.txt` exported from the lock
   (`requirements_check` keeps it in sync). `tests/check_cockpit_contract.py`
@@ -211,7 +210,7 @@ Standing instructions for how to work in this repo, not one-off requests.
 The project lives at `/workspace/cfd-viewer` and is under version control
 (`origin/main` on GitHub). What actually needs to travel is about **1 MB**:
 
-```
+```text
 CLAUDE.md README.md pyproject.toml uv.lock requirements.txt hatch_build.py
 dodo.py Dockerfile .dockerignore .gitignore .pre-commit-config.yaml
 commitlint.config.js main.py foamviz/ src/ web/ tests/ tools/ docs/ openspec/
@@ -249,8 +248,8 @@ no exposed ports). `/work` is the only host bind mount; home is container-local.
     "`node:util` does not provide an export named `styleText`"). `~/.bashrc`
     puts it on `PATH`.
   - `bin/micromamba` + `testenv/` -- Chromium's system libraries and fonts from
-    conda-forge (nss, atk, at-spi2, dbus, the X libs, libxkbcommon, alsa-lib,
-    libgbm, fontconfig; ~120 MB). **No Mesa**: nothing needs it.
+    conda-forge (`nss`, `atk`, `at-spi2`, `dbus`, the X libs, `libxkbcommon`,
+    `alsa-lib`, `libgbm`, `fontconfig`; ~120 MB). **No Mesa**: nothing needs it.
   - `ms-playwright/` -- `playwright install chromium-headless-shell`.
   - `cfd-test-env.sh` -- `source` it before the suites: `LD_LIBRARY_PATH`,
     `FONTCONFIG_FILE` (else Chromium aborts in SkFontMgr),
@@ -284,8 +283,8 @@ no exposed ports). `/work` is the only host bind mount; home is container-local.
 ## VTK-Python traps hit here
 
 - **Default lighting is a single camera headlight** → faces angled away go
-  black (the boundary shell especially). Fixed with a `vtkLightKit` (key + fill
-  + back + head, like ParaView) + `TwoSidedLightingOn` on the renderer, plus an
+  black (the boundary shell especially). Fixed with a `vtkLightKit` (key + fill +
+  back + head, like ParaView) + `TwoSidedLightingOn` on the renderer, plus an
   **ambient floor** on the lit actors. Controls live in a **collapsible
   "Lighting" panel** at the bottom of the side pane (hidden by default): a **Light kit**
   toggle (default on; off → `RemoveAllLights` → VTK's default headlight) and
@@ -637,7 +636,7 @@ scale/offset in the header would halve it.
   raw clock drifts out of float32 precision inside `fract()` over a long
   session, and changing the speed would make the whole pattern jump. `_tick`
   advances a phase by `dt * speed` and wraps it to one period; `dt` is clamped
-  so a backgrounded tab does not teleport every comet on return.
+  so a tab left in the background does not teleport every comet on return.
 - **`uComets` is per material, not shared**, and is gated on the `travel`
   attribute actually being present. That matters: a missing attribute makes
   three.js supply 0 for every vertex, so the whole line set would pulse *in
@@ -741,7 +740,7 @@ baking dirties `case.internal`, whose MTime bump re-executes every filter fed by
 it (see the perf invariant). `update_data()` and `release_case()` clear it.
 
 Verified: color=T locked to U gives the *same* geometry as color=U unlocked
-(217 verts, isovalue 0.1153) with T-valued scalars. `Rescale` re-seeds the
+(217 vertices, isovalue 0.1153) with T-valued scalars. `Rescale` re-seeds the
 isovalues when following and deliberately leaves them alone when locked.
 
 ### Concurrency
@@ -888,6 +887,7 @@ opacity toggle). If it dirties `case.internal`, its MTime bumps and every filter
 fed by it — the cutter, hence the stream **seeds**, hence the tracer + tube, plus
 isosurfaces and glyphs — re-executes. On a big case that makes an incidental
 change as expensive as recomputing the streamlines. TWO places dirtied it and both are now guarded:
+
 - `apply_color_array()` re-baked `FoamVizColor` (Remove/AddArray) every call —
   guarded by a `_baked` signature `(field, component, use_cell_data)`, cleared by
   `update_data()` on reload so fresh data still re-bakes.
@@ -951,7 +951,7 @@ fixed by `FoamPipeline.release_case()` called at the top of `load_case`:
 
 - The old mesh stayed wired into the cutter/contour/tracer/glyph filters until
   `update_data()` rewired them at the **end** of the load, so the entire new
-  case was read with the old one still resident. Peak RSS on s2 → fancoil:
+  case was read with the old one still resident. Peak RSS on s2 → `geometric-fancoil-and-beam`:
   **1653 → 1521 MB**.
 - A hidden actor never re-executes its filter (`update_streamlines` /
   `update_glyphs` return early when invisible) and `load_case` deliberately
@@ -962,7 +962,7 @@ fixed by `FoamPipeline.release_case()` called at the top of `load_case`:
 
 **Why the container's RSS did not drop:** glibc keeps freed pages in its arenas.
 A single `malloc_trim(0)` took RSS from 611 → 268 MB after an s2 → hotRoom
-switch. `app._trim_heap()` (ctypes, best-effort — non-glibc libcs have no
+switch. `app._trim_heap()` (ctypes, best-effort — C libraries other than glibc have no
 `malloc_trim`) is called once per case switch at the end of `load_case`.
 Deliberately **not** per time step: inside one case the arrays just freed are
 the same size as the ones about to be allocated, so leaving them in the arena is

@@ -115,8 +115,8 @@ no longer one color, which defeats the point of banding.
 
 ### Color-map-weighted opacity
 
-Reverted in FoamViz as not feasible in vtk.js local mode (the discretizable CTF
-does not serialize); here it is a shader line and a checkbox, linear as
+Reverted in FoamViz as not feasible in vtk.js local mode (the CTF's `Discretize`
+mode does not serialize); here it is a shader line and a checkbox, linear as
 requested:
 
 ```glsl
@@ -124,7 +124,7 @@ float alpha = uOpacity * mix(1.0, t, uOpacityMap);
 if (alpha < 0.01) discard;
 ```
 
-Alpha follows the **unbanded** `t`, so the opacity ramp is a function of the
+Alpha follows `t` **before banding**, so the opacity ramp is a function of the
 value the way ParaView's own opacity transfer function is, independent of how
 the colors are banded. Measured on the boundary alone -- no-slip walls, so
 `|U|` is ~0 across them -- the view goes from 75% empty to 96% empty, with zero
@@ -199,7 +199,7 @@ so carrying `|U|` per vertex means either baking vertex colors server-side —
 which kills client-side re-coloring, the one interaction that must never cost a
 round trip — or smuggling values through a custom accessor. Instead:
 
-```
+```text
 "FVS1" | uint32 header length | header JSON | buffer blobs
 ```
 
