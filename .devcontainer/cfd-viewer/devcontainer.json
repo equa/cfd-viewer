@@ -1,0 +1,30 @@
+{
+  "name": "equa-cfd-viewer",
+  "build": {
+    "dockerfile": "Containerfile"
+  },
+  "runArgs": ["--env-file", "${localWorkspaceFolder}/../equa-ci/.env"],
+  "remoteUser": "vscode",
+  "containerUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/..,target=/workspaces/repos,type=bind",
+    "source=equa-cfd-viewer-ms-playwright,target=/home/vscode/.cache/ms-playwright,type=volume"
+  ],
+  "remoteEnv": {
+    "EQUA_REPOS_ROOT": "/workspaces/repos"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "DavidAnson.vscode-markdownlint",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": ".venv/bin/python"
+      }
+    }
+  }
+}
