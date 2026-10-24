@@ -4,7 +4,15 @@
   "timezone": "Europe/Stockholm",
   "schedule": ["before 5am on Monday"],
   "enabledManagers": [
-    "pep621"  ],
+    "pep621",
+    "npm",
+    "dockerfile"  ],
+  "npm": {
+    "managerFilePatterns": ["/^web/package\\.json$/"]
+  },
+  "dockerfile": {
+    "managerFilePatterns": ["/^(engine\\.)?Dockerfile$/"]
+  },
   "hostRules": [
     {
       "matchHost": "pkgs.dev.azure.com",
@@ -21,6 +29,10 @@
     },
     {
       "matchDepNames": ["equa-ci"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["/^ghcr\\.io/equa/equa-base/"],
       "enabled": false
     }
   ]}
