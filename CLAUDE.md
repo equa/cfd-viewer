@@ -16,8 +16,16 @@ host, so no absolute path is given):
 
 - `equa-cfd-viewer` is a service shipped as the container image
   `ghcr.io/equa/equa-cfd-viewer`; it publishes no package. Its `Dockerfile` and
-  `.dockerignore` are its own. A beta release deploys it to dev through
-  `equa-deployment`, which holds its deployment files.
+  `.dockerignore` are its own. It is deployed nowhere yet: deployment waits
+  for hosted case uploads (adopt-service-archetype D8).
+- **Branches.** `beta` is the default branch and takes every PR. `main` is the
+  stable channel and moves only when `beta` is promoted. cfd-backend's
+  `cfd-viz` image clones `main`, so promoting is what ships to the cockpit.
+- **Devcontainer:** `.devcontainer/cfd-viewer/` (`equa-base-lite` plus
+  Chromium's libraries). The checkout sits beside `equa-ci` and
+  `equa-platform-docs`: the bind mount and the OpenSpec symlinks are relative,
+  and the feed credentials come from `../equa-ci/.env`. Its `FROM` tag follows
+  `ci.yml`'s base image (`doit check_devcontainer_base`).
 - **Documentation and OpenSpec artifacts live in `equa-platform-docs`**, under
   `docs/platform/modules/cfd-viewer/`. This
   repository keeps only `docs/README.md`; `openspec/specs` and
@@ -169,17 +177,19 @@ still to come. What phase 1 left in the code, and what not to undo:
 - **matplotlib stays** (design D10, a drop was proposed and withdrawn): the
   `vtk` wheel itself requires it, and the rule is one locked dependency set for
   every deployment.
-- **Tooling** follows equa-ci by name, implemented locally: `dodo.py`
-  (`lint_py` = ruff check only, no format check, as in equa-ci; `test_py`,
-  `test_ui`, `package`, `requirements_check`, `cockpit_contract`, `ci`), the
-  template's `.pre-commit-config.yaml` and `commitlint.config.js`, and a
-  `Dockerfile` on cfd-viz's base and uid. doit keeps its state in `.doit.json`
-  (JSON backend): dbm files differ between Python 3.12 and 3.13+.
-- **Host and dev container:** since 2026-10-23 development, tests and commits
-  happen in the container (see "Environment"); a `.venv` or hook installed on
-  one side does not work on the other. Note `pre-commit run
-  --commit-msg-filename` does NOT test commitlint (the hook lints
-  `.git/COMMIT_EDITMSG`); test it with a real commit in a throwaway clone.
+- **Tooling** is equa-ci's since the adopt (2026-10-24): `dodo.py` calls
+  `create_tasks` and adds what no lint or test kind covers -- `web_install`,
+  `web_build`, `chromium`, `test_ui`, `wheel_check` (not `package`: the
+  factory owns that name), `requirements_check`, `cockpit_contract`,
+  `check_devcontainer_base`. `test_py` is redefined: the factory passes
+  `-m "not integration"`, and a command-line `-m` replaces one in `addopts`,
+  so `-m 'not browser'` there would not deselect the browser suite. doit's
+  state is the template's `.doit.db`; one written by another Python fails with
+  "old format or corrupted" -- delete it.
+- **Host and dev container:** a `.venv` or hook installed on one side does not
+  work on the other. Note `pre-commit run --commit-msg-filename` does NOT test
+  commitlint (the hook lints `.git/COMMIT_EDITMSG`); test it with a real
+  commit in a throwaway clone.
 
 ## Working agreements (Niklas, merged from todo.md 2026-09-09)
 
@@ -205,24 +215,10 @@ Standing instructions for how to work in this repo, not one-off requests.
   additive" rule is relaxed; `tests/test_pipeline.py` is now the only guard, so
   lean on it.
 
-## Resuming in a new workspace
+## Test data
 
-The project lives at `/workspace/cfd-viewer` and is under version control
-(`origin/main` on GitHub). What actually needs to travel is about **1 MB**:
-
-```text
-CLAUDE.md README.md pyproject.toml uv.lock requirements.txt hatch_build.py
-dodo.py Dockerfile .dockerignore .gitignore .pre-commit-config.yaml
-commitlint.config.js main.py foamviz/ src/ web/ tests/ tools/ docs/ openspec/
-data/                                                 # both demo cases, results included (~0.7 MB)
-```
-
-Everything else rebuilds:
-
-- `web/node_modules/` — `cd web && npm install`
-- `web/dist/` — `cd web && npm run build` (the Python server serves it from there;
-  without it, `/` shows a short "no client build" page instead)
-- the Python env -- `uv sync` (see "Environment" below)
+`web/dist/` is not committed: `doit web_build` makes it, and without it `/`
+shows a short "no client build" page.
 
 `tests/test_pipeline.py` hardcodes the demo case (500 cells, 3 patches,
 T range 300–600 K, more than one time step). Point it elsewhere and those
@@ -239,9 +235,10 @@ it checks shape only and says so (`tests/contract.py`).
 
 ## Environment
 
-Since 2026-10-23 Niklas works in the same dev container as Claude (`/work`,
-Ubuntu 24.04, Python 3.12, **no root**, no system GL or Chromium libraries,
-no exposed ports). `/work` is the only host bind mount; home is container-local.
+The devcontainer (see "Repository-specific notes") is the environment to use.
+Until it is proven, the older `/work` container still works: Ubuntu 24.04,
+Python 3.12, **no root**, no system GL or Chromium libraries, no exposed
+ports; `/work` is the only host bind mount and home is container-local.
 
 - **Everything extra lives in `/work/.tools`**, so it survives a rebuild:
   - `node/` -- Node 24 (the system `node` is 18, too old for Vite 8:
