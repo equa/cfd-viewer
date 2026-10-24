@@ -166,6 +166,17 @@ def ctl(name):
     return f'[data-ctl="{name}"]'
 
 
+def open_options(page):
+    """Open the Options popover unless it is open already.
+
+    The button toggles, and Escape does not always close the popover (on CI it
+    stayed open once), so a plain click could close it and detach the control
+    the next line clicks."""
+    if not page.locator(ctl("apply-options")).is_visible():
+        page.click(ctl("options"))
+    page.wait_for_selector(ctl("apply-options"), state="visible")
+
+
 def start_server(data, port):
     """The package entry point, from the checkout's src/ when not installed.
 
@@ -373,7 +384,7 @@ def main():
                   f"{len(scene) - n} request(s)")
 
             n = len(scene)
-            page.click(ctl("options"))
+            open_options(page)
             page.fill(ctl("bands"), "5")
             page.wait_for_timeout(600)
             banded = gl_colours(page)
@@ -400,7 +411,7 @@ def main():
                   not page.locator(ctl("surface-colored")).is_checked())
             before_bg = gl_background(page)
             n = len(scene)
-            page.click(ctl("options"))
+            open_options(page)
             page.click(ctl("opacity-map"))
             page.wait_for_timeout(900)
             after_bg = gl_background(page)
@@ -443,7 +454,7 @@ def main():
             page.on("request",
                     lambda r: range_calls.append(r.url) if "api/range" in r.url else None)
             # range-max lives inside the Options popover, so open it first.
-            page.click(ctl("options"))
+            open_options(page)
             before = page.locator(ctl("range-max")).input_value()
             page.click(ctl("robust-range"))
             page.click(ctl("apply-options"))
@@ -476,7 +487,7 @@ def main():
             check("triangle count is unchanged by it",
                   page.evaluate("window.__viz.stats()")["triangles"] == tris_before,
                   f"{tris_before:,} triangles")
-            page.click(ctl("options"))
+            open_options(page)
             page.click(ctl("cell-data"))
             page.click(ctl("apply-options"))
             wait_idle(page, scene)
