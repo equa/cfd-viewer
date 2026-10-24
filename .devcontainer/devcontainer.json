@@ -1,0 +1,32 @@
+{
+  "name": "equa-cfd-viewer",
+  "image": "ghcr.io/equa/equa-base-dev:v1.0.0-beta.11",
+  "remoteUser": "vscode",
+  "containerUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/..,target=/workspaces/repos,type=bind"
+  ],
+  "remoteEnv": {
+    "EQUA_REPOS_ROOT": "/workspaces/repos"
+  },
+  // The first three previews' links (equa-simulation `doit preview`, sites from
+  // 8100): VS Code does not always notice a server a session starts by itself.
+  "forwardPorts": [8100, 8101, 8102],
+  "portsAttributes": {
+    "8100-8102": { "label": "Preview", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "DavidAnson.vscode-markdownlint",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": ".venv/bin/python"
+      }
+    }
+  }
+}

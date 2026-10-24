@@ -1,4 +1,39 @@
-# cfd-viewer — notes for future sessions
+# CLAUDE.md
+
+This repository follows the shared Equa platform conventions. The canonical
+sources live in two sibling repositories — resolve them by repository **name**
+(the checkout location differs between the Linux devcontainer and a Windows
+host, so no absolute path is given):
+
+- **equa-ci** — build, commit, code/comment, CI, and OpenSpec workflow conventions.
+  Root `CLAUDE.md` (canonical:
+  <https://github.com/equa/equa-ci/blob/beta/CLAUDE.md>).
+- **equa-platform-docs** — documentation, wiki, and doc-surface conventions.
+  Root `CLAUDE.md` (canonical:
+  <https://github.com/equa/equa-platform-docs/blob/beta/CLAUDE.md>).
+
+## Repository-specific notes
+
+- `equa-cfd-viewer` is a service shipped as the container image
+  `ghcr.io/equa/equa-cfd-viewer`; it publishes no package. Its `Dockerfile` and
+  `.dockerignore` are its own. A beta release deploys it to dev through
+  `equa-deployment`, which holds its deployment files.
+- **Documentation and OpenSpec artifacts live in `equa-platform-docs`**, under
+  `docs/platform/modules/cfd-viewer/`. This
+  repository keeps only `docs/README.md`; `openspec/specs` and
+  `openspec/changes` are symlinks into that tree, so the `openspec` CLI works
+  here when `equa-platform-docs` is checked out beside this repository and the
+  links dangle harmlessly otherwise. A change's proposal, design, tasks and
+  spec deltas are therefore committed in `equa-platform-docs`, while the code
+  is committed here.
+- Build orchestration: `uv run doit <task>` — run `uv run doit list` for all
+  tasks; `uv run doit ci` runs the local CI suite.
+- The `equa-ci` package is installed from the Azure DevOps `equa-dev` feed via
+  `[tool.uv.sources]` in `pyproject.toml`.
+- This repository is scaffolded from the Copier template in `equa-ci/template/`
+  (answers in `.copier-answers.yml`). Never hand-edit a templated file to
+  diverge; change the answer or the template.
+
 
 Browser-based post-processing for OpenFOAM cases, aimed at an IDA ICE CFD
 backend. See `README.md` for what it does and how to run it; this file records

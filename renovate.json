@@ -1,6 +1,26 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ]
-}
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Stockholm",
+  "schedule": ["before 5am on Monday"],
+  "enabledManagers": [
+    "pep621"  ],
+  "hostRules": [
+    {
+      "matchHost": "pkgs.dev.azure.com",
+      "hostType": "pypi",
+      "username": "renovate",
+      "password": "{{ secrets.AZURE_DEVOPS_TOKEN }}"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "non-major dependencies",
+      "automerge": true
+    },
+    {
+      "matchDepNames": ["equa-ci"],
+      "enabled": false
+    }
+  ]}

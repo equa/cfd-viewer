@@ -1,0 +1,26 @@
+# markdownlint configuration
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+default: true
+
+# MD013 — Line length: relax for tables, code blocks and headings.
+# 300 chars to accommodate long task-list items in changes/*/tasks.md.
+MD013:
+  line_length: 300
+  tables: false
+  code_blocks: false
+  headings: false
+
+# MD033 — Inline HTML: allow <a> anchor tags used for cross-references
+MD033:
+  allowed_elements: ["a"]
+
+# MD041 — First line should be top-level heading: disabled for CHANGELOG.md
+MD041: false
+
+# MD024 — Multiple headings with the same content: allow in CHANGELOG
+# (semantic-release generates repeated section headings across releases)
+MD024:
+  siblings_only: true
+
+# MD060 — Table column style: disabled
+MD060: false

@@ -7,6 +7,14 @@ repos:
         entry: '[^\x00-\x7F]'
         stages: [commit-msg]
 
+      - id: author-in-roster
+        name: Commit author is in the developer roster
+        language: system
+        entry: sh -c 'uv run --no-sync python -m equa.ci.developers check-author || true'
+        pass_filenames: false
+        verbose: true
+        stages: [commit-msg]
+
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.25.0
     hooks:
