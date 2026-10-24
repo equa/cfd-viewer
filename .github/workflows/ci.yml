@@ -1,0 +1,272 @@
+name: CI
+
+on:
+  push:
+    # Run on every branch push (branches only, not tags): `doit ci` executes
+    # on Renovate branches, which is what makes Renovate automerge safe.
+    # Publishing stays gated to main/beta by .releaserc.json + the
+    # has_release step output.
+    branches: ['**']
+  workflow_dispatch:
+
+# Collapse a burst of pushes to the same branch into one live job.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: read
+  # tested_before reads the pull request's check runs.
+  checks: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ── Three jobs: checks, image, release ────────────────────────────────────
+  # Split so that a release is never cut for an image that does not work
+  # (design D5). Checks resolves the version and runs the suite; Image builds,
+  # pushes and then pulls the image back and proves it answers; only then does
+  # Release tag and publish. A broken image therefore fails before the version
+  # is burned.
+  #
+  # Checks runs in the base-image container for the lint binaries. Image cannot:
+  # building an image inside a container job would need a docker socket Actions
+  # does not mount, so it runs on the plain runner, which has one.
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      has_release: ${{ steps.version.outputs.has_release }}
+      semver: ${{ steps.version.outputs.semver }}
+    container:
+      image: ghcr.io/equa/equa-base-ci:v1.0.0-beta.11
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The job container runs as root over a checkout owned by the runner user,
+      # so git treats it as dubiously owned and refuses. semantic-release then
+      # fails with ENOGITREPO before it reads a single commit.
+      - name: Trust the checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Resolve next release version (dry run)
+        id: version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # @semantic-release/exec verifyReleaseCmd writes the resolved version to
+          # release-info. Seed it empty: on a no-release history semantic-release
+          # stops before verifyRelease, the empty seed survives, and an empty file
+          # means has_release=false.
+          printf '' > release-info
+          npx semantic-release --dry-run
+          if [ -s release-info ]; then
+            echo "has_release=true"            >> "$GITHUB_OUTPUT"
+            echo "semver=$(cat release-info)"  >> "$GITHUB_OUTPUT"
+          else
+            echo "has_release=false"           >> "$GITHUB_OUTPUT"
+            echo "semver="                     >> "$GITHUB_OUTPUT"
+          fi
+
+      # The image build needs no private feed, but this job does: equa-ci is a
+      # dev dependency and uv sync installs dev groups.
+      - name: Install Python dependencies
+        env:
+          UV_INDEX_EQUA_DEV_USERNAME: __token__
+          UV_INDEX_EQUA_DEV_PASSWORD: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+        run: uv sync
+
+      # Code its pull request already tested skips the suite after the merge
+      # (skip-retest-after-merge); anything else, or any doubt, runs it.
+      - name: Look for an earlier green run
+        id: tested
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run --no-sync python -m equa.ci.tested_before --check Checks
+
+      - name: Run CI suite (lint + typecheck + test)
+        if: steps.tested.outputs.tested != 'true'
+        env:
+          UV_INDEX_EQUA_DEV_USERNAME: __token__
+          UV_INDEX_EQUA_DEV_PASSWORD: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+        run: uv run doit ci
+
+  image:
+    name: Image
+    needs: checks
+    if: needs.checks.outputs.has_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # GITHUB_TOKEN, not GHCR_TOKEN: this job declares packages: write and the
+      # package belongs to the same org, so the job's own token is scoped
+      # correctly. GHCR_TOKEN is provisioned read-only for packages and would
+      # fail the push with a bare "unauthorized".
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The branch names the channel: only main and beta release, so only they
+      # reach this job.
+      - name: Resolve tags
+        id: tags
+        env:
+          SEMVER: ${{ needs.checks.outputs.semver }}
+        run: |
+          IMAGE=ghcr.io/equa/equa-cfd-viewer
+          {
+            echo "tags=${IMAGE}:${SEMVER},${IMAGE}:${GITHUB_REF_NAME}"
+            echo "version_tag=${IMAGE}:${SEMVER}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            SERVICE_VERSION=${{ needs.checks.outputs.semver }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      # Pull it back rather than using the local layer: what a deployment gets
+      # is what the registry holds. Building successfully proves nothing about
+      # a wrong entry point or a missing runtime file.
+      - name: Verify the published image
+        env:
+          IMAGE: ${{ steps.tags.outputs.version_tag }}
+        run: |
+          set -eu
+          # A service that requires configuration to start (which is the rule,
+          # not the exception: settings binding a service to an environment
+          # carry no default) cannot come up bare. deploy/verify.env holds the
+          # local-only values that let it start without external dependencies;
+          # switches like SKIP_AUTH are refused in a deployed environment, so
+          # they cannot leak out of this file.
+          ENV_FILE=""
+          if [ -f deploy/verify.env ]; then
+            ENV_FILE="--env-file deploy/verify.env"
+          fi
+          # ENV_FILE is empty or two words, so it is left unquoted.
+          # shellcheck disable=SC2086
+          docker run -d --name verify $ENV_FILE \
+            -p 5003:5003 "$IMAGE"
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:5003/health" > /dev/null; then
+              echo "ready after ${i}s"
+              docker rm -f verify
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "FATAL: $IMAGE did not become ready; the release is not cut" >&2
+          docker logs verify >&2
+          docker rm -f verify
+          exit 1
+
+      - name: Report
+        env:
+          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          {
+            echo "### Image published"
+            echo ""
+            echo "- \`${VERSION_TAG}\`"
+            echo "- digest \`${DIGEST}\`"
+            echo ""
+            echo "Pull with \`docker pull ${VERSION_TAG}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Last, so the tag and the GitHub release only exist once an image that works
+  # is in the registry. Plain runner: this job needs node and git, not the
+  # toolchain tiers.
+  release:
+    name: Release
+    needs: [checks, image]
+    if: needs.checks.outputs.has_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Push the @semantic-release/git commit-back as the repo owner (GHCR_TOKEN
+      # is the owner PAT) so it bypasses the required-status-checks ruleset; a
+      # bot-identity push would be rejected (GH013). @semantic-release/github
+      # keeps GITHUB_TOKEN for its Release API calls.
+      - name: Configure git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+          git fetch --tags
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # Tags, changelog and the GitHub release. No package is published: this
+      # repo is a service, and its artifact is the image the job above verified.
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      # Tells equa-deployment the version exists; it opens the PR that deploys
+      # it to dev, or a starter for a service it has not seen. Beta only: stable
+      # releases would take turns with beta ones and could move dev backwards.
+      - name: Notify equa-deployment
+        if: github.ref_name == 'beta'
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          VERSION: ${{ needs.checks.outputs.semver }}
+        run: |
+          gh api repos/equa/equa-deployment/dispatches \
+            -f event_type=service-released \
+            -f "client_payload[repo]=equa-cfd-viewer" \
+            -f "client_payload[version]=$VERSION" \
+            -F "client_payload[port]=5003" \
+            -F "client_payload[needs_database]=false"
+

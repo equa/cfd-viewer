@@ -1,10 +1,45 @@
-# Rebuildable: pip install -r requirements.txt
-.env
-.venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+dist/
 
-# --- data/ ------------------------------------------------------------------
+# Build output
+build/
+install/
+.artifacts/
+
+# doit
+.doit.db*
+
+# Node
+node_modules/
+
+# env / secrets
+.env
+
+# semantic-release version marker (emitted by verifyReleaseCmd; read by CI)
+release-info
+
+# cspell editor stub (materialized by `doit cspell_stub`; the dictionary
+# itself ships in the equa.ci wheel)
+.cspell.json
+
+# Native build residue
+*.obj
+*.o
+*.so
+*.dll
+*.exe
+*.lib
+*.exp
+*.mod
+
+# --- repo-owned ---------------------------------------------------------------
+
 # data/ is a working directory: point --data at whatever you like, including
 # symlinks to real cases elsewhere on the machine. None of that belongs in this
 # repo, so everything here is ignored by default and the bundled demo cases are
@@ -32,9 +67,8 @@ data/*/processor*/
 web/node_modules/
 web/dist/
 
-# doit's task state (dodo.py); .doit.db* from before it moved to JSON
+# doit's task state from before the template's .doit.db
 .doit.json
-.doit.db*
 
 # Claude Code's local settings, and the openspec skills/commands that
 # `openspec init` generates into it (rebuildable)

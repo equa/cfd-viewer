@@ -26,13 +26,18 @@ cfd-viewer = "equa.cfd_viewer.__main__:main"
 
 [dependency-groups]
 dev = [
+    # Build tooling, not runtime: only dodo.py imports equa.ci. Declared as a
+    # runtime dependency it would ride into every consumer's environment along
+    # with doit, mypy, ruff and pre-commit, and would force any container image
+    # built from this package to authenticate to a private feed.
+    "equa-ci>=1.0.0b77",
+    "build>=1.2",
+    "hatch-vcs>=0.4",
     "pytest>=8",
     "ruff>=0.6.0",
     # tests/check_client.py drives Chromium and reads screenshots.
     "playwright>=1.45",
     "pillow>=10",
-    "doit>=0.37.0",
-    "pre-commit>=4.7.0",
 ]
 
 [tool.hatch.version]
@@ -52,6 +57,13 @@ testpaths = ["tests"]
 markers = [
     "browser: the Chromium suite (tests/check_client.py); doit test_ui runs it, test_py does not",
 ]
+
+[tool.uv.sources]
+equa-ci = { index = "equa-dev" }
+
+[[tool.uv.index]]
+name = "equa-dev"
+url = "https://pkgs.dev.azure.com/EQUADevelopment/_packaging/equa-dev/pypi/simple/"
 
 [tool.ruff]
 src = ["src"]

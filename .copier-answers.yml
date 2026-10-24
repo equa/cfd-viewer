@@ -1,0 +1,22 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v1.0.0-beta.210
+_src_path: https://github.com/equa/equa-ci.git
+dev_branch: ''
+engine_image: false
+follow_packages: []
+has_binary_deps: false
+has_integration_tests: false
+lint_kinds:
+- py
+- md
+module_name: equa_cfd_viewer
+needs_database: false
+release_wheels: []
+repo_kind: service
+repo_name: equa-cfd-viewer
+service_port: 5003
+service_private_feed: false
+test_kinds:
+- py
+web_openapi: ''
+with_web: false

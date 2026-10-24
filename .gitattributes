@@ -1,0 +1,7 @@
+# Let git auto-detect text vs binary; store text files with LF in the repo.
+# Do NOT add eol=lf — that forces LF on Windows checkout and may break
+# native Windows toolchains.
+* text=auto
+# Explicitly mark known binaries (never converted)
+*.a binary
+*.exp binary
