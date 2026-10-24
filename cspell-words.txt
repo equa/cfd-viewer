@@ -1,4 +1,3 @@
-Containerfile
 GLSL
 interactor
 isosurface
@@ -9,5 +8,4 @@ Niklas
 polydata
 RGBA
 Starlette
-thermarest
 Trame
