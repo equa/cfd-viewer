@@ -197,6 +197,18 @@ def task_check_devcontainer_base() -> dict[str, Any]:
             "verbosity": 2}
 
 
+_factory_task_verify_namespace = task_verify_namespace  # noqa: F821 -- defined by create_tasks above
+
+
+# The factory's verify_namespace builds a wheel, and hatch_build.py refuses one
+# without the client.
+def task_verify_namespace() -> dict[str, Any]:
+    """Verify the equa PEP 420 namespace invariant (no root __init__.py)."""
+    task = _factory_task_verify_namespace()
+    task["task_dep"] = [*task.get("task_dep", []), "web_build"]
+    return task
+
+
 _factory_task_ci = task_ci  # noqa: F821 -- defined by create_tasks above
 
 
