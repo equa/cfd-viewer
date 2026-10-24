@@ -8,6 +8,7 @@ so they take milliseconds; the HTTP tests at the end open the real demo case.
 import asyncio
 import gzip
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -121,6 +122,8 @@ def test_does_not_descend_into_a_case(tmp_path):
     assert names(DirectorySource([tmp_path], depth=3)) == ["outer"]
 
 
+# CI runs as root, which chmod 0 does not lock out.
+@pytest.mark.skipif(os.name == "posix" and os.geteuid() == 0, reason="root ignores chmod 0")
 def test_unreadable_directory_is_reported_not_silent(tmp_path, caplog):
     """A directory the server cannot read is skipped, the rest still listed,
     and a warning names it -- otherwise a permission problem on CFD_HOME looks
